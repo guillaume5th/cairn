@@ -10,7 +10,7 @@ struct AddFeedSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Ajouter un flux").font(.headline)
+            Text("Ajouter un abonnement").font(.headline)
             TextField("URL du flux", text: $url, prompt: Text("https://exemple.com/feed.xml"))
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { Task { await add() } }

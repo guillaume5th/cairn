@@ -5,6 +5,7 @@ import SwiftUI
 struct SidebarView: View {
     @Binding var selection: SidebarItem?
     @Environment(\.modelContext) private var context
+    @Environment(AppState.self) private var state
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \CairnCore.Tag.name) private var tags: [CairnCore.Tag]
     // Every unread article, kept ones without a feed included, like the "Tous les articles" list.
@@ -24,7 +25,7 @@ struct SidebarView: View {
                     .tag(SidebarItem.tag(tag.key))
             }
 
-            Section("Abonnements") {
+            Section {
                 ForEach(feeds) { feed in
                     Label {
                         HStack {
@@ -44,6 +45,15 @@ struct SidebarView: View {
                     .contextMenu {
                         Button("Supprimer l'abonnement…", role: .destructive) { feedToDelete = feed }
                     }
+                }
+            } header: {
+                HStack {
+                    Text("Abonnements")
+                    Spacer()
+                    Button("Ajouter un abonnement", systemImage: "plus") { state.isAddingFeed = true }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                        .help("Ajouter un abonnement (⌘N)")
                 }
             }
         }

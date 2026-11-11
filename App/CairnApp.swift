@@ -30,7 +30,7 @@ struct CairnCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
-            Button("Ajouter un flux…") { state.isAddingFeed = true }
+            Button("Ajouter un abonnement…") { state.isAddingFeed = true }
                 .keyboardShortcut("n")
             Divider()
             Button("Importer OPML…") { state.isImporting = true }
