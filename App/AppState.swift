@@ -43,6 +43,17 @@ final class AppState {
         } catch {
             message = error.localizedDescription
         }
+        await refreshIcons()
+    }
+
+    /// Looks up the icons that are due (see `Library.iconCheckInterval`). A failed lookup keeps the stored icon.
+    func refreshIcons() async {
+        do {
+            try await Library.refreshIcons(context: context, fetcher: fetcher)
+            try context.save()
+        } catch {
+            message = "La récupération des icônes a échoué : \(error.localizedDescription)"
+        }
     }
 
     /// Inserted models only get their permanent persistentModelID on save. Saving right after inserts

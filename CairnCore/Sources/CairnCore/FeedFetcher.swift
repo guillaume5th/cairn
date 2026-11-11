@@ -1,7 +1,7 @@
 import Foundation
 
 public struct FeedFetcher: Sendable {
-    private let session: URLSession
+    let session: URLSession
 
     public init(session: URLSession = .shared) {
         self.session = session
@@ -19,17 +19,23 @@ public struct FeedFetcher: Sendable {
 
     /// Fetches every URL, at most `maxConcurrent` at a time. One failing feed never affects the others.
     public func fetchAll(_ urls: [String], maxConcurrent: Int = 6) async -> [String: Result<ParsedFeed, any Error>] {
-        var results: [String: Result<ParsedFeed, any Error>] = [:]
-        await withTaskGroup(of: (String, Result<ParsedFeed, any Error>).self) { group in
-            var pending = urls[...]
+        await concurrently(urls, maxConcurrent: maxConcurrent) { await self.result($0) }
+    }
+
+    /// Runs `work` for every key, at most `maxConcurrent` at a time.
+    func concurrently<T: Sendable>(_ keys: [String], maxConcurrent: Int,
+                                   _ work: @escaping @Sendable (String) async -> T) async -> [String: T] {
+        var results: [String: T] = [:]
+        await withTaskGroup(of: (String, T).self) { group in
+            var pending = keys[...]
             for _ in 0..<maxConcurrent {
-                guard let url = pending.popFirst() else { break }
-                group.addTask { (url, await result(url)) }
+                guard let key = pending.popFirst() else { break }
+                group.addTask { (key, await work(key)) }
             }
-            for await (url, result) in group {
-                results[url] = result
+            for await (key, value) in group {
+                results[key] = value
                 if let next = pending.popFirst() {
-                    group.addTask { (next, await self.result(next)) }
+                    group.addTask { (next, await work(next)) }
                 }
             }
         }

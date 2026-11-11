@@ -118,6 +118,7 @@ struct ArticleListView: View {
                     .lineLimit(2)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     if article.isKept { Image("cairn.fill").foregroundStyle(.tint) }
+                    SourceIcon(data: article.feed?.iconData ?? article.sourceIconData)
                     Text(article.sourceTitle).lineLimit(1)
                     Spacer()
                     Text(article.publishedAt, format: .relative(presentation: .named))

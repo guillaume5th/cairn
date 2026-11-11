@@ -3,6 +3,10 @@
   <title>Blog Atom</title>
   <id>urn:atom-blog</id>
   <updated>2026-11-09T10:00:00Z</updated>
+  <link rel="self" href="https://atom.test/feed"/>
+  <link rel="alternate" href="https://atom.example/"/>
+  <icon>https://atom.example/icon.png</icon>
+  <logo>https://atom.example/banner.png</logo>
   <entry>
     <title>Entrée Atom</title>
     <id>urn:atom-1</id>

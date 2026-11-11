@@ -7,6 +7,8 @@ struct FeedParserTests {
         let feed = try FeedParser.parse(fixture("rss.xml"))
         #expect(feed.title == "Blog RSS")
         #expect(feed.items.count == 2)
+        #expect(feed.siteURL == "https://rss.example/")
+        #expect(feed.iconURL == nil, "RSS declares no icon (<image> is a logo)")
 
         let first = feed.items[0]
         #expect(first.externalID == "rss-1")
@@ -23,6 +25,8 @@ struct FeedParserTests {
     @Test func atom() throws {
         let feed = try FeedParser.parse(fixture("atom.xml"))
         #expect(feed.title == "Blog Atom")
+        #expect(feed.siteURL == "https://atom.example/", "alternate link, not self")
+        #expect(feed.iconURL == "https://atom.example/icon.png", "icon, not logo")
         let entry = try #require(feed.items.first)
         #expect(entry.externalID == "urn:atom-1")
         #expect(entry.link == "https://atom.example/1", "alternate link, not self")
@@ -33,6 +37,8 @@ struct FeedParserTests {
     @Test func jsonFeed() throws {
         let feed = try FeedParser.parse(fixture("feed.json"))
         #expect(feed.title == "Blog JSON")
+        #expect(feed.siteURL == "https://json.example/")
+        #expect(feed.iconURL == "https://json.example/favicon.png", "favicon wins over the larger icon")
         #expect(feed.items == [ParsedItem(externalID: "json-1", link: "https://json.example/1", title: "Article JSON",
                                           publishedAt: ISO8601DateFormatter().date(from: "2026-11-09T10:00:00Z"),
                                           content: "<p>Contenu JSON</p>")])

@@ -66,6 +66,7 @@ struct SubscriptionTests {
         let kept = try #require(feed.articles?.first { $0.externalID == "rss-1" })
         Library.setKept(true, kept)
         kept.note = "à relire"
+        feed.iconData = pageIcon
 
         Library.delete(feed, context: context)
         try context.save()
@@ -75,6 +76,7 @@ struct SubscriptionTests {
         #expect(remaining.first?.feed == nil)
         #expect(remaining.first?.sourceTitle == "Blog RSS")
         #expect(remaining.first?.note == "à relire")
+        #expect(remaining.first?.sourceIconData == pageIcon)
         #expect(try context.fetchCount(FetchDescriptor<Feed>()) == 0)
     }
 }

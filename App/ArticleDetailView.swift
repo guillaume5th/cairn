@@ -13,8 +13,11 @@ struct ArticleDetailView: View {
                 Text(article.title.isEmpty ? "Sans titre" : article.title)
                     .font(.title2.bold())
                     .textSelection(.enabled)
-                Text("\(article.sourceTitle) · \(article.publishedAt.formatted(date: .abbreviated, time: .shortened))")
-                    .foregroundStyle(.secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    SourceIcon(data: article.feed?.iconData ?? article.sourceIconData)
+                    Text("\(article.sourceTitle) · \(article.publishedAt.formatted(date: .abbreviated, time: .shortened))")
+                }
+                .foregroundStyle(.secondary)
             }
             .padding()
             Divider()

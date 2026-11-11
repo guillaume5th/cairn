@@ -39,6 +39,8 @@ struct AddFeedSheet: View {
             _ = try await Library.addFeed(urlString: url, context: state.context, fetcher: state.fetcher)
             state.save()
             dismiss()
+            // The icon appears without waiting for the next refresh; the sheet does not wait for it.
+            Task { await state.refreshIcons() }
         } catch {
             self.error = error.localizedDescription
         }

@@ -30,10 +30,14 @@ public enum Library {
         return feed
     }
 
-    /// Deletes the feed and its non-kept articles; kept articles stay in the cairn.
+    /// Deletes the feed and its non-kept articles; kept articles stay in the cairn with a copy of the feed icon.
     public static func delete(_ feed: Feed, context: ModelContext) {
-        for article in feed.articles ?? [] where !article.isKept {
-            context.delete(article)
+        for article in feed.articles ?? [] {
+            if article.isKept {
+                article.sourceIconData = feed.iconData
+            } else {
+                context.delete(article)
+            }
         }
         context.delete(feed)
     }
@@ -91,7 +95,29 @@ public enum Library {
             added += 1
         }
         feed.lastError = nil
+        feed.siteURLHint = parsed.siteURL
+        feed.iconURLHint = parsed.iconURL
         return added
+    }
+
+    // MARK: Icons
+
+    public static let iconCheckInterval: TimeInterval = 7 * 86_400
+
+    /// Looks up the icon of every feed never checked or checked more than `iconCheckInterval` ago.
+    /// A found icon replaces the stored one; a failed lookup keeps it. Either way the check date is updated.
+    @MainActor
+    public static func refreshIcons(context: ModelContext, fetcher: FeedFetcher, now: Date = .now) async throws {
+        let due = now.addingTimeInterval(-iconCheckInterval)
+        let feeds = try context.fetch(FetchDescriptor<Feed>()).filter { ($0.iconCheckedAt ?? .distantPast) < due }
+        guard !feeds.isEmpty else { return }
+        let found = await fetcher.fetchIcons(feeds.map {
+            IconRequest(feedURL: $0.url, siteURL: $0.siteURLHint, iconURL: $0.iconURLHint)
+        })
+        for feed in feeds where !feed.isDeleted {
+            if let data = found[feed.url] { feed.iconData = data }
+            feed.iconCheckedAt = now
+        }
     }
 
     // MARK: Reading

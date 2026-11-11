@@ -22,14 +22,18 @@ struct SidebarView: View {
 
             Section("Abonnements") {
                 ForEach(feeds) { feed in
-                    HStack {
-                        Text(feed.title).lineLimit(1)
-                        if let error = feed.lastError {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.orange)
-                                .help(error)
-                                .accessibilityLabel("Erreur : \(error)")
+                    Label {
+                        HStack {
+                            Text(feed.title).lineLimit(1)
+                            if let error = feed.lastError {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(.orange)
+                                    .help(error)
+                                    .accessibilityLabel("Erreur : \(error)")
+                            }
                         }
+                    } icon: {
+                        SourceIcon(data: feed.iconData)
                     }
                     .badge(feed.unreadCount)
                     .tag(SidebarItem.feed(feed.persistentModelID))

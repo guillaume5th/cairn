@@ -10,6 +10,13 @@ public final class Feed {
     public var title: String = ""
     public var lastError: String?
     public var addedAt: Date = Date.now
+    /// Site icon (favicon), kept locally so it shows offline.
+    @Attribute(.externalStorage) public var iconData: Data?
+    /// Last icon lookup, successful or not.
+    public var iconCheckedAt: Date?
+    /// Site and icon URLs declared by the feed at its last ingestion in this session; not stored.
+    @Transient public var siteURLHint: String? = nil
+    @Transient public var iconURLHint: String? = nil
     @Relationship(deleteRule: .nullify, inverse: \Article.feed)
     public var articles: [Article]? = []
 
@@ -36,6 +43,8 @@ public final class Article {
     public var note: String = ""
     /// Copy of the feed title so a kept article keeps its source after its feed is deleted.
     public var sourceTitle: String = ""
+    /// Copy of the feed icon, set when the feed of a kept article is deleted.
+    @Attribute(.externalStorage) public var sourceIconData: Data?
     public var feed: Feed?
     @Relationship(deleteRule: .nullify, inverse: \Tag.articles)
     public var tags: [Tag]? = []
