@@ -54,6 +54,8 @@ struct SidebarView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Ajouter un abonnement (⌘N)")
+                        // Inset to line up with the unread counters of the rows below.
+                        .padding(.trailing, 17)
                 }
             }
         }
