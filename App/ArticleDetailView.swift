@@ -4,6 +4,8 @@ import SwiftUI
 
 struct ArticleDetailView: View {
     @Bindable var article: Article
+    /// False when the article was selected automatically: it is shown without being marked read.
+    let marksRead: Bool
     @Environment(\.openURL) private var openURL
     @State private var confirmUnkeep = false
 
@@ -65,7 +67,7 @@ struct ArticleDetailView: View {
         } message: {
             Text("Sa note et ses tags seront perdus.")
         }
-        .task(id: article.persistentModelID) { article.isRead = true }
+        .task(id: article.persistentModelID) { if marksRead { article.isRead = true } }
     }
 
     private var url: URL? {
