@@ -7,6 +7,9 @@ struct HTMLView: View {
     let html: String
     let baseURL: URL?
     @State private var page: WebPage?
+    @AppStorage(TextScale.key) private var textScale = 1.0
+
+    private struct Load: Equatable { let html: String, scale: Double }
 
     var body: some View {
         // Color.clear holds the layout (and runs .task) until the page exists.
@@ -14,11 +17,11 @@ struct HTMLView: View {
             Color.clear
             if let page { WebView(page) }
         }
-        .task(id: html) {
+        .task(id: Load(html: html, scale: textScale)) {
             let page = page ?? Self.makePage()
             self.page = page
             do {
-                for try await _ in page.load(html: Self.page(html), baseURL: baseURL ?? URL(string: "about:blank")!) {}
+                for try await _ in page.load(html: Self.page(html, scale: textScale), baseURL: baseURL ?? URL(string: "about:blank")!) {}
             } catch {
                 // A failed load of our own string leaves the view blank; there is nothing to retry.
             }
@@ -32,13 +35,13 @@ struct HTMLView: View {
         return WebPage(configuration: config, navigationDecider: LinkOpener())
     }
 
-    static func page(_ body: String) -> String {
+    static func page(_ body: String, scale: Double = 1) -> String {
         """
         <!doctype html><html><head><meta charset="utf-8">
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https: data:; style-src 'unsafe-inline'">
         <style>
         :root { color-scheme: light dark; }
-        body { font: -apple-system-body; font-size: 15px; line-height: 1.55; max-width: 42em; margin: 16px auto; padding: 0 20px; }
+        body { font: -apple-system-body; font-size: \(15 * scale)px; line-height: 1.55; max-width: 42em; margin: 16px auto; padding: 0 20px; }
         img, video { max-width: 100%; height: auto; }
         pre { overflow-x: auto; }
         </style></head><body>\(body)</body></html>

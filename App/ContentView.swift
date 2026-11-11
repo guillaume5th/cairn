@@ -155,6 +155,7 @@ struct ArticleListView: View {
     @Environment(\.modelContext) private var context
     @State private var articleToDelete: Article?
     @State private var articleToUnkeep: Article?
+    @AppStorage("showListIcons") private var showListIcons = true
 
     var body: some View {
         List(articles, selection: $selection) { article in
@@ -164,7 +165,9 @@ struct ArticleListView: View {
                     .opacity(article.isRead ? 0 : 1)
                     .accessibilityLabel("Non lu")
                     .accessibilityHidden(article.isRead)
-                SourceIcon(data: article.feed?.iconData ?? article.sourceIconData, side: SourceIcon.articleRowSide)
+                if showListIcons {
+                    SourceIcon(data: article.feed?.iconData ?? article.sourceIconData, side: SourceIcon.articleRowSide)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text(article.title.isEmpty ? "Sans titre" : article.title)
                         .lineLimit(2)

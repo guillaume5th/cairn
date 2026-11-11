@@ -8,17 +8,20 @@ struct ArticleDetailView: View {
     let marksRead: Bool
     @Environment(\.openURL) private var openURL
     @State private var articleToUnkeep: Article?
+    @AppStorage(TextScale.key) private var textScale = 1.0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(article.title.isEmpty ? "Sans titre" : article.title)
-                    .font(.title2.bold())
+                    // 17 pt and 13 pt are .title2 and .body on macOS, scaled: system text styles do not scale there.
+                    .font(.system(size: 17 * textScale, weight: .bold))
                     .textSelection(.enabled)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     SourceIcon(data: article.feed?.iconData ?? article.sourceIconData)
                     Text("\(article.sourceTitle) · \(article.publishedAt.formatted(date: .abbreviated, time: .shortened))")
                 }
+                .font(.system(size: 13 * textScale))
                 .foregroundStyle(.secondary)
             }
             .padding()
