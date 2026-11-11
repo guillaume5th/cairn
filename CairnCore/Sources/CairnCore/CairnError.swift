@@ -8,6 +8,9 @@ public enum CairnError: LocalizedError, Equatable {
     case invalidOPML
     case emptyFolderName
     case duplicateFolder
+    case emptyCairnName
+    case duplicateCairn
+    case lastCairn
 
     public var errorDescription: String? {
         switch self {
@@ -18,6 +21,9 @@ public enum CairnError: LocalizedError, Equatable {
         case .invalidOPML: "Ce fichier n'est pas un fichier OPML valide."
         case .emptyFolderName: "Le nom du dossier ne peut pas être vide."
         case .duplicateFolder: "Un dossier porte déjà ce nom."
+        case .emptyCairnName: "Le nom du cairn ne peut pas être vide."
+        case .duplicateCairn: "Un cairn porte déjà ce nom."
+        case .lastCairn: "Le dernier cairn ne peut pas être supprimé."
         }
     }
 }

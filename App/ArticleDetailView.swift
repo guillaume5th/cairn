@@ -50,7 +50,6 @@ struct ArticleDetailView: View {
         .toolbar {
             ToolbarItemGroup {
                 KeepButton(article: article, articleToUnkeep: $articleToUnkeep)
-                    .help(article.isKept ? "Retirer cet article du cairn" : "Garder cet article dans le cairn")
                 Button("Marquer comme non lu", systemImage: "circle") { article.isRead = false }
                     .help("Marquer comme non lu")
                 Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
@@ -67,22 +66,48 @@ struct ArticleDetailView: View {
     }
 }
 
-/// Keep / unkeep toggle shared by the reader toolbar and the article context menu. Unkeeping an article
-/// with a note or tags goes through `unkeepConfirmation`, since they are lost.
+/// Keep / unkeep control shared by the reader toolbar and the article context menu. With one cairn it is a
+/// toggle; with several, a menu of the cairns (the current one checked; picking another moves the article).
+/// Unkeeping an article with a note or tags goes through `unkeepConfirmation`, since they are lost.
 struct KeepButton: View {
     let article: Article
     @Binding var articleToUnkeep: Article?
+    @Query(sort: \Cairn.name) private var cairns: [Cairn]
 
     var body: some View {
-        Button(article.isKept ? "Retirer du cairn" : "Garder dans le cairn",
-               image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main)) {
-            if !article.isKept {
-                Library.setKept(true, article)
-            } else if article.note.isEmpty && (article.tags ?? []).isEmpty {
-                Library.setKept(false, article)
-            } else {
-                articleToUnkeep = article
+        if cairns.count > 1 {
+            Menu {
+                ForEach(cairns) { cairn in
+                    Toggle(cairn.name, isOn: Binding {
+                        article.cairn?.persistentModelID == cairn.persistentModelID
+                    } set: { isOn in
+                        if isOn { Library.keep(article, in: cairn) }
+                    })
+                }
+                if article.isKept {
+                    Divider()
+                    Button("Retirer du cairn", role: .destructive, action: unkeep)
+                }
+            } label: {
+                Label("Garder dans", image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main))
             }
+            // Without the arrow, the menu looks and sits like the other reader buttons.
+            .menuIndicator(.hidden)
+            .help("Choisir le cairn de cet article")
+        } else {
+            Button(article.isKept ? "Retirer du cairn" : "Garder dans le cairn",
+                   image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main)) {
+                if article.isKept { unkeep() } else if let cairn = cairns.first { Library.keep(article, in: cairn) }
+            }
+            .help(article.isKept ? "Retirer cet article du cairn" : "Garder cet article dans le cairn")
+        }
+    }
+
+    private func unkeep() {
+        if article.note.isEmpty && (article.tags ?? []).isEmpty {
+            Library.unkeep(article)
+        } else {
+            articleToUnkeep = article
         }
     }
 }
@@ -92,7 +117,7 @@ extension View {
         confirmationDialog("Retirer cet article du cairn ?",
                            isPresented: Binding(get: { article.wrappedValue != nil }, set: { if !$0 { article.wrappedValue = nil } }),
                            presenting: article.wrappedValue) { article in
-            Button("Retirer", role: .destructive) { Library.setKept(false, article) }
+            Button("Retirer", role: .destructive) { Library.unkeep(article) }
         } message: { _ in
             Text("Sa note et ses tags seront perdus.")
         }

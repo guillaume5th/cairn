@@ -25,6 +25,13 @@ final class AppState {
 
     func launch() async {
         do {
+            // Before anything reads the cairns: files articles kept before cairns existed.
+            try Library.ensureCairn(context: context)
+            try context.save()
+        } catch {
+            message = "La préparation du cairn a échoué : \(error.localizedDescription)"
+        }
+        do {
             try Library.purge(context: context)
         } catch {
             message = "La purge des anciens articles a échoué : \(error.localizedDescription)"

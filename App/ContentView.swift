@@ -4,8 +4,9 @@ import SwiftUI
 
 enum SidebarItem: Hashable, Codable {
     case all
-    case cairn
-    case tag(String)
+    case cairn(PersistentIdentifier)
+    /// A tag shown under a cairn: the cairn, then the tag key.
+    case tag(PersistentIdentifier, String)
     case feed(PersistentIdentifier)
     case folder(PersistentIdentifier)
 }
@@ -27,6 +28,7 @@ struct ContentView: View {
     @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
     @Query private var feeds: [Feed]
     @Query private var folders: [Folder]
+    @Query private var cairns: [Cairn]
     @Environment(\.modelContext) private var context
     @State private var memory = SelectionMemory.load()
     /// Article the user picked themself; only that one is marked read when shown.
@@ -58,6 +60,8 @@ struct ContentView: View {
                 switch item {
                 case let .feed(id): .feed(live(id))
                 case let .folder(id): .folder(live(id))
+                case let .cairn(id): .cairn(live(id))
+                case let .tag(id, key): .tag(live(id), key)
                 default: item
                 }
             }
@@ -67,7 +71,8 @@ struct ContentView: View {
             switch memory.item {
             case let .feed(id) where !feeds.contains { $0.persistentModelID == id }: memory.item = .all
             case let .folder(id) where !folders.contains { $0.persistentModelID == id }: memory.item = .all
-            case let .tag(key) where !kept.contains { $0.tags?.contains { $0.key == key } ?? false }: memory.item = .all
+            case let .cairn(id) where !cairns.contains { $0.persistentModelID == id }: memory.item = .all
+            case let .tag(id, key) where !kept(in: id).contains { $0.tags?.contains { $0.key == key } ?? false }: memory.item = .all
             default: break
             }
             settleArticle()
@@ -134,15 +139,16 @@ struct ContentView: View {
     private var title: String {
         switch memory.item {
         case .all, nil: "Tous les articles"
-        case .cairn: "Cairn"
-        case let .tag(key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
+        case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
+        case let .tag(_, key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
         case let .feed(id): feeds.first { $0.persistentModelID == id }?.title ?? "Abonnement"
         case let .folder(id): folders.first { $0.persistentModelID == id }?.name ?? "Dossier"
         }
     }
 
-    private var kept: [Article] {
-        articles.filter(\.isKept).sorted { ($0.keptAt ?? .distantPast) > ($1.keptAt ?? .distantPast) }
+    private func kept(in cairn: PersistentIdentifier) -> [Article] {
+        articles.filter { $0.isKept && $0.cairn?.persistentModelID == cairn }
+            .sorted { ($0.keptAt ?? .distantPast) > ($1.keptAt ?? .distantPast) }
     }
 
     private var visibleArticles: [Article] {
@@ -150,8 +156,8 @@ struct ContentView: View {
         case .all, nil: articles
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
         case let .folder(id): articles.filter { $0.feed?.folder?.persistentModelID == id }
-        case .cairn: kept
-        case let .tag(key): kept.filter { $0.tags?.contains { $0.key == key } ?? false }
+        case let .cairn(id): kept(in: id)
+        case let .tag(id, key): kept(in: id).filter { $0.tags?.contains { $0.key == key } ?? false }
         }
         list = Library.search(searchText, in: list)
         if unreadOnly { list = list.filter { !$0.isRead } }

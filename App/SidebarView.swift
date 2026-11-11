@@ -8,28 +8,70 @@ struct SidebarView: View {
     @Environment(AppState.self) private var state
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \Folder.name) private var folders: [Folder]
+    @Query(sort: \Cairn.name) private var cairns: [Cairn]
     @Query(sort: \CairnCore.Tag.name) private var tags: [CairnCore.Tag]
     // Every unread article, kept ones without a feed included, like the "Tous les articles" list.
     @Query(filter: #Predicate<Article> { !$0.isRead }) private var unreadArticles: [Article]
     @State private var feedToDelete: Feed?
     /// Keys of the collapsed folders, one per line, kept on this Mac.
     @AppStorage("collapsedFolders") private var collapsedFolders = ""
-    @State private var isNamingFolder = false
-    /// Folder being renamed; nil while creating one.
-    @State private var folderToRename: Folder?
-    @State private var folderName = ""
+    /// What the name alert creates or renames; nil when it is closed.
+    @State private var naming: Naming?
+    @State private var name = ""
+    @State private var cairnToDelete: Cairn?
+
+    private enum Naming {
+        case newFolder, folder(Folder), newCairn, cairn(Cairn)
+
+        var title: String {
+            switch self {
+            case .newFolder: "Nouveau dossier"
+            case .folder: "Renommer le dossier"
+            case .newCairn: "Nouveau cairn"
+            case .cairn: "Renommer le cairn"
+            }
+        }
+
+        var isNew: Bool {
+            switch self {
+            case .newFolder, .newCairn: true
+            case .folder, .cairn: false
+            }
+        }
+    }
 
     var body: some View {
         List(selection: $selection) {
             Label("Tous les articles", systemImage: "tray.full")
                 .badge(unreadArticles.count)
                 .tag(SidebarItem.all)
-            Label("Cairn", image: "cairn").tag(SidebarItem.cairn)
-            // Only tags still carried by a kept article.
-            ForEach(tags.filter { $0.articles?.contains(where: \.isKept) ?? false }) { tag in
-                Label(tag.name, systemImage: "tag")
-                    .padding(.leading, 12)
-                    .tag(SidebarItem.tag(tag.key))
+
+            Section {
+                ForEach(cairns) { cairn in
+                    Label(cairn.name, image: "cairn")
+                        .tag(SidebarItem.cairn(cairn.persistentModelID))
+                        .contextMenu {
+                            Button("Renommer…") { startNaming(.cairn(cairn)) }
+                            Button("Supprimer le cairn…", role: .destructive) { cairnToDelete = cairn }
+                                .disabled(cairns.count == 1)
+                        }
+                    ForEach(tags(in: cairn)) { tag in
+                        Label(tag.name, systemImage: "tag")
+                            .padding(.leading, 12)
+                            .tag(SidebarItem.tag(cairn.persistentModelID, tag.key))
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("Cairns")
+                    Spacer()
+                    Button("Nouveau cairn", systemImage: "plus") { startNaming(.newCairn) }
+                        .labelStyle(.iconOnly)
+                        .buttonStyle(.borderless)
+                        .help("Nouveau cairn")
+                        // Inset to line up with the "+" of the Abonnements menu below.
+                        .padding(.trailing, 21)
+                }
             }
 
             Section {
@@ -41,7 +83,7 @@ struct SidebarView: View {
                             .badge(folder.unreadCount)
                             .tag(SidebarItem.folder(folder.persistentModelID))
                             .contextMenu {
-                                Button("Renommer…") { startNaming(folder) }
+                                Button("Renommer…") { startNaming(.folder(folder)) }
                                 Button("Supprimer le dossier", role: .destructive) {
                                     let wasSelected = selection == .folder(folder.persistentModelID)
                                     Library.delete(folder, context: context)
@@ -60,7 +102,7 @@ struct SidebarView: View {
                     Spacer()
                     Menu {
                         Button("Ajouter un abonnement…") { state.isAddingFeed = true }
-                        Button("Nouveau dossier…") { startNaming(nil) }
+                        Button("Nouveau dossier…") { startNaming(.newFolder) }
                     } label: {
                         Image(systemName: "plus")
                     }
@@ -85,12 +127,24 @@ struct SidebarView: View {
                 Library.delete(feed, context: context)
             }
         } message: { _ in
-            Text("Ses articles non gardés seront supprimés. Les articles gardés restent dans le cairn.")
+            Text("Ses articles non gardés seront supprimés. Les articles gardés restent dans leur cairn.")
         }
-        .alert(folderToRename == nil ? "Nouveau dossier" : "Renommer le dossier", isPresented: $isNamingFolder) {
-            TextField("Nom du dossier", text: $folderName)
+        .alert(naming?.title ?? "", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } }),
+               presenting: naming) { naming in
+            TextField("Nom", text: $name)
             Button("Annuler", role: .cancel) {}
-            Button(folderToRename == nil ? "Créer" : "Renommer") { saveFolder() }
+            Button(naming.isNew ? "Créer" : "Renommer") { save(naming) }
+        }
+        .confirmationDialog("Supprimer le cairn « \(cairnToDelete?.name ?? "") » ?",
+                            isPresented: Binding(get: { cairnToDelete != nil }, set: { if !$0 { cairnToDelete = nil } }),
+                            presenting: cairnToDelete) { cairn in
+            Button("Supprimer", role: .destructive) { delete(cairn) }
+        } message: { cairn in
+            switch cairn.articles?.count ?? 0 {
+            case 0: Text("Il ne contient aucun article.")
+            case 1: Text("Son article ne sera plus gardé et perdra sa note et ses tags.")
+            case let count: Text("Ses \(count) articles ne seront plus gardés et perdront leur note et leurs tags.")
+            }
         }
     }
 
@@ -143,25 +197,56 @@ struct SidebarView: View {
         return !moved.isEmpty
     }
 
-    private func startNaming(_ folder: Folder?) {
-        folderToRename = folder
-        folderName = folder?.name ?? ""
-        isNamingFolder = true
+    /// Tags carried by at least one article of this cairn.
+    private func tags(in cairn: Cairn) -> [CairnCore.Tag] {
+        tags.filter { $0.articles?.contains { $0.isKept && $0.cairn?.persistentModelID == cairn.persistentModelID } ?? false }
     }
 
-    private func saveFolder() {
+    private func startNaming(_ naming: Naming) {
+        switch naming {
+        case let .folder(folder): name = folder.name
+        case let .cairn(cairn): name = cairn.name
+        case .newFolder, .newCairn: name = ""
+        }
+        self.naming = naming
+    }
+
+    private func save(_ naming: Naming) {
         do {
-            if let folder = folderToRename {
+            switch naming {
+            case .newFolder:
+                try Library.createFolder(named: name, context: context)
+            case let .folder(folder):
                 let wasExpanded = isExpanded(folder).wrappedValue
                 // The collapsed state is stored by key: move it to the new key (or back, on failure).
                 isExpanded(folder).wrappedValue = true
                 defer { isExpanded(folder).wrappedValue = wasExpanded }
-                try Library.rename(folder, to: folderName, context: context)
-            } else {
-                try Library.createFolder(named: folderName, context: context)
+                try Library.rename(folder, to: name, context: context)
+            case .newCairn:
+                try Library.createCairn(named: name, context: context)
+            case let .cairn(cairn):
+                try Library.rename(cairn, to: name, context: context)
             }
+            // A new model only gets its permanent identifier, which the sidebar selection uses, once saved.
+            state.save()
         } catch {
             state.message = error.localizedDescription
         }
+    }
+
+    private func delete(_ cairn: Cairn) {
+        let id = cairn.persistentModelID
+        let wasSelected = switch selection {
+        case .cairn(id), .tag(id, _): true
+        default: false
+        }
+        do {
+            try Library.delete(cairn, context: context)
+        } catch {
+            state.message = error.localizedDescription
+            return
+        }
+        // After the List has moved its selection to a neighbouring row (see the folder deletion).
+        if wasSelected { Task { selection = .all } }
     }
 }

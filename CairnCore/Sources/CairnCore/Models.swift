@@ -47,6 +47,8 @@ public final class Article {
     /// Copy of the feed icon, set when the feed of a kept article is deleted.
     @Attribute(.externalStorage) public var sourceIconData: Data?
     public var feed: Feed?
+    /// Set exactly when `isKept` is true (kept in place by `Library`).
+    public var cairn: Cairn?
     @Relationship(deleteRule: .nullify, inverse: \Tag.articles)
     public var tags: [Tag]? = []
 
@@ -92,10 +94,24 @@ public final class Folder {
     }
 }
 
+@Model
+public final class Cairn {
+    public var name: String = ""
+    /// Case- and diacritic-insensitive identity of the cairn, like `Tag.key`.
+    public var key: String = ""
+    @Relationship(deleteRule: .nullify, inverse: \Article.cairn)
+    public var articles: [Article]? = []
+
+    public init(name: String) {
+        self.name = name
+        self.key = Library.tagKey(name)
+    }
+}
+
 public enum CairnStore {
     public static func container(inMemory: Bool = false) throws -> ModelContainer {
         try ModelContainer(
-            for: Feed.self, Article.self, Tag.self, Folder.self,
+            for: Feed.self, Article.self, Tag.self, Folder.self, Cairn.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
         )
     }

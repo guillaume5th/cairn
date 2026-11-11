@@ -155,14 +155,16 @@ public enum Library {
 
     @discardableResult
     public static func createFolder(named name: String, context: ModelContext) throws -> Folder {
-        let name = try folderName(name, context: context)
+        let name = try checkedName(name, among: context.fetch(FetchDescriptor<Folder>()), key: \.key,
+                                   empty: .emptyFolderName, duplicate: .duplicateFolder)
         let folder = Folder(name: name)
         context.insert(folder)
         return folder
     }
 
     public static func rename(_ folder: Folder, to name: String, context: ModelContext) throws {
-        let name = try folderName(name, context: context, excluding: folder)
+        let name = try checkedName(name, among: context.fetch(FetchDescriptor<Folder>()), key: \.key, excluding: folder,
+                                   empty: .emptyFolderName, duplicate: .duplicateFolder)
         folder.name = name
         folder.key = tagKey(name)
     }
@@ -177,26 +179,78 @@ public enum Library {
         context.delete(folder)
     }
 
-    /// Trimmed name, rejected when blank or taken by another folder (case and accents ignored).
-    private static func folderName(_ name: String, context: ModelContext, excluding folder: Folder? = nil) throws -> String {
+    /// Trimmed name, rejected when blank or taken by another model (case and accents ignored).
+    /// Compared in memory: there are only a handful of folders and cairns.
+    private static func checkedName<T: PersistentModel>(_ name: String, among models: [T], key: KeyPath<T, String>,
+                                                        excluding model: T? = nil,
+                                                        empty: CairnError, duplicate: CairnError) throws -> String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let key = tagKey(trimmed)
-        guard !key.isEmpty else { throw CairnError.emptyFolderName }
-        let taken = try context.fetch(FetchDescriptor<Folder>(predicate: #Predicate { $0.key == key }))
-        guard taken.allSatisfy({ $0 === folder }) else { throw CairnError.duplicateFolder }
+        let newKey = tagKey(trimmed)
+        guard !newKey.isEmpty else { throw empty }
+        guard !models.contains(where: { $0[keyPath: key] == newKey && $0 !== model }) else { throw duplicate }
         return trimmed
     }
 
     // MARK: Cairn
 
-    /// Keeping stamps `keptAt`; un-keeping drops the note and tags (the UI confirms first when there is a note).
-    public static func setKept(_ kept: Bool, _ article: Article, now: Date = .now) {
-        article.isKept = kept
-        article.keptAt = kept ? now : nil
-        if !kept {
-            article.note = ""
-            article.tags = []
+    /// Keeps the article in `cairn`, stamping `keptAt`; an article already kept moves there with its note,
+    /// tags and `keptAt`.
+    public static func keep(_ article: Article, in cairn: Cairn, now: Date = .now) {
+        if !article.isKept {
+            article.isKept = true
+            article.keptAt = now
         }
+        article.cairn = cairn
+    }
+
+    /// Drops the note and tags (the UI confirms first when there are some).
+    public static func unkeep(_ article: Article) {
+        article.isKept = false
+        article.keptAt = nil
+        article.cairn = nil
+        article.note = ""
+        article.tags = []
+    }
+
+    @discardableResult
+    public static func createCairn(named name: String, context: ModelContext) throws -> Cairn {
+        let name = try checkedName(name, among: context.fetch(FetchDescriptor<Cairn>()), key: \.key,
+                                   empty: .emptyCairnName, duplicate: .duplicateCairn)
+        let cairn = Cairn(name: name)
+        context.insert(cairn)
+        return cairn
+    }
+
+    public static func rename(_ cairn: Cairn, to name: String, context: ModelContext) throws {
+        let name = try checkedName(name, among: context.fetch(FetchDescriptor<Cairn>()), key: \.key, excluding: cairn,
+                                   empty: .emptyCairnName, duplicate: .duplicateCairn)
+        cairn.name = name
+        cairn.key = tagKey(name)
+    }
+
+    /// Un-keeps its articles, then deletes it. The last cairn cannot be deleted.
+    public static func delete(_ cairn: Cairn, context: ModelContext) throws {
+        guard try context.fetchCount(FetchDescriptor<Cairn>()) > 1 else { throw CairnError.lastCairn }
+        for article in cairn.articles ?? [] { unkeep(article) }
+        context.delete(cairn)
+    }
+
+    /// Makes sure a cairn exists (« Cairn » on first launch) and files every kept article without a cairn
+    /// (kept before cairns existed, or synced from an older device) into the first one by name.
+    @discardableResult
+    public static func ensureCairn(context: ModelContext) throws -> Cairn {
+        let cairn: Cairn
+        if let first = try context.fetch(FetchDescriptor<Cairn>(sortBy: [SortDescriptor(\.name)])).first {
+            cairn = first
+        } else {
+            cairn = Cairn(name: "Cairn")
+            context.insert(cairn)
+        }
+        for article in try context.fetch(FetchDescriptor<Article>(predicate: #Predicate { $0.isKept }))
+        where article.cairn == nil {
+            article.cairn = cairn
+        }
+        return cairn
     }
 
     public static func tagKey(_ name: String) -> String {

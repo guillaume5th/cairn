@@ -38,7 +38,7 @@ struct SubscriptionTests {
         let context = try makeContext()
         let feed = try await Library.addFeed(urlString: "https://rss.test/feed", context: context, fetcher: stubFetcher, now: fixtureNow)
         let article = try #require(feed.articles?.first { $0.externalID == "rss-1" })
-        Library.setKept(true, article)
+        Library.keep(article, in: try Library.ensureCairn(context: context))
 
         Library.delete(article, context: context)
         try context.save()
@@ -64,7 +64,7 @@ struct SubscriptionTests {
         let context = try makeContext()
         let feed = try await Library.addFeed(urlString: "https://rss.test/feed", context: context, fetcher: stubFetcher, now: fixtureNow)
         let kept = try #require(feed.articles?.first { $0.externalID == "rss-1" })
-        Library.setKept(true, kept)
+        Library.keep(kept, in: try Library.ensureCairn(context: context))
         kept.note = "à relire"
         feed.iconData = pageIcon
 
@@ -92,7 +92,7 @@ struct IngestionTests {
         #expect(Library.ingest(parsed, into: feed, context: context, now: fixtureNow) == 2)
         let article = try #require(feed.articles?.first { $0.externalID == "rss-1" })
         article.isRead = true
-        Library.setKept(true, article)
+        Library.keep(article, in: try Library.ensureCairn(context: context))
         article.note = "note"
         try Library.addTag(named: "Swift", to: article, context: context)
 
@@ -191,6 +191,76 @@ struct FolderTests {
 }
 
 @MainActor
+struct MultipleCairnTests {
+    private func article(_ id: String, context: ModelContext) -> Article {
+        let article = Article(externalID: id, link: "", title: id, publishedAt: fixtureNow, content: nil, sourceTitle: "")
+        context.insert(article)
+        return article
+    }
+
+    @Test func keepInACairnAndMoveKeepsNoteTagsAndDate() throws {
+        let context = try makeContext()
+        let perso = try Library.createCairn(named: "Perso", context: context)
+        let pro = try Library.createCairn(named: "Pro", context: context)
+        let a = article("a", context: context)
+        Library.keep(a, in: perso, now: fixtureNow)
+        a.note = "note"
+        try Library.addTag(named: "swift", to: a, context: context)
+
+        Library.keep(a, in: pro, now: fixtureNow.addingTimeInterval(60))
+        #expect(a.cairn === pro && a.isKept && a.keptAt == fixtureNow)
+        #expect(a.note == "note" && a.tags?.map(\.name) == ["swift"])
+        #expect(perso.articles?.isEmpty == true && pro.articles?.count == 1)
+
+        Library.unkeep(a)
+        #expect(!a.isKept && a.cairn == nil && a.note.isEmpty && a.tags?.isEmpty == true)
+    }
+
+    @Test func namesAreUniqueIgnoringCaseAndAccents() throws {
+        let context = try makeContext()
+        let pro = try Library.createCairn(named: " Pro ", context: context)
+        #expect(pro.name == "Pro")
+        #expect(throws: CairnError.duplicateCairn) { try Library.createCairn(named: "prô", context: context) }
+        #expect(throws: CairnError.emptyCairnName) { try Library.createCairn(named: " ", context: context) }
+        let perso = try Library.createCairn(named: "Perso", context: context)
+        #expect(throws: CairnError.duplicateCairn) { try Library.rename(perso, to: "PRO", context: context) }
+        try Library.rename(pro, to: "PRO", context: context)
+        #expect(pro.name == "PRO")
+    }
+
+    @Test func deleteUnkeepsItsArticlesButNeverTheLastCairn() throws {
+        let context = try makeContext()
+        let perso = try Library.createCairn(named: "Perso", context: context)
+        let pro = try Library.createCairn(named: "Pro", context: context)
+        let a = article("a", context: context)
+        let b = article("b", context: context)
+        Library.keep(a, in: pro)
+        Library.keep(b, in: perso)
+        a.note = "note"
+
+        try Library.delete(pro, context: context)
+        try context.save()
+        #expect(!a.isKept && a.cairn == nil && a.note.isEmpty)
+        #expect(b.isKept && b.cairn === perso)
+        #expect(throws: CairnError.lastCairn) { try Library.delete(perso, context: context) }
+        #expect(try context.fetchCount(FetchDescriptor<Article>()) == 2)
+    }
+
+    @Test func ensureCairnFilesKeptArticlesOnce() throws {
+        let context = try makeContext()
+        let kept = article("kept", context: context)
+        kept.isKept = true // kept before cairns existed
+        kept.note = "note"
+        let other = article("other", context: context)
+
+        let cairn = try Library.ensureCairn(context: context)
+        #expect(cairn.name == "Cairn" && kept.cairn === cairn && kept.note == "note" && other.cairn == nil)
+        #expect(try Library.ensureCairn(context: context) === cairn)
+        #expect(try context.fetchCount(FetchDescriptor<Cairn>()) == 1)
+    }
+}
+
+@MainActor
 struct OPMLTests {
     @Test func parseKeepsTopLevelFolders() throws {
         let feeds = try OPML.parse(fixture("folders.opml"))
@@ -263,7 +333,7 @@ struct CairnTests {
     @Test func purgeRemovesOnlyOldUnkept() throws {
         let context = try makeContext()
         _ = article("old", daysAgo: 31, context: context)
-        Library.setKept(true, article("oldKept", daysAgo: 31, context: context))
+        Library.keep(article("oldKept", daysAgo: 31, context: context), in: try Library.ensureCairn(context: context))
         _ = article("recent", daysAgo: 1, context: context)
 
         try Library.purge(context: context, now: fixtureNow)
@@ -275,12 +345,12 @@ struct CairnTests {
     @Test func unkeepClearsNoteAndTags() throws {
         let context = try makeContext()
         let a = article("a", daysAgo: 1, context: context)
-        Library.setKept(true, a, now: fixtureNow)
+        Library.keep(a, in: try Library.ensureCairn(context: context), now: fixtureNow)
         #expect(a.keptAt == fixtureNow)
         a.note = "note"
         try Library.addTag(named: "swift", to: a, context: context)
 
-        Library.setKept(false, a)
+        Library.unkeep(a)
         #expect(!a.isKept && a.keptAt == nil && a.note.isEmpty && a.tags?.isEmpty == true)
     }
 
