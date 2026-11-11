@@ -43,7 +43,7 @@ struct CairnCommands: Commands {
             Divider()
         }
         CommandGroup(after: .textEditing) {
-            Button("Rechercher dans le cairn") { state.isSearchRequested = true }
+            Button("Rechercher") { state.isSearchRequested = true }
                 .keyboardShortcut("f")
         }
     }

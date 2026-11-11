@@ -1,0 +1,7 @@
+# Tasks
+
+## 1. Recherche dans toutes les vues
+
+- [x] 1.1 Dans `App/ContentView.swift`, appliquer `.searchable` (et `.searchFocused`) à la liste dans toutes les vues au lieu des seules vues cairn ; filtrer `visibleArticles` avec `Library.search(searchText, in:)` pour « Tous les articles » et les abonnements comme pour Cairn et les tags, avant le filtre « Non lus » ; renommer le prompt en « Rechercher » ; vérifier que `xcodebuild -scheme Cairn -destination 'platform=macOS' -derivedDataPath build build` réussit
+- [x] 1.2 Faire de ⌘F un simple focus du champ de la vue courante (supprimer la bascule vers `.cairn` dans `onChange(of: state.isSearchRequested)`) et renommer la commande de `App/CairnApp.swift` en « Rechercher » ; mettre à jour le commentaire `shortcut:` de `Library.search` (la recherche porte désormais sur tous les articles, pas seulement le cairn) ; vérifier que `swift test` passe dans `CairnCore/` et que le build réussit
+- [x] 1.3 Vérifier dans l'app : dans « Tous les articles », une recherche d'un mot d'un titre ne garde que les articles correspondants (comparer au nombre attendu en base) ; idem dans un abonnement ; une recherche sans accent trouve un titre accentué ; avec le filtre « Non lus » actif, seuls les non lus correspondants restent ; ⌘F depuis un abonnement place le curseur dans son champ sans changer de vue ; changer d'entrée vide le champ ; dans Cairn, la recherche trouve encore un article par sa note

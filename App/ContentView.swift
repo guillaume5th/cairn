@@ -68,9 +68,7 @@ struct ContentView: View {
         .onChange(of: state.isSearchRequested) {
             guard state.isSearchRequested else { return }
             state.isSearchRequested = false
-            if !isCairn { show(.cairn) }
-            // The search field only exists in cairn views: focus it once the switch has rendered.
-            Task { isSearchFocused = true }
+            isSearchFocused = true
         }
         .sheet(isPresented: $state.isAddingFeed) { AddFeedSheet() }
         .fileImporter(isPresented: $state.isImporting, allowedContentTypes: [.opml, .xml]) { state.importOPML($0) }
@@ -89,7 +87,7 @@ struct ContentView: View {
     private var articleList: some View {
         // The List only calls this setter on a user pick (mouse or keyboard); nil is a deselection, not a pick.
         let selection = Binding(get: { displayedArticleID }, set: { memory.articles[entry] = $0; pickedID = $0 })
-        let list = ArticleListView(articles: visibleArticles, selection: selection, unreadOnly: $unreadOnly)
+        ArticleListView(articles: visibleArticles, selection: selection, unreadOnly: $unreadOnly)
             .navigationTitle(title)
             .toolbar {
                 ToolbarItem {
@@ -100,12 +98,8 @@ struct ContentView: View {
                         .help(state.isRefreshing ? "Rafraîchissement en cours" : "Rafraîchir tous les abonnements (⌘R)")
                 }
             }
-        if isCairn {
-            list.searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher dans le cairn")
-                .searchFocused($isSearchFocused)
-        } else {
-            list
-        }
+            .searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher")
+            .searchFocused($isSearchFocused)
     }
 
     private var entry: SidebarItem { memory.item ?? .all }
@@ -128,13 +122,6 @@ struct ContentView: View {
         memory.articles[entry] = visibleArticles.first?.persistentModelID
     }
 
-    private var isCairn: Bool {
-        switch memory.item {
-        case .cairn, .tag: true
-        default: false
-        }
-    }
-
     private var title: String {
         switch memory.item {
         case .all, nil: "Tous les articles"
@@ -152,9 +139,10 @@ struct ContentView: View {
         var list: [Article] = switch memory.item {
         case .all, nil: articles
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
-        case .cairn: Library.search(searchText, in: kept)
-        case let .tag(key): Library.search(searchText, in: kept.filter { $0.tags?.contains { $0.key == key } ?? false })
+        case .cairn: kept
+        case let .tag(key): kept.filter { $0.tags?.contains { $0.key == key } ?? false }
         }
+        list = Library.search(searchText, in: list)
         if unreadOnly { list = list.filter { !$0.isRead } }
         return list
     }

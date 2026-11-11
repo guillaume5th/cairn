@@ -174,7 +174,8 @@ public enum Library {
     }
 
     /// Case- and diacritic-insensitive search over title, content, note and tag names.
-    // shortcut: linear in-memory scan, replace with an index if the cairn grows past ~10k articles or typing lags.
+    // shortcut: linear in-memory scan over the listed articles (all received ones in "Tous les articles"), replace with
+    // an index if a list grows past ~10k articles or typing lags.
     public static func search(_ query: String, in articles: [Article]) -> [Article] {
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return articles }
