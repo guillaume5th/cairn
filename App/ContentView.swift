@@ -93,13 +93,11 @@ struct ContentView: View {
             .navigationTitle(title)
             .toolbar {
                 ToolbarItem {
-                    // The spinner takes the button's place, so a refresh cannot be relaunched while one runs.
-                    if state.isRefreshing {
-                        ProgressView().controlSize(.small).help("Rafraîchissement en cours")
-                    } else {
-                        Button("Rafraîchir", systemImage: "arrow.clockwise") { Task { await state.refresh() } }
-                            .help("Rafraîchir tous les abonnements (⌘R)")
-                    }
+                    // The icon spins instead of being replaced: a ProgressView or a disabled button splits the item out
+                    // of the toolbar capsule. A click while refreshing is ignored by refresh().
+                    Button("Rafraîchir", systemImage: "arrow.clockwise") { Task { await state.refresh() } }
+                        .symbolEffect(.rotate, options: .repeat(.continuous).speed(2.5), isActive: state.isRefreshing)
+                        .help(state.isRefreshing ? "Rafraîchissement en cours" : "Rafraîchir tous les abonnements (⌘R)")
                 }
             }
         if isCairn {
