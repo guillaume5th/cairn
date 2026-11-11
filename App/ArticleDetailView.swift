@@ -112,27 +112,35 @@ struct KeptEditor: View {
                 .accessibilityLabel("Note personnelle")
 
             Text("Tags").font(.headline)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack {
-                    ForEach(article.tags ?? []) { tag in
+            TagFlowLayout {
+                // The relationship is unordered: sort so tags keep their place between redraws.
+                ForEach((article.tags ?? []).sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { tag in
+                    HStack(spacing: 4) {
+                        Text(tag.name)
                         Button { Library.removeTag(tag, from: article) } label: {
-                            Label(tag.name, systemImage: "xmark")
+                            Image(systemName: "xmark").font(.caption2.weight(.semibold))
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.secondary)
                         .help("Retirer le tag « \(tag.name) »")
+                        .accessibilityLabel("Retirer le tag « \(tag.name) »")
                     }
-                    TextField("Ajouter un tag", text: $newTag)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 160)
-                        .onSubmit { add(newTag) }
+                    .tagCapsule()
                 }
+                TextField("Ajouter un tag", text: $newTag)
+                    .textFieldStyle(.plain)
+                    .frame(minWidth: 120)
+                    .onSubmit { add(newTag) }
             }
+            .padding(6)
+            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
             if !suggestions.isEmpty {
                 HStack {
                     Text("Suggestions :").foregroundStyle(.secondary)
                     ForEach(suggestions) { tag in
-                        Button(tag.name) { add(tag.name) }.controlSize(.small)
+                        Button(tag.name) { add(tag.name) }
+                            .buttonStyle(.plain)
+                            .tagCapsule()
                     }
                 }
                 .font(.caption)
@@ -151,5 +159,46 @@ struct KeptEditor: View {
         // A failed tag lookup leaves the tag unadded, which the user sees immediately.
         try? Library.addTag(named: name, to: article, context: context)
         newTag = ""
+    }
+}
+
+private extension View {
+    func tagCapsule() -> some View {
+        padding(.horizontal, 8).padding(.vertical, 3).background(.tint.opacity(0.2), in: Capsule())
+    }
+}
+
+/// Lays subviews out left to right, wrapping to a new line when the width runs out, each line centered
+/// vertically. The last subview (the tag field) stretches over what its line has left.
+struct TagFlowLayout: Layout {
+    var spacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let frames = frames(for: subviews, width: proposal.width ?? .infinity)
+        return CGSize(width: proposal.width ?? frames.map(\.maxX).max() ?? 0, height: frames.map(\.maxY).max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (subview, frame) in zip(subviews, frames(for: subviews, width: bounds.width)) {
+            subview.place(at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY), proposal: ProposedViewSize(frame.size))
+        }
+    }
+
+    private func frames(for subviews: Subviews, width: CGFloat) -> [CGRect] {
+        var lines: [[CGRect]] = [[]]
+        var x: CGFloat = 0
+        for (index, subview) in subviews.enumerated() {
+            var size = subview.sizeThatFits(.unspecified)
+            if x > 0 && x + size.width > width { lines.append([]); x = 0 }
+            if index == subviews.count - 1 && width.isFinite { size.width = max(size.width, width - x) }
+            lines[lines.count - 1].append(CGRect(origin: CGPoint(x: x, y: 0), size: size))
+            x += size.width + spacing
+        }
+        var y: CGFloat = 0
+        return lines.flatMap { line in
+            let height = line.map(\.height).max() ?? 0
+            defer { y += height + spacing }
+            return line.map { $0.offsetBy(dx: 0, dy: y + (height - $0.height) / 2) }
+        }
     }
 }
