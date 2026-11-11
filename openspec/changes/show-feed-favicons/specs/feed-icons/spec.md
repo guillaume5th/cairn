@@ -7,7 +7,7 @@ Donne à chaque source un repère visuel, l'icône de son site, pour reconnaîtr
 ## ADDED Requirements
 
 ### Requirement: Récupérer l'icône d'un abonnement
-Le système SHALL récupérer l'icône du site de chaque abonnement, en retenant la première source disponible dans cet ordre : l'icône déclarée par le flux, l'icône déclarée par la page d'accueil du site, puis l'icône à l'emplacement conventionnel `/favicon.ico` du site. Une icône MUST être une image lisible ; sinon la source suivante est essayée.
+Le système SHALL récupérer l'icône du site de chaque abonnement, en retenant la première source disponible dans cet ordre : l'icône déclarée par le flux, les icônes déclarées par la page d'accueil de la plus grande à la plus petite, puis les emplacements conventionnels `/apple-touch-icon.png` et `/favicon.ico`. Une icône MUST être une image lisible et visible (pas quasi transparente) ; sinon la source suivante est essayée.
 
 #### Scenario: Icône déclarée par le flux
 - **WHEN** un flux déclare une icône et que cette icône est une image lisible
@@ -18,8 +18,16 @@ Le système SHALL récupérer l'icône du site de chaque abonnement, en retenant
 - **THEN** cette icône devient celle de l'abonnement
 
 #### Scenario: Icône conventionnelle
-- **WHEN** ni le flux ni la page d'accueil ne déclarent d'icône et que le site répond à `/favicon.ico` avec une image lisible
+- **WHEN** ni le flux ni la page d'accueil ne déclarent d'icône et que le site répond à `/apple-touch-icon.png` ou, à défaut, à `/favicon.ico` avec une image lisible
 - **THEN** cette icône devient celle de l'abonnement
+
+#### Scenario: Plusieurs icônes déclarées
+- **WHEN** la page d'accueil déclare une petite favicon et une icône plus grande
+- **THEN** la plus grande devient celle de l'abonnement
+
+#### Scenario: Icône quasi transparente
+- **WHEN** la meilleure icône déclarée n'a aucun pixel au moins à moitié opaque
+- **THEN** elle est ignorée et la source suivante est essayée
 
 #### Scenario: Aucune icône
 - **WHEN** aucune des sources ne fournit d'image lisible
@@ -45,7 +53,7 @@ Le système SHALL conserver l'icône d'un abonnement localement, pour l'afficher
 - **THEN** l'icône conservée reste affichée et les articles de l'abonnement sont rafraîchis normalement
 
 ### Requirement: Afficher l'icône de la source
-Le système SHALL afficher l'icône de l'abonnement devant son nom dans la barre latérale, devant le nom de la source dans chaque ligne de la liste d'articles, et devant le nom de la source dans l'en-tête de l'article affiché. L'icône MUST être affichée à la taille du texte qu'elle accompagne, sans déformer ses proportions.
+Le système SHALL afficher l'icône de l'abonnement devant son nom dans la barre latérale, à gauche de chaque ligne de la liste d'articles, et devant le nom de la source dans l'en-tête de l'article affiché. L'icône MUST être présentée dans un cercle au style Liquid Glass du système, sans déformer ses proportions. Dans la barre latérale et l'en-tête, le cercle MUST avoir la taille du texte qu'il accompagne.
 
 #### Scenario: Barre latérale
 - **WHEN** l'utilisateur consulte la liste des abonnements
@@ -53,11 +61,29 @@ Le système SHALL afficher l'icône de l'abonnement devant son nom dans la barre
 
 #### Scenario: Liste d'articles
 - **WHEN** l'utilisateur consulte une liste d'articles
-- **THEN** le nom de la source de chaque article est précédé de l'icône de cette source
+- **THEN** chaque ligne commence à gauche par l'icône de sa source dans un cercle
 
 #### Scenario: Article affiché
 - **WHEN** l'utilisateur affiche un article
 - **THEN** le nom de la source dans l'en-tête est précédé de l'icône de cette source
+
+### Requirement: Intégration de l'icône dans le cercle
+Le système SHALL laisser une marge entre l'icône et le bord du cercle, quelle que soit l'icône. Une icône carrée pleine MUST être rognée en rond ; une icône détourée MUST être centrée telle quelle.
+
+#### Scenario: Icône carrée pleine
+- **WHEN** l'icône d'une source est une image opaque jusqu'aux coins
+- **THEN** elle est rognée en rond, plus petite que le cercle, avec un anneau de verre visible tout autour
+
+#### Scenario: Logo détouré
+- **WHEN** l'icône d'une source est un logo à fond transparent
+- **THEN** il est centré dans le cercle sans toucher son bord
+
+### Requirement: Taille de l'icône dans la liste d'articles
+Le système SHALL donner au cercle de l'icône, dans la liste d'articles, la hauteur d'une ligne dont le titre occupe ses deux lignes, et la même taille sur toutes les lignes.
+
+#### Scenario: Titres de longueurs différentes
+- **WHEN** la liste contient des articles dont le titre tient sur une ligne et d'autres sur deux lignes
+- **THEN** tous les cercles ont la même taille, égale à la hauteur d'une ligne au titre sur deux lignes
 
 ### Requirement: Icône générique de repli
 Le système SHALL afficher une icône générique, identique pour toutes les sources, partout où une source n'a pas d'icône, afin que les noms restent alignés.

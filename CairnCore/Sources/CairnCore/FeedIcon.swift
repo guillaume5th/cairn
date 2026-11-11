@@ -3,18 +3,32 @@ import Foundation
 
 /// Finding a feed's site icon (favicon).
 public enum FeedIcon {
-    /// Icon URLs declared by `<link rel="…icon…">` in the page head, in document order, resolved against `baseURL`.
+    /// Icon URLs declared by `<link rel="…icon…">` in the page head, resolved against `baseURL`, best first:
+    /// `apple-touch-icon` (large and opaque, made to be masked), then by declared `sizes`, largest first;
+    /// ties keep document order.
     // shortcut: regex instead of an HTML parser, so malformed <link> tags or ones added by JavaScript are missed;
     // switch to a real parser if common sites fail.
     public static func declaredIcons(inHTML html: String, baseURL: URL) -> [URL] {
         let head = html.firstRange(of: /<\/head\s*>/.ignoresCase()).map { String(html[..<$0.lowerBound]) } ?? html
-        return head.matches(of: /<link\b[^>]*>/.ignoresCase()).compactMap { match in
+        let icons = head.matches(of: /<link\b[^>]*>/.ignoresCase()).compactMap { match -> (url: URL, touch: Bool, size: Int)? in
             let tag = String(match.output)
-            guard let rel = attribute("rel", in: tag), let href = attribute("href", in: tag),
-                  rel.lowercased().split(whereSeparator: \.isWhitespace).contains(where: iconRels.contains)
+            guard let rel = attribute("rel", in: tag)?.lowercased().split(whereSeparator: \.isWhitespace),
+                  rel.contains(where: iconRels.contains), let href = attribute("href", in: tag),
+                  let url = URL(string: href.replacingOccurrences(of: "&amp;", with: "&"), relativeTo: baseURL)?.absoluteURL
             else { return nil }
-            return URL(string: href.replacingOccurrences(of: "&amp;", with: "&"), relativeTo: baseURL)?.absoluteURL
+            return (url, rel.contains { $0.hasPrefix("apple-touch-icon") }, largestSize(attribute("sizes", in: tag)))
         }
+        // sorted(by:) is not stable: the index breaks ties to keep document order.
+        return icons.enumerated()
+            .sorted { ($0.element.touch ? 1 : 0, $0.element.size, -$0.offset) > ($1.element.touch ? 1 : 0, $1.element.size, -$1.offset) }
+            .map(\.element.url)
+    }
+
+    /// Largest width in a `sizes` attribute ("16x16 32x32"); "any" (vector) beats every size; absent is 0.
+    private static func largestSize(_ sizes: String?) -> Int {
+        guard let sizes = sizes?.lowercased() else { return 0 }
+        if sizes.split(separator: " ").contains("any") { return .max }
+        return sizes.split(separator: " ").compactMap { $0.split(separator: "x").first.flatMap { Int($0) } }.max() ?? 0
     }
 
     // `mask-icon` is excluded: it is a monochrome Safari pinned-tab mask, not a favicon.
@@ -58,7 +72,7 @@ extension FeedFetcher {
     }
 
     /// First readable image among: the icon declared by the feed, the icons declared by the site's home page,
-    /// then `/favicon.ico` at the site's origin.
+    /// then `/apple-touch-icon.png` and `/favicon.ico` at the site's origin.
     public func fetchIcon(_ request: IconRequest) async -> Data? {
         guard let feedURL = URL(string: request.feedURL) else { return nil }
         if let declared = request.iconURL.flatMap({ URL(string: $0, relativeTo: feedURL)?.absoluteURL }),
@@ -73,13 +87,29 @@ extension FeedFetcher {
             }
         }
         guard let origin = Self.origin(of: site ?? feedURL) else { return nil }
-        return await image(at: origin.appending(path: "favicon.ico"))
+        for path in ["apple-touch-icon.png", "favicon.ico"] {
+            if let data = await image(at: origin.appending(path: path)) { return data }
+        }
+        return nil
     }
 
     private func image(at url: URL) async -> Data? {
         guard let (data, _) = await download(url, limit: Self.maxIconBytes, truncate: false),
-              let image = NSImage(data: data), image.isValid else { return nil }
+              let image = NSImage(data: data), image.isValid, Self.isVisible(image) else { return nil }
         return data
+    }
+
+    /// Some sites serve a near-transparent "ghost" icon; one that has no pixel at least half opaque is unreadable.
+    static func isVisible(_ image: NSImage) -> Bool {
+        let side = 64
+        var rect = CGRect(x: 0, y: 0, width: side, height: side)
+        guard let cg = image.cgImage(forProposedRect: &rect, context: nil, hints: nil),
+              let context = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+        context.draw(cg, in: rect)
+        guard let pixels = context.data?.assumingMemoryBound(to: UInt8.self) else { return false }
+        return (0..<side * side).contains { pixels[$0 * 4 + 3] >= 128 }
     }
 
     /// GET over http(s) only. Returns nil on any failure, or when the body exceeds `limit` and `truncate` is false.

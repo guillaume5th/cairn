@@ -44,10 +44,10 @@ final class StubProtocol: URLProtocol {
 }
 
 /// A valid PNG of `side`×`side` pixels; different sides give different data.
-func pngData(side: Int) -> Data {
+func pngData(side: Int, alpha: CGFloat = 1) -> Data {
     let context = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: 0,
                             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
-    context.setFillColor(red: 0.2, green: 0.4, blue: 0.9, alpha: 1)
+    context.setFillColor(red: 0.2, green: 0.4, blue: 0.9, alpha: alpha)
     context.fill(CGRect(x: 0, y: 0, width: side, height: side))
     let data = NSMutableData()
     let destination = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil)!
@@ -72,6 +72,8 @@ func page(_ head: String) -> Data { Data("<html><head>\(head)</head><body></body
 /// - big.test: declared icon too large, no /favicon.ico
 /// - none.test: nothing at all
 /// - count.test: only /favicon.ico; reserved for tests counting requests
+/// - touch.test: undeclared /apple-touch-icon.png and /favicon.ico
+/// - ghost.test: best declared icon is near-transparent, the next one is fine
 let iconRoutes: [String: Data] = [
     "atom.example/icon.png": declaredIcon,
     "rss.example/": page(#"<link rel="shortcut icon" href="/static/icon.png">"#),
@@ -84,8 +86,13 @@ let iconRoutes: [String: Data] = [
     "big.test/": page(#"<link rel="icon" href="/big.png">"#),
     "big.test/big.png": oversizedIcon,
     "count.test/favicon.ico": conventionalIcon,
+    "touch.test/apple-touch-icon.png": pageIcon,
+    "touch.test/favicon.ico": conventionalIcon,
+    "ghost.test/": page(#"<link rel="apple-touch-icon" href="/ghost.png"><link rel="icon" href="/fav.png">"#),
+    "ghost.test/ghost.png": pngData(side: 6, alpha: 0.2),
+    "ghost.test/fav.png": pageIcon,
 ]
-let iconHosts: Set<String> = ["atom.example", "rss.example", "ico.test", "bad.test", "big.test", "none.test", "count.test"]
+let iconHosts: Set<String> = ["atom.example", "rss.example", "ico.test", "bad.test", "big.test", "none.test", "count.test", "touch.test", "ghost.test"]
 
 let stubFetcher: FeedFetcher = {
     let config = URLSessionConfiguration.ephemeral

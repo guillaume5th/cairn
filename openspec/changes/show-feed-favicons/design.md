@@ -15,19 +15,20 @@
 - Aucune requête d'icône sur le chemin critique de l'affichage des articles.
 
 **Non-Goals:**
-- Choisir la « meilleure » icône parmi plusieurs tailles déclarées : on prend la première déclarée.
 - Icône par article (seule la source compte).
 - Retour visuel pendant la recherche (l'icône générique en tient lieu).
 - Réglage de la fréquence de revérification.
 
 ## Decisions
 
-### Ordre de recherche : flux, page d'accueil, `/favicon.ico`
-1. **Flux** : Atom `icon`, JSON Feed `favicon` puis `icon`. On ignore volontairement RSS `<image>` et Atom `logo` : ce sont des logos souvent larges et rectangulaires, illisibles à 16 pt.
+### Ordre de recherche : flux, page d'accueil, emplacements conventionnels
+1. **Flux** : Atom `icon`, JSON Feed `icon` puis `favicon` (`icon` fait 512 px selon la spécification JSON Feed, `favicon` 64 px). On ignore volontairement RSS `<image>` et Atom `logo` : ce sont des logos souvent larges et rectangulaires, illisibles à 16 pt.
 2. **Page d'accueil** : URL du site = lien de site du flux (RSS `channel.link`, Atom `alternate`, JSON `home_page_url`), sinon l'origine de l'URL du flux. On y cherche le premier `<link rel>` contenant le jeton `icon` (`icon`, `shortcut icon`, `apple-touch-icon`) et on résout son `href` par rapport à l'URL finale de la page (après redirections).
-3. **Conventionnel** : `/favicon.ico` à l'origine du site.
+3. **Conventionnel** : `/apple-touch-icon.png`, puis `/favicon.ico`, à l'origine du site.
 
-Chaque candidat n'est retenu que si les données se décodent en image (`NSImage(data:)`, qui lit PNG, ICO, GIF, JPEG et SVG). Sinon on passe au suivant.
+Les icônes déclarées par la page sont essayées de la meilleure à la moins bonne : `apple-touch-icon` d'abord (180 px en général, opaque, conçue pour être découpée en forme arrondie), puis selon l'attribut `sizes`, le plus grand d'abord (`any`, vectoriel, avant toute taille ; sans `sizes`, en dernier) ; à égalité, l'ordre du document. Une favicon de 16 px agrandie dans le cercle de la liste (environ 58 px) est floue : la résolution compte plus que l'ordre de déclaration.
+
+Chaque candidat n'est retenu que si les données se décodent en image (`NSImage(data:)`, qui lit PNG, ICO, GIF, JPEG et SVG). Sinon on passe au suivant. Il doit aussi être visible : au moins un pixel à moitié opaque une fois réduit à 64 px. Certains sites servent une icône « fantôme » quasi transparente, invisible sur n'importe quel fond.
 
 - Alternative écartée : un service tiers de favicons (Google, DuckDuckGo). Plus simple et plus fiable, mais il révèle la liste des abonnements à un tiers.
 - Alternative écartée : uniquement `/favicon.ico`. Beaucoup de sites récents ne servent leur icône qu'au chemin déclaré dans leur HTML.
@@ -55,13 +56,19 @@ Pas de parseur HTML dans le projet, et en ajouter un pour une seule balise ne va
 - Une seule vue SwiftUI dans `App` prend des `Data?` et affiche l'image redimensionnée (`resizable`, `scaledToFit`), ou le symbole générique `dot.radiowaves.up.forward` si les données sont absentes ou illisibles. Les deux sont posés en surimpression d'un symbole `square` masqué, qui fixe le cadre : l'icône prend ainsi la taille et la ligne de base qu'aurait un symbole dans le texte courant, y compris le réglage de taille des icônes de la barre latérale.
   - Alternative écartée : `@ScaledMetric`, qui ne suit pas la taille du texte sur macOS ; et un calcul à partir de `NSFont`, qui ignorerait le réglage de la barre latérale.
 - Le décodage `NSImage(data:)` étant coûteux dans une liste, l'image décodée est mise en cache en mémoire par identité de données (`NSCache` clé = hash des données). `shortcut: cache sans éviction fine ; à revoir si la mémoire devient un sujet avec des centaines d'abonnements.`
-- Emplacements : ligne d'abonnement de `SidebarView`, ligne de `ArticleListView` (avant `sourceTitle`, après le badge du cairn), en-tête de `ArticleDetailView`.
+- L'icône est posée sur un cercle `glassEffect(.regular, in: .circle)` (Liquid Glass), toujours avec une marge, selon sa forme lue une fois au décodage (quatre coins opaques ou non) :
+  - **carrée pleine** : rognée en rond à 80 % du diamètre, comme une icône d'app ; l'anneau de verre visible autour évite qu'une photo touche le bord ;
+  - **détourée**, et le repli générique : centrée à 62 % du diamètre.
+  - Alternatives écartées : remplir tout le cercle (la photo touche le bord) ; limiter l'agrandissement des petits logos à 2× et teinter le verre de leur couleur (petits logos perdus dans le cercle, et la teinte noyait certains logos dans leur propre couleur).
+- Emplacements : ligne d'abonnement de `SidebarView` et en-tête de `ArticleDetailView`, à la taille du texte ; à gauche de chaque ligne de `ArticleListView`, à un diamètre fixe.
+- Diamètre fixe de la liste : hauteur d'une ligne dont le titre occupe ses deux lignes autorisées (2 lignes `body` + 1 ligne `caption` + l'espacement de 2 pt), calculée une fois à partir des polices système (`NSLayoutManager.defaultLineHeight`). Toutes les lignes ont ainsi le même cercle, et une ligne au titre court prend cette hauteur.
+  - Alternative écartée : mesurer chaque ligne (`GeometryReader`) ; les cercles varieraient d'une ligne à l'autre.
 
 ## Risks / Trade-offs
 
 - [Contenu hostile servi comme icône] → Taille plafonnée à 512 Ko, décodage par `NSImage` uniquement, aucune exécution ; les SVG sont rendus par AppKit comme image statique.
 - [Page d'accueil lourde ou lente] → Lecture limitée à 256 Ko, délai de 20 s comme pour les flux, échec silencieux.
-- [Icône déclarée en HTML générée côté client] → Non trouvée ; repli sur `/favicon.ico`, puis icône générique.
+- [Icône déclarée en HTML générée côté client] → Non trouvée ; repli sur `/apple-touch-icon.png` et `/favicon.ico`, puis icône générique.
 - [Requêtes supplémentaires vers les sites] → Au plus deux à trois par abonnement tous les 7 jours, vers des sites déjà contactés pour leurs flux.
 - [Migration du schéma] → Propriétés optionnelles uniquement : migration légère automatique de SwiftData, aucune donnée existante touchée.
 

@@ -6,9 +6,9 @@ Dans la barre latérale, la liste d'articles et le panneau de lecture, les sourc
 
 ## What Changes
 
-- Récupérer l'icône du site de chaque abonnement : celle déclarée par le flux si elle existe, sinon celle déclarée par la page d'accueil du site, sinon `/favicon.ico`.
+- Récupérer l'icône du site de chaque abonnement, la meilleure disponible : celle déclarée par le flux si elle existe, sinon la plus grande déclarée par la page d'accueil du site, sinon `/apple-touch-icon.png` puis `/favicon.ico`. Une icône quasi transparente est ignorée.
 - Conserver l'icône localement avec l'abonnement, pour qu'elle s'affiche hors ligne et sans retélécharger à chaque lancement. La revérifier périodiquement.
-- Afficher l'icône devant le nom de l'abonnement dans la barre latérale, devant la source dans chaque ligne de la liste d'articles, et devant la source dans l'en-tête de l'article affiché.
+- Afficher l'icône dans un cercle Liquid Glass, avec une marge : devant le nom de l'abonnement dans la barre latérale, à gauche de chaque ligne de la liste d'articles (même taille sur toutes les lignes), et devant la source dans l'en-tête de l'article affiché.
 - Afficher une icône générique quand un abonnement n'a pas d'icône (pas encore récupérée, introuvable ou illisible).
 - Un article gardé dont l'abonnement est supprimé conserve l'icône de sa source, comme il conserve déjà son nom.
 

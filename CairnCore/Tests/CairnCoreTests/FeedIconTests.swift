@@ -37,6 +37,18 @@ struct DeclaredIconTests {
         #expect(icons(html) == ["https://site.test/touch.png?a=1&b=2", "https://site.test/fav.svg"])
     }
 
+    @Test func appleTouchIconThenLargestSizeFirst() {
+        let html = """
+        <link rel="icon" href="/plain.ico">
+        <link rel="icon" sizes="16x16" href="/16.png">
+        <link rel="icon" sizes="32x32 192x192" href="/192.png">
+        <link rel="apple-touch-icon" href="/touch.png">
+        <link rel="icon" sizes="any" href="/vector.svg">
+        """
+        #expect(icons(html) == ["https://site.test/touch.png", "https://site.test/vector.svg", "https://site.test/192.png",
+                                "https://site.test/16.png", "https://site.test/plain.ico"])
+    }
+
     @Test func pageWithoutIcon() {
         #expect(icons("<html><head><title>Rien</title></head><body></body></html>").isEmpty)
     }
@@ -57,6 +69,14 @@ struct IconLookupTests {
 
     @Test func conventionalFaviconAtFeedOrigin() async {
         #expect(await icon("https://ico.test/feed.xml") == conventionalIcon, "no site URL: the feed origin is used")
+    }
+
+    @Test func conventionalAppleTouchIconBeforeFavicon() async {
+        #expect(await icon("https://touch.test/feed") == pageIcon)
+    }
+
+    @Test func nearTransparentIconFallsThrough() async {
+        #expect(await icon("https://ghost.test/feed") == pageIcon)
     }
 
     @Test func unreadableIconFallsThrough() async {

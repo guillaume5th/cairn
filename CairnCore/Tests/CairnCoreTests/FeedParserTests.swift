@@ -38,7 +38,7 @@ struct FeedParserTests {
         let feed = try FeedParser.parse(fixture("feed.json"))
         #expect(feed.title == "Blog JSON")
         #expect(feed.siteURL == "https://json.example/")
-        #expect(feed.iconURL == "https://json.example/favicon.png", "favicon wins over the larger icon")
+        #expect(feed.iconURL == "https://json.example/large.png", "the larger icon wins over the favicon")
         #expect(feed.items == [ParsedItem(externalID: "json-1", link: "https://json.example/1", title: "Article JSON",
                                           publishedAt: ISO8601DateFormatter().date(from: "2026-11-09T10:00:00Z"),
                                           content: "<p>Contenu JSON</p>")])

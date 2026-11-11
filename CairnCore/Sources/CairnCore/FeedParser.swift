@@ -14,7 +14,7 @@ public struct ParsedFeed: Sendable, Equatable {
     public var items: [ParsedItem]
     /// Home page of the site, as declared by the feed.
     public var siteURL: String? = nil
-    /// Small square icon declared by the feed (Atom `icon`, JSON Feed `favicon`/`icon`).
+    /// Square icon declared by the feed (Atom `icon`, JSON Feed `icon` then `favicon`).
     public var iconURL: String? = nil
 }
 
@@ -60,7 +60,8 @@ public enum FeedParser {
         case let .json(json):
             title = json.title
             siteURL = json.homePageURL
-            iconURL = json.favicon ?? json.icon
+            // JSON Feed `icon` is 512 px, `favicon` 64 px: the larger looks better in a circle.
+            iconURL = json.icon ?? json.favicon
             items = (json.items ?? []).map { item in
                 make(id: item.id, link: item.url ?? item.externalURL, title: item.title,
                      date: item.datePublished ?? item.dateModified,
