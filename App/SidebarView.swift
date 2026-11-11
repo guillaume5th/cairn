@@ -1,3 +1,4 @@
+import AppKit
 import CairnCore
 import SwiftData
 import SwiftUI
@@ -69,7 +70,7 @@ struct SidebarView: View {
                         .labelStyle(.iconOnly)
                         .buttonStyle(.borderless)
                         .help("Nouveau cairn")
-                        // Inset to line up with the "+" of the Abonnements menu below.
+                        // Inset to line up with the unread counters of the rows below.
                         .padding(.trailing, 21)
                 }
             }
@@ -100,20 +101,18 @@ struct SidebarView: View {
                 HStack {
                     Text("Abonnements")
                     Spacer()
-                    Menu {
-                        Button("Ajouter un abonnement…") { state.isAddingFeed = true }
-                        Button("Nouveau dossier…") { startNaming(.newFolder) }
-                    } label: {
-                        Image(systemName: "plus")
+                    // A Button popping an NSMenu rather than a SwiftUI Menu, whose label renders brighter and
+                    // larger than the "Nouveau cairn" button above whatever its style.
+                    Button("Ajouter", systemImage: "plus") {
+                        ActionMenu.popUp([
+                            ("Ajouter un abonnement…", { state.isAddingFeed = true }),
+                            ("Nouveau dossier…", { startNaming(.newFolder) }),
+                        ])
                     }
-                    .menuStyle(.button)
+                    .labelStyle(.iconOnly)
                     .buttonStyle(.borderless)
-                    .menuIndicator(.hidden)
-                    .fixedSize()
                     .help("Ajouter un abonnement (⌘N) ou un dossier")
-                    .accessibilityLabel("Ajouter")
-                    // Inset to line up with the unread counters of the rows below.
-                    .padding(.trailing, 17)
+                    .padding(.trailing, 21)
                 }
                 // Dropping a feed on the section header takes it out of its folder.
                 .dropDestination(for: String.self) { urls, _ in move(urls, to: nil) }
@@ -248,5 +247,25 @@ struct SidebarView: View {
         }
         // After the List has moved its selection to a neighbouring row (see the folder deletion).
         if wasSelected { Task { selection = .all } }
+    }
+}
+
+/// Pops a native menu under the mouse, for a button that must look like a plain Button.
+private enum ActionMenu {
+    private final class Item: NSMenuItem {
+        let handler: () -> Void
+        init(_ title: String, _ handler: @escaping () -> Void) {
+            self.handler = handler
+            super.init(title: title, action: #selector(run), keyEquivalent: "")
+            target = self
+        }
+        required init(coder: NSCoder) { fatalError() }
+        @objc func run() { handler() }
+    }
+
+    static func popUp(_ items: [(String, () -> Void)]) {
+        let menu = NSMenu()
+        items.forEach { menu.addItem(Item($0.0, $0.1)) }
+        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 }
