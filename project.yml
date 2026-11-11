@@ -1,0 +1,37 @@
+name: Cairn
+options:
+  bundleIdPrefix: dev.cairn
+  developmentLanguage: fr
+  deploymentTarget:
+    macOS: "27.0"
+packages:
+  CairnCore:
+    path: CairnCore
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  Cairn:
+    type: application
+    platform: macOS
+    sources: [App]
+    dependencies:
+      - package: CairnCore
+    entitlements:
+      path: App/Cairn.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.files.user-selected.read-write: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.cairn.Cairn
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Cairn
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.news
+        # Ad-hoc signing: runs locally, no Apple developer account needed.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGN_STYLE: Manual
+        ENABLE_HARDENED_RUNTIME: YES

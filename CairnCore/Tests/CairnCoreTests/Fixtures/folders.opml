@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="1.0">
+  <head><title>Export NetNewsWire</title></head>
+  <body>
+    <outline text="Swift" title="Swift">
+      <outline text="Swift.org" title="Swift.org" type="rss" xmlUrl="https://swift.org/atom.xml" htmlUrl="https://swift.org"/>
+      <outline text="Inner" title="Inner">
+        <outline text="Deep" type="rss" xmlUrl="https://deep.example/feed"/>
+      </outline>
+    </outline>
+    <outline text="Top level &amp; co" type="rss" xmlUrl="https://top.example/rss"/>
+    <outline text="Dossier vide"/>
+  </body>
+</opml>

@@ -1,0 +1,73 @@
+import Foundation
+import SwiftData
+
+// CloudKit-compatible schema: every property has a default, every relationship is optional,
+// and no @Attribute(.unique). Uniqueness is enforced by Library.
+
+@Model
+public final class Feed {
+    public var url: String = ""
+    public var title: String = ""
+    public var lastError: String?
+    public var addedAt: Date = Date.now
+    @Relationship(deleteRule: .nullify, inverse: \Article.feed)
+    public var articles: [Article]? = []
+
+    public init(url: String, title: String) {
+        self.url = url
+        self.title = title
+    }
+
+    public var unreadCount: Int {
+        (articles ?? []).count { !$0.isRead }
+    }
+}
+
+@Model
+public final class Article {
+    public var externalID: String = ""
+    public var link: String = ""
+    public var title: String = ""
+    public var publishedAt: Date = Date.now
+    public var content: String?
+    public var isRead: Bool = false
+    public var isKept: Bool = false
+    public var keptAt: Date?
+    public var note: String = ""
+    /// Copy of the feed title so a kept article keeps its source after its feed is deleted.
+    public var sourceTitle: String = ""
+    public var feed: Feed?
+    @Relationship(deleteRule: .nullify, inverse: \Tag.articles)
+    public var tags: [Tag]? = []
+
+    public init(externalID: String, link: String, title: String, publishedAt: Date, content: String?, sourceTitle: String) {
+        self.externalID = externalID
+        self.link = link
+        self.title = title
+        self.publishedAt = publishedAt
+        self.content = content
+        self.sourceTitle = sourceTitle
+    }
+}
+
+@Model
+public final class Tag {
+    public var name: String = ""
+    /// Case- and diacritic-insensitive identity of the tag.
+    public var key: String = ""
+    public var articles: [Article]? = []
+
+    public init(name: String) {
+        self.name = name
+        self.key = Library.tagKey(name)
+    }
+}
+
+public enum CairnStore {
+    public static func container(inMemory: Bool = false) throws -> ModelContainer {
+        try ModelContainer(
+            for: Feed.self, Article.self, Tag.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
+        )
+    }
+}

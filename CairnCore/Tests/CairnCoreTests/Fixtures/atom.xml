@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Blog Atom</title>
+  <id>urn:atom-blog</id>
+  <updated>2026-11-09T10:00:00Z</updated>
+  <entry>
+    <title>Entrée Atom</title>
+    <id>urn:atom-1</id>
+    <link rel="self" href="https://atom.example/self/1"/>
+    <link rel="alternate" href="https://atom.example/1"/>
+    <updated>2026-11-09T10:00:00Z</updated>
+    <summary>Résumé Atom</summary>
+    <content type="html">&lt;p&gt;Contenu Atom&lt;/p&gt;</content>
+  </entry>
+</feed>

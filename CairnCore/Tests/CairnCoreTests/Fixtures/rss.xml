@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Blog RSS</title>
+    <link>https://rss.example/</link>
+    <item>
+      <title>Premier article</title>
+      <link>https://rss.example/1</link>
+      <guid isPermaLink="false">rss-1</guid>
+      <pubDate>Mon, 09 Nov 2026 10:00:00 GMT</pubDate>
+      <description>Résumé court</description>
+      <content:encoded><![CDATA[<p>Contenu <b>complet</b></p>]]></content:encoded>
+    </item>
+    <item>
+      <title>Sans guid ni date</title>
+      <link>https://rss.example/2</link>
+      <description>Seulement un résumé</description>
+    </item>
+  </channel>
+</rss>

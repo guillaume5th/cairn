@@ -1,0 +1,7 @@
+# Keeps CairnCore's Swift packages on their latest release (Package.swift floor + Package.resolved).
+version: 2
+updates:
+  - package-ecosystem: "swift"
+    directory: "/CairnCore"
+    schedule:
+      interval: "weekly"
