@@ -92,8 +92,14 @@ struct ContentView: View {
         let list = ArticleListView(articles: visibleArticles, selection: selection, unreadOnly: $unreadOnly)
             .navigationTitle(title)
             .toolbar {
-                if state.isRefreshing {
-                    ToolbarItem { ProgressView().controlSize(.small).help("Rafraîchissement en cours") }
+                ToolbarItem {
+                    // The spinner takes the button's place, so a refresh cannot be relaunched while one runs.
+                    if state.isRefreshing {
+                        ProgressView().controlSize(.small).help("Rafraîchissement en cours")
+                    } else {
+                        Button("Rafraîchir", systemImage: "arrow.clockwise") { Task { await state.refresh() } }
+                            .help("Rafraîchir tous les abonnements (⌘R)")
+                    }
                 }
             }
         if isCairn {
