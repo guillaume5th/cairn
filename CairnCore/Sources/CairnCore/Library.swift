@@ -42,13 +42,25 @@ public enum Library {
         context.delete(feed)
     }
 
-    /// Creates a feed for each OPML entry not already followed. Feeds get their articles on the next refresh.
+    /// Creates a feed for each OPML entry not already followed, in its folder (matched by key, created if missing).
+    /// Feeds already followed keep their folder. Feeds get their articles on the next refresh.
     public static func importOPML(_ data: Data, context: ModelContext) throws -> (added: Int, skipped: Int) {
         let entries = try OPML.parse(data)
         var known = Set(try context.fetch(FetchDescriptor<Feed>()).map(\.url))
+        var folders = Dictionary(try context.fetch(FetchDescriptor<Folder>()).map { ($0.key, $0) }, uniquingKeysWith: { a, _ in a })
         var added = 0
         for entry in entries where known.insert(entry.url).inserted {
-            context.insert(Feed(url: entry.url, title: entry.title))
+            let feed = Feed(url: entry.url, title: entry.title)
+            context.insert(feed)
+            if let name = entry.folder {
+                let key = tagKey(name)
+                if folders[key] == nil {
+                    let folder = Folder(name: name)
+                    context.insert(folder)
+                    folders[key] = folder
+                }
+                feed.folder = folders[key]
+            }
             added += 1
         }
         return (added, entries.count - added)
@@ -56,7 +68,8 @@ public enum Library {
 
     public static func exportOPML(context: ModelContext) throws -> Data {
         let feeds = try context.fetch(FetchDescriptor<Feed>(sortBy: [SortDescriptor(\.title)]))
-        return OPML.export(feeds.map { OPMLFeed(title: $0.title, url: $0.url) })
+            .sorted { ($0.folder?.name ?? "").localizedStandardCompare($1.folder?.name ?? "") == .orderedAscending }
+        return OPML.export(feeds.map { OPMLFeed(title: $0.title, url: $0.url, folder: $0.folder?.name) })
     }
 
     private static func isSubscribed(_ url: String, context: ModelContext) throws -> Bool {
@@ -136,6 +149,42 @@ public enum Library {
     public static func delete(_ article: Article, context: ModelContext) {
         guard article.feed == nil else { return }
         context.delete(article)
+    }
+
+    // MARK: Folders
+
+    @discardableResult
+    public static func createFolder(named name: String, context: ModelContext) throws -> Folder {
+        let name = try folderName(name, context: context)
+        let folder = Folder(name: name)
+        context.insert(folder)
+        return folder
+    }
+
+    public static func rename(_ folder: Folder, to name: String, context: ModelContext) throws {
+        let name = try folderName(name, context: context, excluding: folder)
+        folder.name = name
+        folder.key = tagKey(name)
+    }
+
+    /// `nil` moves the feed back to the root.
+    public static func move(_ feed: Feed, to folder: Folder?) {
+        feed.folder = folder
+    }
+
+    /// Its feeds stay, at the root (nullify rule).
+    public static func delete(_ folder: Folder, context: ModelContext) {
+        context.delete(folder)
+    }
+
+    /// Trimmed name, rejected when blank or taken by another folder (case and accents ignored).
+    private static func folderName(_ name: String, context: ModelContext, excluding folder: Folder? = nil) throws -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = tagKey(trimmed)
+        guard !key.isEmpty else { throw CairnError.emptyFolderName }
+        let taken = try context.fetch(FetchDescriptor<Folder>(predicate: #Predicate { $0.key == key }))
+        guard taken.allSatisfy({ $0 === folder }) else { throw CairnError.duplicateFolder }
+        return trimmed
     }
 
     // MARK: Cairn

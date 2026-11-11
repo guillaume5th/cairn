@@ -19,6 +19,7 @@ public final class Feed {
     @Transient public var iconURLHint: String? = nil
     @Relationship(deleteRule: .nullify, inverse: \Article.feed)
     public var articles: [Article]? = []
+    public var folder: Folder?
 
     public init(url: String, title: String) {
         self.url = url
@@ -72,10 +73,29 @@ public final class Tag {
     }
 }
 
+@Model
+public final class Folder {
+    public var name: String = ""
+    /// Case- and diacritic-insensitive identity of the folder, like `Tag.key`.
+    public var key: String = ""
+    /// Deleting the folder leaves its feeds at the root.
+    @Relationship(deleteRule: .nullify, inverse: \Feed.folder)
+    public var feeds: [Feed]? = []
+
+    public init(name: String) {
+        self.name = name
+        self.key = Library.tagKey(name)
+    }
+
+    public var unreadCount: Int {
+        (feeds ?? []).reduce(0) { $0 + $1.unreadCount }
+    }
+}
+
 public enum CairnStore {
     public static func container(inMemory: Bool = false) throws -> ModelContainer {
         try ModelContainer(
-            for: Feed.self, Article.self, Tag.self,
+            for: Feed.self, Article.self, Tag.self, Folder.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
         )
     }

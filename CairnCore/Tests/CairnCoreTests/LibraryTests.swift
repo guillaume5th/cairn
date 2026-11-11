@@ -141,14 +141,82 @@ struct IngestionTests {
 }
 
 @MainActor
+struct FolderTests {
+    @Test func createRejectsBlankAndDuplicateNames() throws {
+        let context = try makeContext()
+        let swift = try Library.createFolder(named: "  Swift ", context: context)
+        #expect(swift.name == "Swift")
+        #expect(throws: CairnError.duplicateFolder) { try Library.createFolder(named: "swîft", context: context) }
+        #expect(throws: CairnError.emptyFolderName) { try Library.createFolder(named: "  ", context: context) }
+        #expect(try context.fetchCount(FetchDescriptor<Folder>()) == 1)
+    }
+
+    @Test func renameKeepsFeedsAndChecksOtherFolders() throws {
+        let context = try makeContext()
+        let swift = try Library.createFolder(named: "Swift", context: context)
+        try Library.createFolder(named: "Rust", context: context)
+        let feed = Feed(url: "https://a.test", title: "A")
+        context.insert(feed)
+        Library.move(feed, to: swift)
+
+        try Library.rename(swift, to: "SWIFT", context: context) // its own name, other case
+        #expect(throws: CairnError.duplicateFolder) { try Library.rename(swift, to: "rust", context: context) }
+        try Library.rename(swift, to: "Apple", context: context)
+        #expect(swift.name == "Apple" && swift.key == "apple" && feed.folder === swift)
+    }
+
+    @Test func moveAndDeleteKeepFeedsAndArticles() throws {
+        let context = try makeContext()
+        let a = try Library.createFolder(named: "A", context: context)
+        let b = try Library.createFolder(named: "B", context: context)
+        let feed = Feed(url: "https://a.test", title: "A")
+        context.insert(feed)
+        let article = Article(externalID: "1", link: "", title: "t", publishedAt: fixtureNow, content: nil, sourceTitle: "A")
+        article.feed = feed
+        context.insert(article)
+
+        Library.move(feed, to: a)
+        Library.move(feed, to: b)
+        #expect(feed.folder === b && a.feeds?.isEmpty == true && b.unreadCount == 1)
+        Library.move(feed, to: nil)
+        #expect(feed.folder == nil)
+
+        Library.move(feed, to: a)
+        Library.delete(a, context: context)
+        try context.save()
+        #expect(feed.folder == nil)
+        #expect(try context.fetchCount(FetchDescriptor<Feed>()) == 1)
+        #expect(try context.fetchCount(FetchDescriptor<Article>()) == 1)
+    }
+}
+
+@MainActor
 struct OPMLTests {
-    @Test func parseFlattensFolders() throws {
+    @Test func parseKeepsTopLevelFolders() throws {
         let feeds = try OPML.parse(fixture("folders.opml"))
         #expect(feeds == [
-            OPMLFeed(title: "Swift.org", url: "https://swift.org/atom.xml"),
-            OPMLFeed(title: "Deep", url: "https://deep.example/feed"),
+            OPMLFeed(title: "Swift.org", url: "https://swift.org/atom.xml", folder: "Swift"),
+            OPMLFeed(title: "Deep", url: "https://deep.example/feed", folder: "Swift"),
             OPMLFeed(title: "Top level & co", url: "https://top.example/rss"),
         ])
+    }
+
+    @Test func importReusesFoldersAndLeavesFollowedFeedsInPlace() throws {
+        let context = try makeContext()
+        let swift = try Library.createFolder(named: "swîft", context: context)
+        let followed = Feed(url: "https://top.example/rss", title: "Top")
+        context.insert(followed)
+        let elsewhere = try Library.createFolder(named: "Ailleurs", context: context)
+        Library.move(followed, to: elsewhere)
+
+        #expect(try Library.importOPML(fixture("folders.opml"), context: context) == (2, 1))
+        let feeds = try context.fetch(FetchDescriptor<Feed>(sortBy: [SortDescriptor(\.url)]))
+        #expect(feeds.map { $0.folder?.name } == ["swîft", "swîft", "Ailleurs"])
+        #expect(try context.fetchCount(FetchDescriptor<Folder>()) == 2)
+        #expect(swift.feeds?.count == 2)
+
+        #expect(try Library.importOPML(fixture("folders.opml"), context: context) == (0, 3))
+        #expect(followed.folder === elsewhere)
     }
 
     @Test func invalidFile() throws {
@@ -168,13 +236,18 @@ struct OPMLTests {
         let source = try makeContext()
         source.insert(Feed(url: "https://a.test/feed?x=1&y=2", title: "A & \"B\" <c>"))
         source.insert(Feed(url: "https://b.test/rss", title: "Blog B"))
+        source.insert(Feed(url: "https://c.test/rss", title: "C"))
+        let dev = try Library.createFolder(named: "Dev & <co>", context: source)
+        for feed in try source.fetch(FetchDescriptor<Feed>()) where feed.title != "C" { Library.move(feed, to: dev) }
         let exported = try Library.exportOPML(context: source)
 
         let target = try makeContext()
-        #expect(try Library.importOPML(exported, context: target) == (2, 0))
+        #expect(try Library.importOPML(exported, context: target) == (3, 0))
         let feeds = try target.fetch(FetchDescriptor<Feed>(sortBy: [SortDescriptor(\.url)]))
-        #expect(feeds.map(\.url) == ["https://a.test/feed?x=1&y=2", "https://b.test/rss"])
-        #expect(feeds.map(\.title) == ["A & \"B\" <c>", "Blog B"])
+        #expect(feeds.map(\.url) == ["https://a.test/feed?x=1&y=2", "https://b.test/rss", "https://c.test/rss"])
+        #expect(feeds.map(\.title) == ["A & \"B\" <c>", "Blog B", "C"])
+        #expect(feeds.map { $0.folder?.name } == ["Dev & <co>", "Dev & <co>", nil])
+        #expect(try target.fetchCount(FetchDescriptor<Folder>()) == 1)
     }
 }
 

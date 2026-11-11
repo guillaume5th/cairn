@@ -7,6 +7,7 @@ enum SidebarItem: Hashable, Codable {
     case cairn
     case tag(String)
     case feed(PersistentIdentifier)
+    case folder(PersistentIdentifier)
 }
 
 /// Sidebar entry shown and last article of each entry, kept on this Mac only (UserDefaults, not CloudKit).
@@ -25,6 +26,7 @@ struct ContentView: View {
     @Environment(AppState.self) private var state
     @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
     @Query private var feeds: [Feed]
+    @Query private var folders: [Folder]
     @Environment(\.modelContext) private var context
     @State private var memory = SelectionMemory.load()
     /// Article the user picked themself; only that one is marked read when shown.
@@ -52,12 +54,19 @@ struct ContentView: View {
             // A decoded PersistentIdentifier is == to the live one but hashes differently, so it would miss its
             // dictionary key: swap each for the live model's own identifier.
             let live = { (id: PersistentIdentifier) in context.model(for: id).persistentModelID }
-            let liveItem = { (item: SidebarItem) -> SidebarItem in if case let .feed(id) = item { .feed(live(id)) } else { item } }
+            let liveItem = { (item: SidebarItem) -> SidebarItem in
+                switch item {
+                case let .feed(id): .feed(live(id))
+                case let .folder(id): .folder(live(id))
+                default: item
+                }
+            }
             memory = SelectionMemory(item: memory.item.map(liveItem), articles: Dictionary(
                 memory.articles.map { (liveItem($0.key), live($0.value)) }, uniquingKeysWith: { first, _ in first }))
             // An entry saved at the last quit may be gone: deleted feed, tag no longer on a kept article.
             switch memory.item {
             case let .feed(id) where !feeds.contains { $0.persistentModelID == id }: memory.item = .all
+            case let .folder(id) where !folders.contains { $0.persistentModelID == id }: memory.item = .all
             case let .tag(key) where !kept.contains { $0.tags?.contains { $0.key == key } ?? false }: memory.item = .all
             default: break
             }
@@ -127,7 +136,8 @@ struct ContentView: View {
         case .all, nil: "Tous les articles"
         case .cairn: "Cairn"
         case let .tag(key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
-        case let .feed(id): articles.first { $0.feed?.persistentModelID == id }?.feed?.title ?? "Abonnement"
+        case let .feed(id): feeds.first { $0.persistentModelID == id }?.title ?? "Abonnement"
+        case let .folder(id): folders.first { $0.persistentModelID == id }?.name ?? "Dossier"
         }
     }
 
@@ -139,6 +149,7 @@ struct ContentView: View {
         var list: [Article] = switch memory.item {
         case .all, nil: articles
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
+        case let .folder(id): articles.filter { $0.feed?.folder?.persistentModelID == id }
         case .cairn: kept
         case let .tag(key): kept.filter { $0.tags?.contains { $0.key == key } ?? false }
         }
