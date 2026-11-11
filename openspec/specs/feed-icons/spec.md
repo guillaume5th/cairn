@@ -60,12 +60,19 @@ Le système SHALL afficher l'icône de l'abonnement devant son nom dans la barre
 - **THEN** chaque abonnement est précédé de son icône
 
 #### Scenario: Liste d'articles
-- **WHEN** l'utilisateur consulte une liste d'articles
+- **WHEN** l'utilisateur consulte une liste d'articles avec la case « Icônes dans la liste d'articles » cochée (par défaut)
 - **THEN** chaque ligne commence à gauche par l'icône de sa source dans un cercle
 
 #### Scenario: Article affiché
 - **WHEN** l'utilisateur affiche un article
 - **THEN** le nom de la source dans l'en-tête est précédé de l'icône de cette source
+
+### Requirement: Masquer l'icône dans la liste d'articles
+Le système SHALL permettre de masquer l'icône des lignes de la liste d'articles depuis la case « Icônes dans la liste d'articles » du menu Présentation, cochée par défaut. Ce choix MUST être conservé d'un lancement à l'autre et MUST NOT concerner la barre latérale ni l'en-tête de l'article.
+
+#### Scenario: Icônes masquées dans la liste
+- **WHEN** l'utilisateur décoche « Icônes dans la liste d'articles »
+- **THEN** les lignes de la liste d'articles n'affichent plus d'icône, la pastille des non lus reste affichée, et la barre latérale et l'en-tête de l'article gardent leurs icônes
 
 ### Requirement: Intégration de l'icône dans le cercle
 Le système SHALL laisser une marge entre l'icône et le bord du cercle, quelle que soit l'icône. Une icône carrée pleine MUST être rognée en rond ; une icône détourée MUST être centrée telle quelle.
