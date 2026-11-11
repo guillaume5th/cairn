@@ -166,10 +166,14 @@ struct ArticleListView: View {
     var body: some View {
         List(articles, selection: $selection) { article in
             HStack(spacing: 10) {
+                // Hidden rather than removed when read, so every row keeps the same alignment.
+                Circle().fill(.blue).frame(width: 8, height: 8)
+                    .opacity(article.isRead ? 0 : 1)
+                    .accessibilityLabel("Non lu")
+                    .accessibilityHidden(article.isRead)
                 SourceIcon(data: article.feed?.iconData ?? article.sourceIconData, side: SourceIcon.articleRowSide)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(article.title.isEmpty ? "Sans titre" : article.title)
-                        .fontWeight(article.isRead ? .regular : .semibold)
                         .lineLimit(2)
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         if article.isKept { Image("cairn.fill").foregroundStyle(.tint) }
