@@ -242,4 +242,35 @@ struct CairnTests {
         #expect(Library.search("observabilite", in: all) == [byTag])
         #expect(Library.search("  ", in: all) == all)
     }
+
+    @Test func snippetShowsWhyAnArticleMatches() throws {
+        let context = try makeContext()
+        let inTitle = article("Kubernetes en production", daysAgo: 1, context: context)
+        inTitle.note = "kubernetes"
+        let byNote = article("Titre neutre", daysAgo: 1, context: context)
+        byNote.note = "à creuser : kubernetes operators"
+        let byTag = article("Autre", daysAgo: 1, context: context)
+        try Library.addTag(named: "Observabilité", to: byTag, context: context)
+        let byContent = article("Sans rapport", daysAgo: 1, context: context)
+        byContent.content = "<p>Le <b>d&eacute;ploiement</b> continu&nbsp;&#8212; enfin.</p>"
+
+        #expect(Library.snippet(for: "kubernetes", in: inTitle) == nil)
+        #expect(Library.snippet(for: "KUBERNETES", in: byNote) == "à creuser : kubernetes operators")
+        #expect(Library.snippet(for: "observabilite", in: byTag) == "Observabilité")
+        #expect(Library.snippet(for: "deploiement", in: byContent) == "Le déploiement continu — enfin.")
+        #expect(Library.snippet(for: "absent", in: byContent) == nil)
+        #expect(Library.snippet(for: " ", in: byContent) == nil)
+    }
+
+    @Test func snippetCutsLongTextOnSpaces() throws {
+        let words = (1...60).map { "mot\($0)" }.joined(separator: " ")
+        let text = words.replacing("mot30 ", with: "cible ")
+        let snippet = Library.excerpt(text, around: try #require(text.range(of: "cible")))
+        #expect(snippet.hasPrefix("…mot"))
+        #expect(snippet.hasSuffix("…"))
+        #expect(snippet.contains("cible"))
+        #expect(!snippet.dropFirst().dropLast().split(separator: " ").contains { !$0.hasPrefix("mot") && $0 != "cible" })
+        #expect(snippet.count < 140)
+        #expect(Library.matchRanges(of: "MOT1", in: "mot1 Mot10 mot2").count == 2)
+    }
 }

@@ -6,6 +6,8 @@ struct ArticleDetailView: View {
     @Bindable var article: Article
     /// False when the article was selected automatically: it is shown without being marked read.
     let marksRead: Bool
+    /// Current search, highlighted in the title and the content.
+    var query = ""
     @Environment(\.openURL) private var openURL
     @State private var articleToUnkeep: Article?
     @AppStorage(TextScale.key) private var textScale = 1.0
@@ -13,7 +15,7 @@ struct ArticleDetailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(article.title.isEmpty ? "Sans titre" : article.title)
+                Text(AttributedString(article.title.isEmpty ? "Sans titre" : article.title, highlighting: query))
                     // 17 pt and 13 pt are .title2 and .body on macOS, scaled: system text styles do not scale there.
                     .font(.system(size: 17 * textScale, weight: .bold))
                     .textSelection(.enabled)
@@ -28,7 +30,7 @@ struct ArticleDetailView: View {
             Divider()
 
             if let html = article.content {
-                HTMLView(html: html, baseURL: url)
+                HTMLView(html: html, baseURL: url, query: query)
             } else {
                 ContentUnavailableView {
                     Label("Aucun contenu", systemImage: "doc")

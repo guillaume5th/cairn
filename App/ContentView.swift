@@ -43,7 +43,7 @@ struct ContentView: View {
                 .navigationSplitViewColumnWidth(min: 260, ideal: 340)
         } detail: {
             if let article = articles.first(where: { $0.persistentModelID == displayedArticleID }) {
-                ArticleDetailView(article: article, marksRead: article.persistentModelID == pickedID)
+                ArticleDetailView(article: article, marksRead: article.persistentModelID == pickedID, query: searchText)
             } else {
                 ContentUnavailableView("Aucun article sélectionné", systemImage: "doc.text")
             }
@@ -87,7 +87,7 @@ struct ContentView: View {
     private var articleList: some View {
         // The List only calls this setter on a user pick (mouse or keyboard); nil is a deselection, not a pick.
         let selection = Binding(get: { displayedArticleID }, set: { memory.articles[entry] = $0; pickedID = $0 })
-        ArticleListView(articles: visibleArticles, selection: selection, unreadOnly: $unreadOnly)
+        ArticleListView(articles: visibleArticles, query: searchText, selection: selection, unreadOnly: $unreadOnly)
             .navigationTitle(title)
             .toolbar {
                 ToolbarItem {
@@ -150,6 +150,8 @@ struct ContentView: View {
 
 struct ArticleListView: View {
     let articles: [Article]
+    /// Current search, highlighted in the rows.
+    let query: String
     @Binding var selection: PersistentIdentifier?
     @Binding var unreadOnly: Bool
     @Environment(\.modelContext) private var context
@@ -169,8 +171,13 @@ struct ArticleListView: View {
                     SourceIcon(data: article.feed?.iconData ?? article.sourceIconData, side: SourceIcon.articleRowSide)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(article.title.isEmpty ? "Sans titre" : article.title)
+                    Text(AttributedString(article.title.isEmpty ? "Sans titre" : article.title, highlighting: query))
                         .lineLimit(2)
+                    if let snippet = Library.snippet(for: query, in: article) {
+                        Text(AttributedString(snippet, highlighting: query))
+                            .font(.caption)
+                            .lineLimit(2)
+                    }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         if article.isKept { Image("cairn.fill").foregroundStyle(.tint) }
                         Text(article.sourceTitle).lineLimit(1)
@@ -222,6 +229,18 @@ struct ArticleListView: View {
                 }
                 .help("Marquer tous les articles de la liste comme lus")
             }
+        }
+    }
+}
+
+extension AttributedString {
+    /// `text` with every occurrence of the search query on a yellow background (same rule as the search).
+    init(_ text: String, highlighting query: String) {
+        self.init(text)
+        for range in Library.matchRanges(of: query, in: text) {
+            let start = characters.index(startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound))
+            let end = characters.index(start, offsetBy: text.distance(from: range.lowerBound, to: range.upperBound))
+            self[start..<end].backgroundColor = .yellow.opacity(0.45)
         }
     }
 }

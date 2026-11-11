@@ -173,6 +173,57 @@ public enum Library {
         article.tags?.removeAll { $0.key == tag.key }
     }
 
+    /// Every occurrence of the query in `text`, ignoring case and accents like `search`, for highlighting.
+    public static func matchRanges(of query: String, in text: String) -> [Range<String.Index>] {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return [] }
+        var ranges: [Range<String.Index>] = []
+        var start = text.startIndex
+        while let range = text.range(of: query, options: [.caseInsensitive, .diacriticInsensitive], range: start..<text.endIndex) {
+            ranges.append(range)
+            start = range.upperBound
+        }
+        return ranges
+    }
+
+    /// Short excerpt around the query's first occurrence in the note, a tag or the content, for a search result
+    /// whose title does not show the query; nil when the title shows it or nothing readable matches.
+    public static func snippet(for query: String, in article: Article) -> String? {
+        guard matchRanges(of: query, in: article.title).isEmpty else { return nil }
+        let sources = [article.note] + (article.tags ?? []).map(\.name) + [plainText(article.content ?? "")]
+        for text in sources {
+            if let range = matchRanges(of: query, in: text).first { return excerpt(text, around: range) }
+        }
+        return nil
+    }
+
+    /// ~40 characters before and ~80 after the match, cut on a space, with "…" where text was dropped.
+    static func excerpt(_ text: String, around range: Range<String.Index>) -> String {
+        var lower = text.index(range.lowerBound, offsetBy: -40, limitedBy: text.startIndex) ?? text.startIndex
+        var upper = text.index(range.upperBound, offsetBy: 80, limitedBy: text.endIndex) ?? text.endIndex
+        if lower > text.startIndex, let space = text[lower..<range.lowerBound].firstIndex(of: " ") {
+            lower = text.index(after: space)
+        }
+        if upper < text.endIndex, let space = text[range.upperBound..<upper].lastIndex(of: " ") { upper = space }
+        return (lower > text.startIndex ? "…" : "") + text[lower..<upper] + (upper < text.endIndex ? "…" : "")
+    }
+
+    /// Feed HTML reduced to readable text: tags dropped, common entities decoded, whitespace collapsed.
+    // shortcut: decodes only the usual named entities and numeric ones; a rare named entity stays as written.
+    static func plainText(_ html: String) -> String {
+        var text = html.replacing(/<[^>]*>/, with: " ")
+        for (entity, character) in ["&nbsp;": " ", "&lt;": "<", "&gt;": ">", "&quot;": "\"", "&#39;": "'", "&apos;": "'",
+                                    "&eacute;": "é", "&egrave;": "è", "&agrave;": "à", "&ccedil;": "ç", "&rsquo;": "’",
+                                    "&lsquo;": "‘", "&ldquo;": "“", "&rdquo;": "”", "&hellip;": "…", "&mdash;": "—"] {
+            text = text.replacing(entity, with: character)
+        }
+        text = text.replacing(/&#(x?)([0-9a-fA-F]+);/) { match in
+            UInt32(match.2, radix: match.1.isEmpty ? 10 : 16).flatMap(Unicode.Scalar.init).map { String($0) } ?? String(match.0)
+        }
+        text = text.replacing("&amp;", with: "&")
+        return text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
     /// Case- and diacritic-insensitive search over title, content, note and tag names.
     // shortcut: linear in-memory scan over the listed articles (all received ones in "Tous les articles"), replace with
     // an index if a list grows past ~10k articles or typing lags.
