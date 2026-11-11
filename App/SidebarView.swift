@@ -93,7 +93,7 @@ struct SidebarView: View {
                                     if wasSelected { Task { selection = .all } }
                                 }
                             }
-                            .dropDestination(for: String.self) { urls, _ in move(urls, to: folder) }
+                            .dropDestination(for: String.self) { urls, _ in return move(urls, to: folder) }
                     }
                 }
                 ForEach(feeds.filter { $0.folder == nil }, content: feedRow)
@@ -115,7 +115,7 @@ struct SidebarView: View {
                     .padding(.trailing, 21)
                 }
                 // Dropping a feed on the section header takes it out of its folder.
-                .dropDestination(for: String.self) { urls, _ in move(urls, to: nil) }
+                .dropDestination(for: String.self) { urls, _ in return move(urls, to: nil) }
             }
         }
         .confirmationDialog("Supprimer « \(feedToDelete?.title ?? "") » ?",
