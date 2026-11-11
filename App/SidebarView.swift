@@ -7,11 +7,15 @@ struct SidebarView: View {
     @Environment(\.modelContext) private var context
     @Query(sort: \Feed.title) private var feeds: [Feed]
     @Query(sort: \CairnCore.Tag.name) private var tags: [CairnCore.Tag]
+    // Every unread article, kept ones without a feed included, like the "Tous les articles" list.
+    @Query(filter: #Predicate<Article> { !$0.isRead }) private var unreadArticles: [Article]
     @State private var feedToDelete: Feed?
 
     var body: some View {
         List(selection: $selection) {
-            Label("Tous les articles", systemImage: "tray.full").tag(SidebarItem.all)
+            Label("Tous les articles", systemImage: "tray.full")
+                .badge(unreadArticles.count)
+                .tag(SidebarItem.all)
             Label("Cairn", image: "cairn").tag(SidebarItem.cairn)
             // Only tags still carried by a kept article.
             ForEach(tags.filter { $0.articles?.contains(where: \.isKept) ?? false }) { tag in
