@@ -56,14 +56,3 @@ Le système SHALL permettre d'ajouter et retirer des tags sur un article gardé,
 #### Scenario: Filtrer par tag
 - **WHEN** l'utilisateur sélectionne un tag dans la vue Cairn
 - **THEN** seuls les articles gardés portant ce tag sont affichés
-
-### Requirement: Recherche dans le cairn
-Le système SHALL permettre de rechercher parmi les articles gardés un texte présent dans le titre, le contenu, la note ou les tags, sans tenir compte de la casse ni des accents.
-
-#### Scenario: Recherche dans une note
-- **WHEN** l'utilisateur recherche un mot qui n'apparaît que dans la note d'un article gardé
-- **THEN** cet article figure dans les résultats
-
-#### Scenario: Recherche sans accent
-- **WHEN** l'utilisateur recherche « deploiement » et qu'un article gardé contient « Déploiement »
-- **THEN** cet article figure dans les résultats
