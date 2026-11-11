@@ -17,6 +17,30 @@ Le système SHALL afficher les articles de l'abonnement sélectionné, ou de tou
 - **WHEN** l'utilisateur sélectionne un abonnement
 - **THEN** seuls les articles de cet abonnement sont listés
 
+### Requirement: Vue d'un dossier
+Le système SHALL afficher, quand l'utilisateur sélectionne un dossier dans la barre latérale, les articles de tous les abonnements de ce dossier, du plus récent au plus ancien. Cette vue MUST offrir, comme celle d'un abonnement, la recherche, le filtre « Non lus », la sélection par défaut et sa propre sélection mémorisée.
+
+#### Scenario: Sélection d'un dossier
+- **WHEN** l'utilisateur sélectionne un dossier contenant deux abonnements
+- **THEN** les articles des deux abonnements sont listés ensemble du plus récent au plus ancien, et aucun autre
+
+#### Scenario: Recherche dans un dossier
+- **WHEN** l'utilisateur recherche un mot dans la vue d'un dossier
+- **THEN** seuls les articles des abonnements de ce dossier qui contiennent ce mot sont listés
+
+#### Scenario: Mémoire du dossier
+- **GIVEN** l'utilisateur a sélectionné un article dans la vue d'un dossier
+- **WHEN** il ouvre une autre entrée puis revient sur ce dossier
+- **THEN** le même article est de nouveau sélectionné
+
+#### Scenario: Dossier vide
+- **WHEN** l'utilisateur sélectionne un dossier sans abonnement
+- **THEN** la liste est vide et aucun article n'est sélectionné
+
+#### Scenario: Dossier supprimé
+- **WHEN** le dossier affiché est supprimé
+- **THEN** la vue « Tous les articles » est affichée
+
 ### Requirement: Compteur de non lus de « Tous les articles »
 Le système SHALL afficher dans la barre latérale, à côté de « Tous les articles », le nombre d'articles non lus de cette liste, y compris les articles gardés dont l'abonnement a été supprimé. Ce nombre MUST NOT dépendre du filtre « Non lus ». Aucun nombre n'est affiché quand il n'y a aucun article non lu.
 
