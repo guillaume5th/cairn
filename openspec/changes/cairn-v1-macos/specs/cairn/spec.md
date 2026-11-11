@@ -17,6 +17,17 @@ Le système SHALL permettre de garder un article et de ne plus le garder. Un art
 - **WHEN** l'utilisateur retire un article du cairn
 - **THEN** l'article disparaît de la vue Cairn et redevient soumis à la purge
 
+### Requirement: Supprimer un article orphelin
+Le système SHALL permettre de supprimer manuellement, après confirmation, un article dont l'abonnement a été supprimé, qu'il soit gardé ou non. Un article d'un abonnement suivi MUST NOT être supprimable manuellement, car le prochain rafraîchissement le recréerait.
+
+#### Scenario: Suppression d'un article orphelin
+- **WHEN** l'utilisateur supprime un article dont l'abonnement a été supprimé et confirme
+- **THEN** l'article disparaît définitivement, avec sa note et ses tags
+
+#### Scenario: Article d'un abonnement suivi
+- **WHEN** l'utilisateur affiche le menu contextuel d'un article d'un abonnement suivi
+- **THEN** aucune action de suppression n'est proposée
+
 ### Requirement: Vue Cairn
 Le système SHALL proposer une vue Cairn listant tous les articles gardés, du plus récemment gardé au plus ancien.
 

@@ -37,6 +37,7 @@
 - [x] 6.3 Ajouter les commandes de menu : Ajouter un flux (feuille avec saisie d'URL et erreurs), Importer / Exporter OPML (`fileImporter`/`fileExporter`), Rafraîchir ⌘R avec indicateur et protection contre le double déclenchement ; vérifier à la main chaque commande
 - [x] 6.4 Câbler le lancement : purge puis rafraîchissement en tâche non bloquante ; vérifier à la main que l'interface reste utilisable pendant le rafraîchissement
 - [x] 6.5 Construire la vue Cairn : liste triée par `keptAt`, filtre par tag, `.searchable`, éditeur de note enregistré automatiquement, saisie de tags avec suggestions, confirmation avant de retirer un article annoté ; vérifier à la main une note qui persiste après relance
+- [x] 6.6 Permettre de supprimer un article orphelin (menu contextuel et touche Suppr, avec confirmation) ; vérifier par un test qu'un article d'un abonnement suivi n'est pas supprimé et qu'un orphelin l'est
 
 ## 7. Vérification d'ensemble
 

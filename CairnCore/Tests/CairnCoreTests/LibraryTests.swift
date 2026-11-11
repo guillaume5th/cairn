@@ -34,6 +34,23 @@ struct SubscriptionTests {
         #expect(try context.fetchCount(FetchDescriptor<Feed>()) == 0)
     }
 
+    @Test func onlyOrphanArticlesCanBeDeleted() async throws {
+        let context = try makeContext()
+        let feed = try await Library.addFeed(urlString: "https://rss.test/feed", context: context, fetcher: stubFetcher, now: fixtureNow)
+        let article = try #require(feed.articles?.first { $0.externalID == "rss-1" })
+        Library.setKept(true, article)
+
+        Library.delete(article, context: context)
+        try context.save()
+        #expect(try context.fetchCount(FetchDescriptor<Article>()) == 2)
+
+        Library.delete(feed, context: context)
+        try context.save() // nullify detaches the article on save
+        Library.delete(article, context: context)
+        try context.save()
+        #expect(try context.fetchCount(FetchDescriptor<Article>()) == 0)
+    }
+
     @Test func addDuplicate() async throws {
         let context = try makeContext()
         _ = try await Library.addFeed(urlString: "https://rss.test/feed", context: context, fetcher: stubFetcher, now: fixtureNow)

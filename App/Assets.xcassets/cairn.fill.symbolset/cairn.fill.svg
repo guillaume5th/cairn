@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="3300" height="2200">
+ <g id="Notes"><text x="18" y="50">Cairn symbol</text></g>
+ <g id="Guides">
+  <line id="Baseline-S" x1="263" x2="3036" y1="696" y2="696" stroke="#27AAE1" stroke-width="0.5"/>
+  <line id="Capline-S" x1="263" x2="3036" y1="625.54" y2="625.54" stroke="#27AAE1" stroke-width="0.5"/>
+  <line id="left-margin-Regular-S" x1="1391" x2="1391" y1="576" y2="716" stroke="#00AEEF" stroke-width="0.5"/>
+  <line id="right-margin-Regular-S" x1="1456.46" x2="1456.46" y1="576" y2="716" stroke="#00AEEF" stroke-width="0.5"/>
+  <line id="Baseline-M" x1="263" x2="3036" y1="1126" y2="1126" stroke="#27AAE1" stroke-width="0.5"/>
+  <line id="Capline-M" x1="263" x2="3036" y1="1055.54" y2="1055.54" stroke="#27AAE1" stroke-width="0.5"/>
+  <line id="left-margin-Regular-M" x1="1391" x2="1391" y1="1006" y2="1146" stroke="#00AEEF" stroke-width="0.5"/>
+  <line id="right-margin-Regular-M" x1="1474.6" x2="1474.6" y1="1006" y2="1146" stroke="#00AEEF" stroke-width="0.5"/>
+  <line id="Baseline-L" x1="263" x2="3036" y1="1556" y2="1556" stroke="#27AAE1" stroke-width="0.5"/>
+  <line id="Capline-L" x1="263" x2="3036" y1="1485.54" y2="1485.54" stroke="#27AAE1" stroke-width="0.5"/>
+  <line id="left-margin-Regular-L" x1="1391" x2="1391" y1="1436" y2="1576" stroke="#00AEEF" stroke-width="0.5"/>
+  <line id="right-margin-Regular-L" x1="1498.84" x2="1498.84" y1="1436" y2="1576" stroke="#00AEEF" stroke-width="0.5"/>
+ </g>
+ <g id="Symbols">
+  <g id="Regular-S" transform="matrix(1 0 0 1 1391 696)">
+   <path d="M6.89 -16.28H58.57A6.89 6.89 0 0 1 58.57 -2.5H6.89A6.89 6.89 0 0 1 6.89 -16.28ZM16.36 -33.51H49.09A6.89 6.89 0 0 1 49.09 -19.73H16.36A6.89 6.89 0 0 1 16.36 -33.51ZM25.84 -50.73H39.62A6.89 6.89 0 0 1 39.62 -36.95H25.84A6.89 6.89 0 0 1 25.84 -50.73ZM25.84 -61.07A6.89 6.89 0 1 1 39.62 -61.07A6.89 6.89 0 1 1 25.84 -61.07Z"/>
+  </g>
+  <g id="Regular-M" transform="matrix(1 0 0 1 1391 1126)">
+   <path d="M8.8 -11.03H74.8A8.8 8.8 0 0 1 74.8 6.57H8.8A8.8 8.8 0 0 1 8.8 -11.03ZM20.9 -33.03H62.7A8.8 8.8 0 0 1 62.7 -15.43H20.9A8.8 8.8 0 0 1 20.9 -33.03ZM33 -55.03H50.6A8.8 8.8 0 0 1 50.6 -37.43H33A8.8 8.8 0 0 1 33 -55.03ZM33 -68.23A8.8 8.8 0 1 1 50.6 -68.23A8.8 8.8 0 1 1 33 -68.23Z"/>
+  </g>
+  <g id="Regular-L" transform="matrix(1 0 0 1 1391 1556)">
+   <path d="M11.35 -4.01H96.49A11.35 11.35 0 0 1 96.49 18.69H11.35A11.35 11.35 0 0 1 11.35 -4.01ZM26.96 -32.39H80.88A11.35 11.35 0 0 1 80.88 -9.69H26.96A11.35 11.35 0 0 1 26.96 -32.39ZM42.57 -60.77H65.27A11.35 11.35 0 0 1 65.27 -38.07H42.57A11.35 11.35 0 0 1 42.57 -60.77ZM42.57 -77.8A11.35 11.35 0 1 1 65.27 -77.8A11.35 11.35 0 1 1 42.57 -77.8Z"/>
+  </g>
+ </g>
+</svg>

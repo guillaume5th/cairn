@@ -40,7 +40,7 @@ struct ArticleDetailView: View {
         .toolbar {
             ToolbarItemGroup {
                 Button(article.isKept ? "Retirer du cairn" : "Garder",
-                       systemImage: article.isKept ? "mountain.2.fill" : "mountain.2") {
+                       image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main)) {
                     if !article.isKept {
                         Library.setKept(true, article)
                     } else if article.note.isEmpty && (article.tags ?? []).isEmpty {

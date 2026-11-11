@@ -12,7 +12,7 @@ struct SidebarView: View {
     var body: some View {
         List(selection: $selection) {
             Label("Tous les articles", systemImage: "tray.full").tag(SidebarItem.all)
-            Label("Cairn", systemImage: "mountain.2").tag(SidebarItem.cairn)
+            Label("Cairn", image: "cairn").tag(SidebarItem.cairn)
             // Only tags still carried by a kept article.
             ForEach(tags.filter { $0.articles?.contains(where: \.isKept) ?? false }) { tag in
                 Label(tag.name, systemImage: "tag")

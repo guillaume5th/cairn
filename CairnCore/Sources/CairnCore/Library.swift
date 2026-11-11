@@ -105,6 +105,13 @@ public enum Library {
         }
     }
 
+    /// Deletes an article whose subscription is gone. Articles of a followed feed are left alone:
+    /// the next refresh would bring them back.
+    public static func delete(_ article: Article, context: ModelContext) {
+        guard article.feed == nil else { return }
+        context.delete(article)
+    }
+
     // MARK: Cairn
 
     /// Keeping stamps `keptAt`; un-keeping drops the note and tags (the UI confirms first when there is a note).

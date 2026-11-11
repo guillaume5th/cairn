@@ -107,6 +107,8 @@ struct ArticleListView: View {
     let articles: [Article]
     @Binding var selection: PersistentIdentifier?
     @Binding var unreadOnly: Bool
+    @Environment(\.modelContext) private var context
+    @State private var articleToDelete: Article?
 
     var body: some View {
         List(articles, selection: $selection) { article in
@@ -114,8 +116,8 @@ struct ArticleListView: View {
                 Text(article.title.isEmpty ? "Sans titre" : article.title)
                     .fontWeight(article.isRead ? .regular : .semibold)
                     .lineLimit(2)
-                HStack(spacing: 4) {
-                    if article.isKept { Image(systemName: "mountain.2.fill").foregroundStyle(.tint) }
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    if article.isKept { Image("cairn.fill").foregroundStyle(.tint) }
                     Text(article.sourceTitle).lineLimit(1)
                     Spacer()
                     Text(article.publishedAt, format: .relative(presentation: .named))
@@ -126,7 +128,26 @@ struct ArticleListView: View {
             .padding(.vertical, 2)
             .contextMenu {
                 Button(article.isRead ? "Marquer comme non lu" : "Marquer comme lu") { article.isRead.toggle() }
+                if article.feed == nil {
+                    Divider()
+                    Button("Supprimer l'article…", role: .destructive) { articleToDelete = article }
+                }
             }
+        }
+        .onDeleteCommand {
+            if let article = articles.first(where: { $0.persistentModelID == selection }), article.feed == nil {
+                articleToDelete = article
+            }
+        }
+        .confirmationDialog("Supprimer « \(articleToDelete?.title ?? "") » ?",
+                            isPresented: Binding(get: { articleToDelete != nil }, set: { if !$0 { articleToDelete = nil } }),
+                            presenting: articleToDelete) { article in
+            Button("Supprimer", role: .destructive) {
+                if selection == article.persistentModelID { selection = nil }
+                Library.delete(article, context: context)
+            }
+        } message: { article in
+            Text(article.isKept ? "Il sera retiré du cairn avec sa note et ses tags." : "Cette action est définitive.")
         }
         // shortcut: macOS List keeps a stale (clipped) height for rows inserted while it is on screen,
         // so it is rebuilt when articles arrive. Costs a scroll reset on refresh; drop once SwiftUI fixes it.
