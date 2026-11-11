@@ -7,7 +7,7 @@ struct ArticleDetailView: View {
     /// False when the article was selected automatically: it is shown without being marked read.
     let marksRead: Bool
     @Environment(\.openURL) private var openURL
-    @State private var confirmUnkeep = false
+    @State private var articleToUnkeep: Article?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -44,17 +44,8 @@ struct ArticleDetailView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                Button(article.isKept ? "Retirer du cairn" : "Garder",
-                       image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main)) {
-                    if !article.isKept {
-                        Library.setKept(true, article)
-                    } else if article.note.isEmpty && (article.tags ?? []).isEmpty {
-                        Library.setKept(false, article)
-                    } else {
-                        confirmUnkeep = true
-                    }
-                }
-                .help(article.isKept ? "Retirer cet article du cairn" : "Garder cet article dans le cairn")
+                KeepButton(article: article, articleToUnkeep: $articleToUnkeep)
+                    .help(article.isKept ? "Retirer cet article du cairn" : "Garder cet article dans le cairn")
                 Button("Marquer comme non lu", systemImage: "circle") { article.isRead = false }
                     .help("Marquer comme non lu")
                 Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
@@ -62,16 +53,44 @@ struct ArticleDetailView: View {
                     .help("Ouvrir dans le navigateur")
             }
         }
-        .confirmationDialog("Retirer cet article du cairn ?", isPresented: $confirmUnkeep) {
-            Button("Retirer", role: .destructive) { Library.setKept(false, article) }
-        } message: {
-            Text("Sa note et ses tags seront perdus.")
-        }
+        .unkeepConfirmation($articleToUnkeep)
         .task(id: article.persistentModelID) { if marksRead { article.isRead = true } }
     }
 
     private var url: URL? {
         URL(string: article.link).flatMap { ["http", "https"].contains($0.scheme?.lowercased()) ? $0 : nil }
+    }
+}
+
+/// Keep / unkeep toggle shared by the reader toolbar and the article context menu. Unkeeping an article
+/// with a note or tags goes through `unkeepConfirmation`, since they are lost.
+struct KeepButton: View {
+    let article: Article
+    @Binding var articleToUnkeep: Article?
+
+    var body: some View {
+        Button(article.isKept ? "Retirer du cairn" : "Garder dans le cairn",
+               image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main)) {
+            if !article.isKept {
+                Library.setKept(true, article)
+            } else if article.note.isEmpty && (article.tags ?? []).isEmpty {
+                Library.setKept(false, article)
+            } else {
+                articleToUnkeep = article
+            }
+        }
+    }
+}
+
+extension View {
+    func unkeepConfirmation(_ article: Binding<Article?>) -> some View {
+        confirmationDialog("Retirer cet article du cairn ?",
+                           isPresented: Binding(get: { article.wrappedValue != nil }, set: { if !$0 { article.wrappedValue = nil } }),
+                           presenting: article.wrappedValue) { article in
+            Button("Retirer", role: .destructive) { Library.setKept(false, article) }
+        } message: { _ in
+            Text("Sa note et ses tags seront perdus.")
+        }
     }
 }
 

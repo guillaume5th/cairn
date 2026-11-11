@@ -166,6 +166,7 @@ struct ArticleListView: View {
     @Binding var unreadOnly: Bool
     @Environment(\.modelContext) private var context
     @State private var articleToDelete: Article?
+    @State private var articleToUnkeep: Article?
 
     var body: some View {
         List(articles, selection: $selection) { article in
@@ -191,6 +192,7 @@ struct ArticleListView: View {
             }
             .padding(.vertical, 2)
             .contextMenu {
+                KeepButton(article: article, articleToUnkeep: $articleToUnkeep)
                 Button(article.isRead ? "Marquer comme non lu" : "Marquer comme lu") { article.isRead.toggle() }
                 if article.feed == nil {
                     Divider()
@@ -213,6 +215,7 @@ struct ArticleListView: View {
         } message: { article in
             Text(article.isKept ? "Il sera retiré du cairn avec sa note et ses tags." : "Cette action est définitive.")
         }
+        .unkeepConfirmation($articleToUnkeep)
         // shortcut: macOS List keeps a stale (clipped) height for rows inserted while it is on screen,
         // so it is rebuilt when articles arrive. Costs a scroll reset on refresh; drop once SwiftUI fixes it.
         .id(articles.count)
