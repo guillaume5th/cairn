@@ -12,6 +12,8 @@ final class AppState {
     var isRefreshing = false
     var isDigesting = false
     var isAddingFeed = false
+    /// Feeds offered when the address given declares several; empty otherwise.
+    var feedChoices: [DiscoveredFeed] = []
     var isImporting = false
     var isExporting = false
     var isSearchRequested = false
@@ -117,12 +119,25 @@ final class AppState {
     }
 
     /// Looks up the icons that are due (see `Library.iconCheckInterval`). A failed lookup keeps the stored icon.
+    /// Finds the feed at the address (a feed, or a site declaring one): subscribes to a single one, offers a choice
+    /// (`feedChoices`) when there are several.
+    func addFeed(_ address: String) async throws {
+        let feeds = try await Library.discoverFeeds(urlString: address, fetcher: fetcher)
+        if feeds.count == 1 {
+            try await subscribe(to: feeds[0].url)
+        } else {
+            feedChoices = feeds
+        }
+    }
+
     /// Checks the URL is a readable feed, then subscribes; the icon follows without being waited for.
-    func addFeed(_ url: String) async throws {
+    func subscribe(to url: String) async throws {
         _ = try await Library.addFeed(urlString: url, context: context, fetcher: fetcher)
         save()
         Task { await refreshIcons() }
     }
+
+    func isSubscribed(_ url: String) -> Bool { (try? Library.isSubscribed(url, context: context)) ?? false }
 
         func refreshIcons() async {
         do {

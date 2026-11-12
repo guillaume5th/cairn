@@ -6,17 +6,10 @@ public enum FeedIcon {
     /// Icon URLs declared by `<link rel="…icon…">` in the page head, resolved against `baseURL`, best first:
     /// `apple-touch-icon` (large and opaque, made to be masked), then by declared `sizes`, largest first;
     /// ties keep document order.
-    // shortcut: regex instead of an HTML parser, so malformed <link> tags or ones added by JavaScript are missed;
-    // switch to a real parser if common sites fail.
     public static func declaredIcons(inHTML html: String, baseURL: URL) -> [URL] {
-        let head = html.firstRange(of: /<\/head\s*>/.ignoresCase()).map { String(html[..<$0.lowerBound]) } ?? html
-        let icons = head.matches(of: /<link\b[^>]*>/.ignoresCase()).compactMap { match -> (url: URL, touch: Bool, size: Int)? in
-            let tag = String(match.output)
-            guard let rel = attribute("rel", in: tag)?.lowercased().split(whereSeparator: \.isWhitespace),
-                  rel.contains(where: iconRels.contains), let href = attribute("href", in: tag),
-                  let url = URL(string: href.replacingOccurrences(of: "&amp;", with: "&"), relativeTo: baseURL)?.absoluteURL
-            else { return nil }
-            return (url, rel.contains { $0.hasPrefix("apple-touch-icon") }, largestSize(attribute("sizes", in: tag)))
+        let icons = HTMLHead.links(in: html, baseURL: baseURL).compactMap { link -> (url: URL, touch: Bool, size: Int)? in
+            guard link.rel.contains(where: iconRels.contains) else { return nil }
+            return (link.href, link.rel.contains { $0.hasPrefix("apple-touch-icon") }, largestSize(link.sizes))
         }
         // sorted(by:) is not stable: the index breaks ties to keep document order.
         return icons.enumerated()
@@ -39,16 +32,6 @@ public enum FeedIcon {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
         let images = (0..<CGImageSourceGetCount(source)).compactMap { CGImageSourceCreateImageAtIndex(source, $0, nil) }
         return images.max { $0.width < $1.width }
-    }
-
-    private static func attribute(_ name: String, in tag: String) -> String? {
-        // name="…", name='…' or name=… (unquoted)
-        let pattern = try! Regex<(Substring, Substring?, Substring?, Substring?)>(
-            #"\b\#(name)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^"'>\s]+))"#
-        ).ignoresCase()
-        guard let m = tag.firstMatch(of: pattern), let value = m.output.1 ?? m.output.2 ?? m.output.3 else { return nil }
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

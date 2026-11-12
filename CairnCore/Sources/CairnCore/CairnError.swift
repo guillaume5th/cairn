@@ -4,6 +4,7 @@ public enum CairnError: LocalizedError, Equatable {
     case invalidURL
     case httpStatus(Int)
     case notAFeed
+    case noFeedFound
     case alreadySubscribed
     case invalidOPML
     case emptyFolderName
@@ -20,6 +21,7 @@ public enum CairnError: LocalizedError, Equatable {
         case .invalidURL: "L'adresse saisie n'est pas une URL http(s) valide."
         case let .httpStatus(code): "Le serveur a répondu avec l'erreur HTTP \(code)."
         case .notAFeed: "Cette adresse ne renvoie pas un flux RSS, Atom ou JSON Feed lisible."
+        case .noFeedFound: "Aucun flux RSS, Atom ou JSON Feed n'a été trouvé sur ce site. Essaie l'adresse exacte de son flux."
         case .alreadySubscribed: "Tu es déjà abonné à ce flux."
         case .invalidOPML: "Ce fichier n'est pas un fichier OPML valide."
         case .emptyFolderName: "Le nom du dossier ne peut pas être vide."

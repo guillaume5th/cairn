@@ -84,6 +84,13 @@ La merger crée le tag `vX.Y.Z` et la GitHub Release. Ensuite, en local :
 git pull && git checkout vX.Y.Z && scripts/release.sh   # build Release, DMG, attaché à la release
 ```
 
+## Abonnements
+
+« Ajouter un abonnement » (⌘N) accepte l'adresse d'un flux ou simplement celle d'un site (`exemple.com` suffit) : Cairn
+cherche les flux que la page déclare, puis les emplacements usuels (`/feed`, `/rss`, `/atom.xml`…). S'il en trouve plusieurs
+(articles, commentaires, podcast…), il te laisse choisir. L'import et l'export OPML sont dans le menu Fichier (sur iOS,
+dans le menu « … » de la barre latérale).
+
 ## Résumé quotidien
 
 Chaque jour à l'heure réglée (8 h par défaut), pendant que l'app est ouverte, Cairn rafraîchit les abonnements et fait résumer par une IA locale les articles publiés dans les 24 heures précédentes. Si l'app était fermée à cette heure-là, le résumé est fait au lancement suivant. Les résumés apparaissent dans l'entrée « Résumés » de la barre latérale et sont gardés 7 jours par défaut. « Présentation > Générer le résumé maintenant » relance à la main.

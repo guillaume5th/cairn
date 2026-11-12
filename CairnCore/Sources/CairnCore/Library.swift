@@ -72,7 +72,7 @@ public enum Library {
         return OPML.export(feeds.map { OPMLFeed(title: $0.title, url: $0.url, folder: $0.folder?.name) })
     }
 
-    private static func isSubscribed(_ url: String, context: ModelContext) throws -> Bool {
+    public static func isSubscribed(_ url: String, context: ModelContext) throws -> Bool {
         try context.fetchCount(FetchDescriptor<Feed>(predicate: #Predicate { $0.url == url })) > 0
     }
 

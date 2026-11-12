@@ -127,7 +127,7 @@ struct ContentView: View {
         }
         // Same alert as "Nouveau dossier"; a failure (unreadable feed) comes back in the app's message alert.
         .alert("Ajouter un abonnement", isPresented: $state.isAddingFeed) {
-            TextField("URL du flux", text: $newFeedURL, prompt: Text("https://exemple.com/feed.xml"))
+            TextField("Adresse d'un site ou d'un flux", text: $newFeedURL, prompt: Text("exemple.com"))
                 .autocorrectionDisabled()
                 #if os(iOS)
                 .keyboardType(.URL)
@@ -142,6 +142,25 @@ struct ContentView: View {
                 }
             }
             .disabled(newFeedURL.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            Text("Adresse d'un site ou de son flux RSS, Atom ou JSON Feed.")
+        }
+        // The address declares several feeds: the user picks one; feeds already followed cannot be picked again.
+        .confirmationDialog("Ce site propose plusieurs flux", isPresented: Binding(get: { !state.feedChoices.isEmpty },
+                                                                                  set: { if !$0 { state.feedChoices = [] } }),
+                            titleVisibility: .visible, presenting: state.feedChoices) { feeds in
+            ForEach(feeds) { feed in
+                let followed = state.isSubscribed(feed.url)
+                Button(Self.choiceLabel(feed, followed: followed)) {
+                    Task {
+                        do { try await state.subscribe(to: feed.url) } catch { state.message = error.localizedDescription }
+                    }
+                }
+                .disabled(followed)
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: { _ in
+            Text("Choisis le flux auquel t'abonner.")
         }
         #if os(iOS)
         .sheet(isPresented: $state.isShowingSettings) {
@@ -210,6 +229,14 @@ struct ContentView: View {
 
     /// iPhone (or a narrow iPad window): the split view pushes whatever is selected, so only what the user tapped
     /// counts as selected; the remembered article would otherwise open full screen on its own.
+    /// Title and address; the address without its scheme and host, all choices being on the same site.
+    private static func choiceLabel(_ feed: DiscoveredFeed, followed: Bool) -> String {
+        let url = URL(string: feed.url)
+        let path = url.map { $0.path() + ($0.query().map { "?\($0)" } ?? "") } ?? feed.url
+        let label = feed.title.map { "\($0) — \(path)" } ?? feed.url
+        return followed ? label + " (déjà suivi)" : label
+    }
+
     private var isCompact: Bool {
         #if os(iOS)
         sizeClass == .compact

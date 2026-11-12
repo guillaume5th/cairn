@@ -23,7 +23,7 @@ final class StubProtocol: URLProtocol {
     override func startLoading() {
         let url = request.url!
         Self.requests.withLock { $0.append(url) }
-        let (status, body): (Int, Data) = if let route = iconRoutes["\(url.host() ?? "")\(url.path())"] {
+        let (status, body): (Int, Data) = if let route = iconRoutes["\(url.host() ?? "")\(url.path().isEmpty ? "/" : url.path())"] {
             (200, route)
         } else if iconHosts.contains(url.host() ?? "") {
             (404, Data())
@@ -91,8 +91,23 @@ let iconRoutes: [String: Data] = [
     "ghost.test/": page(#"<link rel="apple-touch-icon" href="/ghost.png"><link rel="icon" href="/fav.png">"#),
     "ghost.test/ghost.png": pngData(side: 6, alpha: 0.2),
     "ghost.test/fav.png": pageIcon,
+    // Feed discovery (see FeedDiscoveryTests)
+    "blog.test/": page(#"<link rel="icon" href="/i.png"><link rel="alternate" type="application/atom+xml" title="Blog" href="/atom">"#),
+    "blog.test/atom": (try? fixture("atom.xml")) ?? Data(),
+    "multi.test/": page("""
+        <link rel="alternate" type="application/rss+xml" title="Articles" href="https://multi.test/feed">
+        <link rel="alternate" type="application/rss+xml" title="Commentaires" href="/comments/feed">
+        <link rel="alternate" type="application/rss+xml" title="Doublon" href="/feed">
+        <link rel="alternate" type="text/html" hreflang="en" href="/en/">
+        """),
+    "json.test/": page(#"<link rel="alternate" type="application/feed+json" href="feed.json">"#),
+    "usual.test/": page("<title>Sans flux déclaré</title>"),
+    "usual.test/rss.xml": (try? fixture("rss.xml")) ?? Data(),
+    "usual.test/atom.xml": (try? fixture("atom.xml")) ?? Data(),
+    "nofeed.test/": page("<title>Aucun flux</title>"),
 ]
-let iconHosts: Set<String> = ["atom.example", "rss.example", "ico.test", "bad.test", "big.test", "none.test", "count.test", "touch.test", "ghost.test"]
+let iconHosts: Set<String> = ["atom.example", "rss.example", "ico.test", "bad.test", "big.test", "none.test", "count.test", "touch.test", "ghost.test",
+                              "blog.test", "multi.test", "json.test", "usual.test", "nofeed.test"]
 
 let stubFetcher: FeedFetcher = {
     let config = URLSessionConfiguration.ephemeral
