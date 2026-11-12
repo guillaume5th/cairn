@@ -271,7 +271,7 @@ struct ArticleListView: View {
         List(articles, selection: $selection) { article in
             HStack(spacing: 10) {
                 // Hidden rather than removed when read, so every row keeps the same alignment.
-                Circle().fill(.blue).frame(width: 8, height: 8)
+                UnreadDot()
                     .opacity(article.isRead ? 0 : 1)
                     .accessibilityLabel("Non lu")
                     .accessibilityHidden(article.isRead)
@@ -359,5 +359,14 @@ extension AttributedString {
             let end = characters.index(start, offsetBy: text.distance(from: range.lowerBound, to: range.upperBound))
             self[start..<end].backgroundColor = .yellow.opacity(0.45)
         }
+    }
+}
+
+/// Blue like Mail, white on a selected row where blue would vanish into the accent-colored highlight.
+private struct UnreadDot: View {
+    @Environment(\.backgroundProminence) private var prominence
+
+    var body: some View {
+        Circle().fill(prominence == .increased ? Color.white : Color.blue).frame(width: 8, height: 8)
     }
 }
