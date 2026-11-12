@@ -168,11 +168,11 @@ Le système SHALL supprimer, au lancement et après chaque nouveau résumé, les
 - **THEN** ce résumé reste
 
 ### Requirement: Réglages du résumé
-Le système SHALL offrir une fenêtre Réglages (⌘,) qui permet de régler l'heure du résumé, le moteur, l'adresse et le modèle Ollama, et la durée de conservation. Les champs Ollama MUST n'être modifiables que lorsque le moteur Ollama est choisi.
+Le système SHALL offrir une fenêtre Réglages (⌘,) qui permet de régler l'heure du résumé, le moteur, l'adresse et le modèle Ollama, et la durée de conservation. Les réglages Ollama MUST n'être affichés que lorsque le moteur Ollama est choisi.
 
 #### Scenario: Choisir Ollama
 - **WHEN** l'utilisateur choisit le moteur Ollama dans les Réglages
-- **THEN** les champs adresse et modèle deviennent modifiables, et le prochain résumé utilise Ollama
+- **THEN** les champs adresse et modèle apparaissent, et le prochain résumé utilise Ollama
 
 ### Requirement: Choisir un modèle Ollama installé
 Le système SHALL proposer le modèle Ollama dans une liste des modèles installés sur le serveur réglé, relue à l'ouverture des Réglages, au changement d'adresse et à la demande. Quand le serveur est injoignable, la liste MUST garder le modèle actuel et afficher pourquoi ; un modèle réglé mais absent du serveur reste affiché comme « non installé ».
@@ -192,7 +192,7 @@ Le système SHALL proposer le modèle Ollama dans une liste des modèles install
 - **THEN** le nouveau modèle est proposé
 
 ### Requirement: Saisie de la durée de conservation
-Le système SHALL présenter la durée de conservation comme l'heure du résumé : un libellé, puis un champ de saisie numérique avec des flèches pour augmenter ou diminuer la valeur, suivi de l'unité « jours ». Une valeur saisie hors de 1 à 90 MUST être ramenée à la borne la plus proche.
+Le système SHALL présenter la durée de conservation avec les contrôles standard du système : un libellé, puis un champ de saisie numérique accompagné de flèches pour augmenter ou diminuer la valeur, suivi de l'unité « jours ». L'heure du résumé MUST utiliser le sélecteur d'heure standard. Une valeur saisie hors de 1 à 90 MUST être ramenée à la borne la plus proche.
 
 #### Scenario: Saisie directe
 - **WHEN** l'utilisateur tape 30 dans le champ de conservation

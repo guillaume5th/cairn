@@ -56,54 +56,74 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("Résumé quotidien") {
+            Section {
                 DatePicker("Heure du résumé", selection: timeBinding, displayedComponents: .hourAndMinute)
                 LabeledContent("Conserver les résumés") {
+                    // Field + stepper: the standard macOS pairing for a bounded number.
                     HStack(spacing: 4) {
-                        TextField("Jours", value: $retention, format: .number)
+                        TextField("Conserver les résumés", value: $retention, format: .number)
                             .labelsHidden()
+                            .textFieldStyle(.roundedBorder)
                             .multilineTextAlignment(.trailing)
-                            .frame(width: 44)
-                        Stepper("Jours", value: $retention, in: DigestSettings.retentionRange)
+                            .frame(width: 40)
+                        Stepper("Conserver les résumés", value: $retention, in: DigestSettings.retentionRange)
                             .labelsHidden()
-                        Text("jours")
+                        Text(retention > 1 ? "jours" : "jour")
                     }
                 }
                 .onChange(of: retention) {
                     let range = DigestSettings.retentionRange
                     if !range.contains(retention) { retention = min(max(retention, range.lowerBound), range.upperBound) }
                 }
+            } header: {
+                Text("Résumé quotidien")
+            } footer: {
+                Text("Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant.")
+                    .foregroundStyle(.secondary)
             }
-            Section("Moteur d'IA") {
+
+            Section {
                 Picker("Moteur", selection: $engine) {
-                    Text("Apple (sur ce Mac)").tag(DigestSettings.Engine.apple)
-                    Text("Ollama (local)").tag(DigestSettings.Engine.ollama)
+                    Text("Apple Intelligence").tag(DigestSettings.Engine.apple)
+                    Text("Ollama").tag(DigestSettings.Engine.ollama)
                 }
-                Group {
-                    TextField("Adresse Ollama", text: $ollamaURL)
-                    LabeledContent("Modèle Ollama") {
-                        HStack(spacing: 4) {
-                            Picker("Modèle Ollama", selection: $ollamaModel) {
+                // Only the chosen engine's options are shown, as in System Settings.
+                if engine == .ollama {
+                    TextField("Adresse du serveur", text: $ollamaURL, prompt: Text(DigestSettings.defaultOllamaURL))
+                    LabeledContent("Modèle") {
+                        HStack(spacing: 6) {
+                            Picker("Modèle", selection: $ollamaModel) {
                                 ForEach(modelChoices, id: \.self) { name in
                                     Text(installedModels.contains(name) ? name : "\(name) (non installé)").tag(name)
                                 }
                             }
                             .labelsHidden()
+                            .fixedSize()
                             Button("Actualiser la liste des modèles", systemImage: "arrow.clockwise") { reloadCount += 1 }
                                 .labelStyle(.iconOnly)
                                 .buttonStyle(.borderless)
                                 .help("Relire les modèles installés sur le serveur Ollama")
                         }
                     }
-                    if let modelsError {
-                        Text(modelsError).font(.caption).foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Moteur d'IA")
+            } footer: {
+                Group {
+                    if engine == .apple {
+                        Text("Le résumé est rédigé sur ce Mac : les articles ne sont envoyés à aucun service en ligne.")
+                    } else if let modelsError {
+                        Label(modelsError, systemImage: "exclamationmark.triangle")
+                    } else {
+                        Text("Ollama doit tourner sur ce Mac ou sur ton réseau. Installe d'autres modèles avec « ollama pull », puis actualise la liste.")
                     }
                 }
-                .disabled(engine != .ollama)
+                .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 440)
+        .scrollIndicators(.never) // the window fits its content; no scroller
+        .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
         .task(id: "\(engine.rawValue)|\(ollamaURL)|\(reloadCount)") { await loadModels() }
     }
