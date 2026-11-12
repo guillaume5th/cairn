@@ -120,6 +120,7 @@ struct ContentView: View {
         }
         .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil; isSelectionModeOn = false }
         .onChange(of: memory) { memory.save() }
+        .onChange(of: state.digestToOpen, initial: true) { openNotifiedDigest() }
         .onChange(of: state.isSearchRequested) {
             guard state.isSearchRequested else { return }
             state.isSearchRequested = false
@@ -288,6 +289,16 @@ struct ContentView: View {
                 pickedDigestID = ids.first
             }
         }
+    }
+
+    /// Shows the digest of a tapped notification: the "Résumés quotidiens" entry, that digest selected.
+    private func openNotifiedDigest() {
+        guard let id = state.digestToOpen else { return }
+        state.digestToOpen = nil
+        memory.item = .digests
+        memory.articles[.digests] = id
+        // After the entry change has reset the picked digest.
+        Task { pickedDigestID = id }
     }
 
     /// On entering an entry, a remembered article no longer listed gives way to the first one. Not done while

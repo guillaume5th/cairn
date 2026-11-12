@@ -10,6 +10,7 @@ enum DigestSettings {
     static let ollamaModelKey = "ollamaModel"
     static let retentionKey = "digestRetentionDays"
     static let lastAttemptKey = "digestLastAttempt"
+    static let notifyKey = "digestNotify"
 
     /// Minutes after midnight.
     static let defaultTime = 8 * 60
@@ -22,6 +23,7 @@ enum DigestSettings {
     static var time: Int { defaults.object(forKey: timeKey) as? Int ?? defaultTime }
     static var retention: Int { defaults.object(forKey: retentionKey) as? Int ?? defaultRetention }
     static var lastAttempt: Date? { defaults.object(forKey: lastAttemptKey) as? Date }
+    static var notifies: Bool { defaults.bool(forKey: notifyKey) }
 
     static var isDue: Bool { Digest.isDue(now: .now, minutes: time, lastAttempt: lastAttempt) }
 
@@ -53,14 +55,21 @@ struct SettingsView: View {
     @State private var installedModels: [String] = []
     @State private var modelsError: String?
     @State private var reloadCount = 0
+    @AppStorage(DigestSettings.notifyKey) private var notifies = false
+    @State private var notificationsDenied = false
 
     #if os(macOS)
     private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
     private static let ollamaPlace = "Ollama doit tourner sur ce Mac ou sur ton réseau."
     #else
-    // iOS suspends the app in the background: the digest waits for the next time Cairn is on screen.
-    private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est à l'écran, sinon à ton retour dans l'app."
+    // iOS grants background time when it sees fit: the digest is made then, or on the user's return at the latest.
+    private static let scheduleNote = "Les articles des dernières 24 heures sont résumés vers cette heure-là, en arrière-plan quand iOS le permet, sinon à ton retour dans l'app."
     private static let ollamaPlace = "Ollama doit tourner sur un ordinateur de ton réseau local : indique son adresse, par exemple http://192.168.1.10:11434."
+    #endif
+    #if os(macOS)
+    private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
+    #else
+    private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages > Notifications > Cairn."
     #endif
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
@@ -103,11 +112,23 @@ struct SettingsView: View {
                     let range = DigestSettings.retentionRange
                     if !range.contains(retention) { retention = min(max(retention, range.lowerBound), range.upperBound) }
                 }
+                // The system is asked only when the user turns it on.
+                Toggle("Me prévenir quand le résumé est prêt", isOn: Binding { notifies } set: { isOn in
+                    guard isOn else { notifies = false; return }
+                    Task {
+                        let granted = await DigestNotifications.requestAuthorization()
+                        notifies = granted
+                        notificationsDenied = !granted
+                    }
+                })
             } header: {
                 Text("Résumé quotidien")
             } footer: {
-                Text(Self.scheduleNote)
-                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(Self.scheduleNote)
+                    if notificationsDenied { Text(Self.notificationsDeniedNote) }
+                }
+                .foregroundStyle(.secondary)
             }
 
             Section {

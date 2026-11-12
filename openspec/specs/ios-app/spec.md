@@ -93,19 +93,6 @@ Le système SHALL enregistrer les modifications en cours quand l'app passe en ar
 - **WHEN** l'utilisateur revient dans l'app
 - **THEN** aucune purge n'est relancée
 
-### Requirement: Résumé quotidien au premier plan
-Le système SHALL produire le résumé quotidien sur iOS uniquement quand l'app est au premier plan : au lancement ou au retour dans l'app si l'heure réglée est passée et qu'aucun résumé n'a été tenté ce jour-là, ou à l'heure réglée si l'app est ouverte à ce moment.
-
-#### Scenario: Heure passée pendant que l'app était en arrière-plan
-- **GIVEN** l'heure du résumé est 8 h et l'app est en arrière-plan depuis la veille
-- **WHEN** l'utilisateur revient dans l'app à 9 h
-- **THEN** le résumé du jour est produit
-
-#### Scenario: Pas de résumé en arrière-plan
-- **GIVEN** l'app est en arrière-plan
-- **WHEN** l'heure du résumé arrive
-- **THEN** aucun résumé n'est produit avant que l'utilisateur revienne dans l'app
-
 ### Requirement: Moteur Ollama sur le réseau local
 Le système SHALL permettre d'utiliser un serveur Ollama du réseau local en HTTP (par exemple `http://192.168.1.10:11434`). À la première connexion, iOS MUST demander l'autorisation d'accéder au réseau local ; si elle est refusée, le système affiche le message « serveur Ollama injoignable » existant.
 
@@ -118,3 +105,34 @@ Le système SHALL permettre d'utiliser un serveur Ollama du réseau local en HTT
 - **GIVEN** le moteur choisi est celui d'Apple et l'iPhone ne prend pas en charge Apple Intelligence
 - **WHEN** l'utilisateur demande un résumé
 - **THEN** un message explique que cet appareil ne prend pas en charge Apple Intelligence et propose Ollama
+
+### Requirement: Rafraîchissement en arrière-plan sur iOS
+Le système SHALL demander à iOS de rafraîchir les abonnements en arrière-plan, au plus une fois par heure, pour que la liste soit à jour à l'ouverture. Le moment exact et la fréquence MUST rester décidés par iOS ; l'app ne promet aucune heure.
+
+#### Scenario: Liste à jour à l'ouverture
+- **GIVEN** Cairn est en arrière-plan depuis plusieurs heures et iOS a accordé un rafraîchissement
+- **WHEN** l'utilisateur revient dans l'app
+- **THEN** les articles publiés pendant ce temps sont déjà listés
+
+#### Scenario: Rafraîchissement en arrière-plan désactivé
+- **GIVEN** l'utilisateur a désactivé l'actualisation en arrière-plan pour Cairn dans les réglages d'iOS
+- **WHEN** l'app revient au premier plan
+- **THEN** les abonnements sont rafraîchis comme aujourd'hui, au retour dans l'app
+
+### Requirement: Résumé quotidien en arrière-plan sur iOS
+Le système SHALL demander à iOS d'exécuter le résumé quotidien en arrière-plan à partir de l'heure réglée. Quand iOS lui en donne l'occasion et qu'aucun résumé n'a été tenté ce jour-là, le système rafraîchit les abonnements puis produit le résumé. Si le moteur d'IA ne peut pas travailler en arrière-plan, la tentative MUST NOT compter pour la journée : le résumé est produit au retour dans l'app.
+
+#### Scenario: Résumé prêt au réveil
+- **GIVEN** l'heure du résumé est 8 h, l'app est en arrière-plan et iOS lui accorde du temps après 8 h
+- **WHEN** l'utilisateur ouvre Cairn à 9 h
+- **THEN** le résumé du jour est déjà là, sans attente
+
+#### Scenario: Moteur indisponible en arrière-plan
+- **GIVEN** le moteur choisi ne peut pas travailler en arrière-plan
+- **WHEN** iOS accorde du temps à l'app après l'heure du résumé
+- **THEN** aucun résumé n'est enregistré comme tenté et le résumé est produit au retour dans l'app
+
+#### Scenario: iOS n'accorde pas de temps
+- **GIVEN** iOS n'a donné aucune occasion à l'app depuis l'heure du résumé
+- **WHEN** l'utilisateur revient dans l'app
+- **THEN** le résumé du jour est produit à ce moment, comme aujourd'hui
