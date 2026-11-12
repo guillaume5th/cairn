@@ -91,6 +91,15 @@ cherche les flux que la page déclare, puis les emplacements usuels (`/feed`, `/
 (articles, commentaires, podcast…), il te laisse choisir. L'import et l'export OPML sont dans le menu Fichier (sur iOS,
 dans le menu « … » de la barre latérale).
 
+## Article complet
+
+Quand un flux ne donne qu'un extrait, le bouton « Article complet » de la barre de l'article télécharge sa page et en garde
+le texte principal (sans menus, publicités ni commentaires), avec l'extracteur du mode Lecture de Firefox
+([Readability.js](https://github.com/mozilla/readability), Apache 2.0). Le texte est gardé avec l'article ; le même bouton
+revient au contenu du flux. Dans le menu d'un abonnement, « Toujours charger l'article complet » le fait pour chaque nouvel
+article. Le site de l'article est contacté comme par un navigateur, mais sans cookies, et aucun de ses scripts n'est exécuté.
+Les résumés IA portent sur l'article complet quand il est chargé.
+
 ## Résumé quotidien
 
 Chaque jour à l'heure réglée (8 h par défaut), pendant que l'app est ouverte, Cairn rafraîchit les abonnements et fait résumer par une IA locale les articles publiés dans les 24 heures précédentes. Si l'app était fermée à cette heure-là, le résumé est fait au lancement suivant. Les résumés apparaissent dans l'entrée « Résumés » de la barre latérale et sont gardés 7 jours par défaut. « Présentation > Générer le résumé maintenant » relance à la main.

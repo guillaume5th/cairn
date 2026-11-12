@@ -86,6 +86,27 @@ struct DigestTests {
         #expect(!Library.isExcerpt(long))
     }
 
+    @Test func fullTextComesFirstAndFeedContentStaysAvailable() throws {
+        let context = try makeContext()
+        let item = article("Extrait", hoursAgo: 1, content: "<p>Début de l'article…</p>", context: context)
+        item.summaryDate = fixtureNow
+        #expect(Library.isExcerpt(item))
+
+        item.fullContent = "<p>Le texte complet de l'article.</p>"
+        item.fullContentFetchedAt = fixtureNow.addingTimeInterval(60)
+        #expect(Library.articleSummaryPrompt(for: item).hasSuffix("Le texte complet de l'article."))
+        #expect(Library.digestPrompt(for: [item]).contains("Le texte complet"))
+        #expect(Library.displayedContent(item) == item.fullContent)
+        #expect(Library.isExcerpt(item), "résumé fait avant le chargement du texte intégral")
+
+        item.summaryDate = fixtureNow.addingTimeInterval(120)
+        #expect(!Library.isExcerpt(item))
+
+        item.showsFeedContent = true
+        #expect(Library.displayedContent(item) == item.content)
+        #expect(Library.articleSummaryPrompt(for: item).hasSuffix("Le texte complet de l'article."))
+    }
+
     @Test func itemsKeepSourceAndLink() throws {
         let context = try makeContext()
         let items = Library.digestItems(for: [article("A", hoursAgo: 1, context: context)])

@@ -20,6 +20,9 @@ public final class Feed {
     @Relationship(deleteRule: .nullify, inverse: \Article.feed)
     public var articles: [Article]? = []
     public var folder: Folder?
+    /// When "Toujours charger l'article complet" was turned on; nil when off. Articles published since then get
+    /// their full text loaded after each refresh.
+    public var loadsFullContentSince: Date?
 
     public init(url: String, title: String) {
         self.url = url
@@ -55,6 +58,12 @@ public final class Article {
     public var summary: String?
     public var summaryDate: Date?
     public var summaryEngine: String?
+    /// Main content extracted from the article's web page (cleaned HTML), and the last attempt to load it
+    /// (set even when it failed, so the automatic loading does not retry).
+    public var fullContent: String?
+    public var fullContentFetchedAt: Date?
+    /// The user chose the feed's content over the full text for this article.
+    public var showsFeedContent: Bool = false
 
     public init(externalID: String, link: String, title: String, publishedAt: Date, content: String?, sourceTitle: String) {
         self.externalID = externalID

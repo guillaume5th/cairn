@@ -34,9 +34,10 @@ struct ArticleDetailView: View {
             }
             .padding()
             Divider()
+            fullContentStatus
             summaryBox
 
-            if let html = article.content {
+            if let html = Library.displayedContent(article) {
                 HTMLView(html: html, baseURL: url, query: query)
             } else {
                 ContentUnavailableView {
@@ -57,9 +58,17 @@ struct ArticleDetailView: View {
         .toolbar {
             ToolbarItemGroup {
                 // Reading first, then filing, then leaving the app last.
+                // A toggle, like the list's filter: on while the full text is shown; turning it on loads it if needed.
+                Toggle(isOn: Binding { article.fullContent != nil && !article.showsFeedContent } set: { showFullContent($0) }) {
+                    Label("Article complet", systemImage: "doc.text.magnifyingglass")
+                }
+                .disabled(url == nil || isLoadingFullContent)
+                .help(url == nil ? "Cet article n'a pas de lien web"
+                      : article.fullContent == nil ? "Charger l'article complet depuis son site"
+                      : article.showsFeedContent ? "Afficher l'article complet" : "Afficher le contenu du flux")
                 Button(article.summary == nil ? "Résumer" : "Régénérer le résumé", systemImage: "text.append") { summarize() }
-                    .disabled((article.content ?? "").isEmpty || isSummarizing)
-                    .help((article.content ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
+                    .disabled((Library.readableContent(article) ?? "").isEmpty || isSummarizing)
+                    .help((Library.readableContent(article) ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
                           : article.summary == nil ? "Résumer cet article avec l'IA" : "Refaire le résumé de cet article")
                 KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
                 // The filled dot the list shows on unread rows.
@@ -80,6 +89,39 @@ struct ArticleDetailView: View {
     }
 
     private var isSummarizing: Bool { state.summarizing.contains(article.persistentModelID) }
+    private var isLoadingFullContent: Bool { state.loadingFullContent.contains(article.persistentModelID) }
+
+    /// On: the full text, loaded first when the article has none. Off: back to the feed's content (the text is kept).
+    private func showFullContent(_ on: Bool) {
+        if on, article.fullContent == nil {
+            let article = article
+            Task { await state.loadFullContent(article) }
+        } else {
+            article.showsFeedContent = !on
+        }
+    }
+
+    /// Progress of the full-text load, or its failure with a way out.
+    @ViewBuilder
+    private var fullContentStatus: some View {
+        if isLoadingFullContent {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Chargement de l'article complet…").foregroundStyle(.secondary)
+            }
+            .font(.callout)
+            .padding([.horizontal, .top])
+        } else if let error = state.fullContentErrors[article.persistentModelID] {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.secondary)
+                Spacer()
+                Button("Réessayer") { showFullContent(true) }
+                if let url { Button("Ouvrir dans le navigateur") { openURL(url) } }
+            }
+            .font(.callout)
+            .padding([.horizontal, .top])
+        }
+    }
 
     /// Not tied to the view: switching articles does not cancel it, and the result goes to this article.
     private func summarize() {
@@ -420,6 +462,7 @@ struct DisabledReaderToolbar: ToolbarContent {
     var body: some ToolbarContent {
         ToolbarItemGroup {
             Group {
+                Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
                 Button("Résumer", systemImage: "text.append") {}
                 Button("Conserver", image: ImageResource(name: "cairn", bundle: .main)) {}
                 Button("Marquer comme non lu", systemImage: "circle.inset.filled") {}
