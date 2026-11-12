@@ -335,6 +335,10 @@ struct ArticleListView: View {
     @State private var articlesToDelete: [Article] = []
     @State private var articlesToUnkeep: [Article] = []
     @State private var articlesToOpen: [Article] = []
+    #if os(iOS)
+    /// iPad: shared from the context menu, its popover hangs on the article's own row (ShareLink's lands elsewhere).
+    @State private var articleToShare: Article?
+    #endif
     @AppStorage("showListIcons") private var showListIcons = true
     @Environment(AppState.self) private var state
     #if os(iOS)
@@ -374,6 +378,16 @@ struct ArticleListView: View {
                 }
             }
             .padding(.vertical, 2)
+            #if os(iOS)
+            .popover(isPresented: Binding { articleToShare?.persistentModelID == article.persistentModelID }
+                                  set: { if !$0 { articleToShare = nil } }) {
+                if let url = OpenInBrowser.url(of: article) {
+                    ActivityView(url: url, title: article.title) { articleToShare = nil }
+                        .presentationCompactAdaptation(.sheet)
+                        .presentationDetents([.medium, .large])
+                }
+            }
+            #endif
             #if os(macOS)
             .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([article.persistentModelID]) })
             .modifier(TickedRow(isTicked: isSelectionModeOn && selection.contains(article.persistentModelID),
@@ -385,8 +399,13 @@ struct ArticleListView: View {
         .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
             let lot = articles.filter { ids.contains($0.persistentModelID) }
             if !lot.isEmpty {
+                #if os(iOS)
+                ArticleMenuItems(articles: lot, articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen,
+                                 articlesToDelete: $articlesToDelete, share: { articleToShare = $0 })
+                #else
                 ArticleMenuItems(articles: lot, articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen,
                                  articlesToDelete: $articlesToDelete)
+                #endif
             }
         }
         #if os(macOS)
