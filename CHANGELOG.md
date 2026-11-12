@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/guillaume5th/cairn/compare/v1.1.0...v1.2.0) (2026-11-12)
+
+
+### Features
+
+* add an iPhone and iPad app ([#6](https://github.com/guillaume5th/cairn/issues/6)) ([38ab89c](https://github.com/guillaume5th/cairn/commit/38ab89c909ebd0d894fa478036462aaa06c26412))
+
 ## [1.1.0](https://github.com/guillaume5th/cairn/compare/v1.0.0...v1.1.0) (2026-11-12)
 
 
