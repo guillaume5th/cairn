@@ -4,6 +4,7 @@ import SwiftUI
 
 @main
 struct CairnApp: App {
+    @NSApplicationDelegateAdaptor private var delegate: AppDelegate
     @State private var state: AppState
 
     init() {
@@ -76,4 +77,9 @@ struct CairnCommands: Commands {
                 .keyboardShortcut("f")
         }
     }
+}
+
+/// Closing the window keeps the app (and its daily digest) running, like Mail; the Dock icon reopens it.
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }

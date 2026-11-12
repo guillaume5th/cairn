@@ -20,6 +20,8 @@ final class AppState {
     /// Articles being summarized, and the last failure per article; neither is stored.
     var summarizing: Set<PersistentIdentifier> = []
     var summaryErrors: [PersistentIdentifier: String] = [:]
+    /// The window's `.task` runs again each time the window is reopened; the launch work must happen once.
+    @ObservationIgnored private var launched = false
 
     var context: ModelContext { container.mainContext }
 
@@ -28,6 +30,8 @@ final class AppState {
     }
 
     func launch() async {
+        guard !launched else { return }
+        launched = true
         do {
             // Before anything reads the cairns: files articles kept before cairns existed.
             try Library.ensureCairn(context: context)
