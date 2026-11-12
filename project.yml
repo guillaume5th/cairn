@@ -79,6 +79,9 @@ targets:
         # Plain http to an Ollama server on the local network; public http stays blocked by ATS.
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
+        # Background time, when iOS grants it (see BackgroundRefresh): feed refresh, and the daily digest as a processing task.
+        UIBackgroundModes: [fetch, processing]
+        BGTaskSchedulerPermittedIdentifiers: [dev.cairn.refresh, dev.cairn.digest]
     settings:
       base:
         PRODUCT_NAME: Cairn

@@ -120,6 +120,7 @@ struct ContentView: View {
         }
         .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil; isSelectionModeOn = false }
         .onChange(of: memory) { memory.save() }
+        .onChange(of: state.digestToOpen, initial: true) { openNotifiedDigest() }
         .onChange(of: state.isSearchRequested) {
             guard state.isSearchRequested else { return }
             state.isSearchRequested = false
@@ -127,7 +128,7 @@ struct ContentView: View {
         }
         // Same alert as "Nouveau dossier"; a failure (unreadable feed) comes back in the app's message alert.
         .alert("Ajouter un abonnement", isPresented: $state.isAddingFeed) {
-            TextField("URL du flux", text: $newFeedURL, prompt: Text("https://exemple.com/feed.xml"))
+            TextField("Adresse d'un site ou d'un flux", text: $newFeedURL, prompt: Text("exemple.com"))
                 .autocorrectionDisabled()
                 #if os(iOS)
                 .keyboardType(.URL)
@@ -142,6 +143,25 @@ struct ContentView: View {
                 }
             }
             .disabled(newFeedURL.trimmingCharacters(in: .whitespaces).isEmpty)
+        } message: {
+            Text("Adresse d'un site ou de son flux RSS, Atom ou JSON Feed.")
+        }
+        // The address declares several feeds: the user picks one; feeds already followed cannot be picked again.
+        .confirmationDialog("Ce site propose plusieurs flux", isPresented: Binding(get: { !state.feedChoices.isEmpty },
+                                                                                  set: { if !$0 { state.feedChoices = [] } }),
+                            titleVisibility: .visible, presenting: state.feedChoices) { feeds in
+            ForEach(feeds) { feed in
+                let followed = state.isSubscribed(feed.url)
+                Button(Self.choiceLabel(feed, followed: followed)) {
+                    Task {
+                        do { try await state.subscribe(to: feed.url) } catch { state.message = error.localizedDescription }
+                    }
+                }
+                .disabled(followed)
+            }
+            Button("Annuler", role: .cancel) {}
+        } message: { _ in
+            Text("Choisis le flux auquel t'abonner.")
         }
         #if os(iOS)
         .sheet(isPresented: $state.isShowingSettings) {
@@ -210,6 +230,14 @@ struct ContentView: View {
 
     /// iPhone (or a narrow iPad window): the split view pushes whatever is selected, so only what the user tapped
     /// counts as selected; the remembered article would otherwise open full screen on its own.
+    /// Title and address; the address without its scheme and host, all choices being on the same site.
+    private static func choiceLabel(_ feed: DiscoveredFeed, followed: Bool) -> String {
+        let url = URL(string: feed.url)
+        let path = url.map { $0.path() + ($0.query().map { "?\($0)" } ?? "") } ?? feed.url
+        let label = feed.title.map { "\($0) — \(path)" } ?? feed.url
+        return followed ? label + " (déjà suivi)" : label
+    }
+
     private var isCompact: Bool {
         #if os(iOS)
         sizeClass == .compact
@@ -261,6 +289,16 @@ struct ContentView: View {
                 pickedDigestID = ids.first
             }
         }
+    }
+
+    /// Shows the digest of a tapped notification: the "Résumés quotidiens" entry, that digest selected.
+    private func openNotifiedDigest() {
+        guard let id = state.digestToOpen else { return }
+        state.digestToOpen = nil
+        memory.item = .digests
+        memory.articles[.digests] = id
+        // After the entry change has reset the picked digest.
+        Task { pickedDigestID = id }
     }
 
     /// On entering an entry, a remembered article no longer listed gives way to the first one. Not done while
@@ -335,6 +373,10 @@ struct ArticleListView: View {
     @State private var articlesToDelete: [Article] = []
     @State private var articlesToUnkeep: [Article] = []
     @State private var articlesToOpen: [Article] = []
+    #if os(iOS)
+    /// iPad: shared from the context menu, its popover hangs on the article's own row (ShareLink's lands elsewhere).
+    @State private var articleToShare: Article?
+    #endif
     @AppStorage("showListIcons") private var showListIcons = true
     @Environment(AppState.self) private var state
     #if os(iOS)
@@ -374,6 +416,16 @@ struct ArticleListView: View {
                 }
             }
             .padding(.vertical, 2)
+            #if os(iOS)
+            .popover(isPresented: Binding { articleToShare?.persistentModelID == article.persistentModelID }
+                                  set: { if !$0 { articleToShare = nil } }) {
+                if let url = OpenInBrowser.url(of: article) {
+                    ActivityView(url: url, title: article.title) { articleToShare = nil }
+                        .presentationCompactAdaptation(.sheet)
+                        .presentationDetents([.medium, .large])
+                }
+            }
+            #endif
             #if os(macOS)
             .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([article.persistentModelID]) })
             .modifier(TickedRow(isTicked: isSelectionModeOn && selection.contains(article.persistentModelID),
@@ -385,8 +437,13 @@ struct ArticleListView: View {
         .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
             let lot = articles.filter { ids.contains($0.persistentModelID) }
             if !lot.isEmpty {
+                #if os(iOS)
+                ArticleMenuItems(articles: lot, articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen,
+                                 articlesToDelete: $articlesToDelete, share: { articleToShare = $0 })
+                #else
                 ArticleMenuItems(articles: lot, articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen,
                                  articlesToDelete: $articlesToDelete)
+                #endif
             }
         }
         #if os(macOS)

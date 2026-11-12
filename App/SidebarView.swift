@@ -194,6 +194,12 @@ struct SidebarView: View {
                 Button("Aucun dossier") { for feed in lot { Library.move(feed, to: nil) } }
                     .disabled(lot.allSatisfy { $0.folder == nil })
             }
+            // Articles published from now on get their full text after each refresh; those already listed do not.
+            Toggle("Toujours charger l'article complet", isOn: Binding {
+                lot.allSatisfy { $0.loadsFullContentSince != nil }
+            } set: { isOn in
+                for feed in lot { feed.loadsFullContentSince = isOn ? (feed.loadsFullContentSince ?? .now) : nil }
+            })
             Divider()
             Button(lot.count == 1 ? "Supprimer l'abonnement…" : "Supprimer \(lot.count) abonnements…", role: .destructive) {
                 feedsToDelete = lot

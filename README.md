@@ -61,7 +61,10 @@ relance-la depuis Xcode pour la réinstaller.
 - Chaque appareil a sa propre bibliothèque, sans synchronisation. Pour retrouver tes abonnements, exporte-les en OPML sur le
   Mac (Fichier > Exporter OPML…) et importe le fichier sur l'iPhone (menu « … » de la barre latérale > Importer OPML…).
 - iOS refuse les flux en `http://` non chiffré sur Internet : seuls les flux `https://` sont lisibles.
-- Le résumé quotidien est produit quand l'app est à l'écran : iOS ne la laisse pas tourner en arrière-plan.
+- En arrière-plan, iOS laisse Cairn rafraîchir ses abonnements et produire le résumé quotidien quand il le juge bon (selon
+  l'usage de l'app, la batterie…). Le résumé se fait plutôt quand l'appareil est au repos : après l'heure réglée, souvent
+  avec du retard, au plus tard à ton retour dans l'app. Il faut laisser
+  « Actualisation en arrière-plan » activée pour Cairn dans les réglages d'iOS.
 - Ollama : lance-le sur un Mac du réseau en écoute sur toutes les interfaces (`OLLAMA_HOST=0.0.0.0 ollama serve`), puis indique
   `http://<adresse du Mac>:11434` dans les Réglages de l'app et accepte l'accès au réseau local.
 
@@ -84,9 +87,26 @@ La merger crée le tag `vX.Y.Z` et la GitHub Release. Ensuite, en local :
 git pull && git checkout vX.Y.Z && scripts/release.sh   # build Release, DMG, attaché à la release
 ```
 
+## Abonnements
+
+« Ajouter un abonnement » (⌘N) accepte l'adresse d'un flux ou simplement celle d'un site (`exemple.com` suffit) : Cairn
+cherche les flux que la page déclare, puis les emplacements usuels (`/feed`, `/rss`, `/atom.xml`…). S'il en trouve plusieurs
+(articles, commentaires, podcast…), il te laisse choisir. L'import et l'export OPML sont dans le menu Fichier (sur iOS,
+dans le menu « … » de la barre latérale).
+
+## Article complet
+
+Quand un flux ne donne qu'un extrait, le bouton « Article complet » de la barre de l'article télécharge sa page et en garde
+le texte principal (sans menus, publicités ni commentaires), avec l'extracteur du mode Lecture de Firefox
+([Readability.js](https://github.com/mozilla/readability), Apache 2.0). Le texte est gardé avec l'article ; le même bouton
+revient au contenu du flux. Dans le menu d'un abonnement, « Toujours charger l'article complet » le fait pour chaque nouvel
+article. Le site de l'article est contacté comme par un navigateur, mais sans cookies, et aucun de ses scripts n'est exécuté.
+Les résumés IA portent sur l'article complet quand il est chargé.
+
 ## Résumé quotidien
 
-Chaque jour à l'heure réglée (8 h par défaut), pendant que l'app est ouverte, Cairn rafraîchit les abonnements et fait résumer par une IA locale les articles publiés dans les 24 heures précédentes. Si l'app était fermée à cette heure-là, le résumé est fait au lancement suivant. Les résumés apparaissent dans l'entrée « Résumés » de la barre latérale et sont gardés 7 jours par défaut. « Présentation > Générer le résumé maintenant » relance à la main.
+Chaque jour à l'heure réglée (8 h par défaut), pendant que l'app est ouverte, Cairn rafraîchit les abonnements et fait résumer par une IA locale les articles publiés dans les 24 heures précédentes. Si l'app était fermée à cette heure-là, le résumé est fait au lancement suivant. Les résumés apparaissent dans l'entrée « Résumés » de la barre latérale et sont gardés 7 jours par défaut. « Présentation > Générer le résumé maintenant » relance à la main. Avec « Me prévenir quand le résumé est prêt » (Réglages),
+une notification annonce le résumé fait pendant que Cairn n'est pas au premier plan ; la toucher ouvre ce résumé.
 
 Réglages (⌘,) : heure, durée de conservation (1 à 90 jours) et moteur :
 

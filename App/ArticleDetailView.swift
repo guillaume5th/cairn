@@ -34,9 +34,10 @@ struct ArticleDetailView: View {
             }
             .padding()
             Divider()
+            fullContentStatus
             summaryBox
 
-            if let html = article.content {
+            if let html = Library.displayedContent(article) {
                 HTMLView(html: html, baseURL: url, query: query)
             } else {
                 ContentUnavailableView {
@@ -57,14 +58,23 @@ struct ArticleDetailView: View {
         .toolbar {
             ToolbarItemGroup {
                 // Reading first, then filing, then leaving the app last.
+                // A toggle, like the list's filter: on while the full text is shown; turning it on loads it if needed.
+                Toggle(isOn: Binding { article.fullContent != nil && !article.showsFeedContent } set: { showFullContent($0) }) {
+                    Label("Article complet", systemImage: "doc.text.magnifyingglass")
+                }
+                .disabled(url == nil || isLoadingFullContent)
+                .help(url == nil ? "Cet article n'a pas de lien web"
+                      : article.fullContent == nil ? "Charger l'article complet depuis son site"
+                      : article.showsFeedContent ? "Afficher l'article complet" : "Afficher le contenu du flux")
                 Button(article.summary == nil ? "Résumer" : "Régénérer le résumé", systemImage: "text.append") { summarize() }
-                    .disabled((article.content ?? "").isEmpty || isSummarizing)
-                    .help((article.content ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
+                    .disabled((Library.readableContent(article) ?? "").isEmpty || isSummarizing)
+                    .help((Library.readableContent(article) ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
                           : article.summary == nil ? "Résumer cet article avec l'IA" : "Refaire le résumé de cet article")
                 KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
                 // The filled dot the list shows on unread rows.
                 Button("Marquer comme non lu", systemImage: "circle.inset.filled") { article.isRead = false }
                     .help("Marquer comme non lu")
+                ShareButton(article: article, anchorsPopover: true)
                 Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
                     .disabled(url == nil)
                     .help("Ouvrir dans le navigateur")
@@ -79,6 +89,39 @@ struct ArticleDetailView: View {
     }
 
     private var isSummarizing: Bool { state.summarizing.contains(article.persistentModelID) }
+    private var isLoadingFullContent: Bool { state.loadingFullContent.contains(article.persistentModelID) }
+
+    /// On: the full text, loaded first when the article has none. Off: back to the feed's content (the text is kept).
+    private func showFullContent(_ on: Bool) {
+        if on, article.fullContent == nil {
+            let article = article
+            Task { await state.loadFullContent(article) }
+        } else {
+            article.showsFeedContent = !on
+        }
+    }
+
+    /// Progress of the full-text load, or its failure with a way out.
+    @ViewBuilder
+    private var fullContentStatus: some View {
+        if isLoadingFullContent {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Chargement de l'article complet…").foregroundStyle(.secondary)
+            }
+            .font(.callout)
+            .padding([.horizontal, .top])
+        } else if let error = state.fullContentErrors[article.persistentModelID] {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.secondary)
+                Spacer()
+                Button("Réessayer") { showFullContent(true) }
+                if let url { Button("Ouvrir dans le navigateur") { openURL(url) } }
+            }
+            .font(.callout)
+            .padding([.horizontal, .top])
+        }
+    }
 
     /// Not tied to the view: switching articles does not cancel it, and the result goes to this article.
     private func summarize() {
@@ -299,12 +342,21 @@ struct ArticleMenuItems: View {
     @Binding var articlesToUnkeep: [Article]
     @Binding var articlesToOpen: [Article]
     @Binding var articlesToDelete: [Article]
+    /// Shares through the caller (iOS: a popover on the row) instead of ShareLink.
+    var share: ((Article) -> Void)? = nil
     @Environment(\.openURL) private var openURL
 
     var body: some View {
         let anyUnread = articles.contains { !$0.isRead }
         KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
         Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu") { for article in articles { article.isRead = anyUnread } }
+        if articles.count == 1 {
+            if let share, OpenInBrowser.url(of: articles[0]) != nil, SharePopover.isNeeded {
+                Button("Partager") { share(articles[0]) }
+            } else {
+                ShareButton(article: articles[0])
+            }
+        }
         Button("Ouvrir dans le navigateur") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
         // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
         if articles.allSatisfy({ $0.feed == nil }) {
@@ -315,6 +367,82 @@ struct ArticleMenuItems: View {
         }
     }
 }
+
+/// The system share sheet with the article's title and link; greyed out without a web link.
+struct ShareButton: View {
+    let article: Article
+    /// iPad toolbar only: a popover attached to the button, since ShareLink's own popover lands in the list column there.
+    /// shortcut: works around ShareLink's placement on iPad; check on each iPadOS release whether ShareLink alone is right.
+    var anchorsPopover = false
+    @State private var isSharing = false
+
+    var body: some View {
+        if let url = OpenInBrowser.url(of: article) {
+            #if os(iOS)
+            if anchorsPopover && SharePopover.isNeeded {
+                Button("Partager", systemImage: "square.and.arrow.up") { isSharing = true }
+                    .popover(isPresented: $isSharing) {
+                        ActivityView(url: url, title: article.title) { isSharing = false }
+                            .presentationCompactAdaptation(.sheet)
+                            .presentationDetents([.medium, .large])
+                    }
+            } else {
+                link(url)
+            }
+            #else
+            link(url)
+            #endif
+        } else {
+            Button("Partager", systemImage: "square.and.arrow.up") {}
+                .disabled(true)
+                .help("Cet article n'a pas de lien web")
+        }
+    }
+
+    private func link(_ url: URL) -> some View {
+        ShareLink(item: url, subject: Text(article.title), message: Text(article.title)) {
+            Label("Partager", systemImage: "square.and.arrow.up")
+        }
+        .help("Partager cet article")
+    }
+}
+
+enum SharePopover {
+    /// Only the iPad misplaces ShareLink's popover; the iPhone and the Mac keep the system's own share sheet.
+    static var isNeeded: Bool {
+        #if os(iOS)
+        UIDevice.current.userInterfaceIdiom == .pad
+        #else
+        false
+        #endif
+    }
+}
+
+#if os(iOS)
+/// UIKit's share sheet, for a SwiftUI popover. The title goes along as the message, and as the subject for Mail.
+struct ActivityView: UIViewControllerRepresentable {
+    let url: URL
+    let title: String
+    let onDone: () -> Void
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: [Item(url: url, title: title), title], applicationActivities: nil)
+        controller.completionWithItemsHandler = { _, _, _, _ in onDone() }
+        return controller
+    }
+
+    func updateUIViewController(_ controller: UIActivityViewController, context: Context) {}
+
+    private final class Item: NSObject, UIActivityItemSource {
+        let url: URL
+        let title: String
+        init(url: URL, title: String) { self.url = url; self.title = title }
+        func activityViewControllerPlaceholderItem(_ controller: UIActivityViewController) -> Any { url }
+        func activityViewController(_ controller: UIActivityViewController, itemForActivityType type: UIActivity.ActivityType?) -> Any? { url }
+        func activityViewController(_ controller: UIActivityViewController, subjectForActivityType type: UIActivity.ActivityType?) -> String { title }
+    }
+}
+#endif
 
 /// Reading pane for several selected articles: their count. Their actions are under the list.
 struct ArticleSelectionView: View {
@@ -334,9 +462,11 @@ struct DisabledReaderToolbar: ToolbarContent {
     var body: some ToolbarContent {
         ToolbarItemGroup {
             Group {
+                Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
                 Button("Résumer", systemImage: "text.append") {}
                 Button("Conserver", image: ImageResource(name: "cairn", bundle: .main)) {}
                 Button("Marquer comme non lu", systemImage: "circle.inset.filled") {}
+                Button("Partager", systemImage: "square.and.arrow.up") {}
                 Button("Ouvrir dans le navigateur", systemImage: "safari") {}
             }
             .disabled(true)

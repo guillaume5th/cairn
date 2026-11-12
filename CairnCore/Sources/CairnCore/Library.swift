@@ -72,7 +72,7 @@ public enum Library {
         return OPML.export(feeds.map { OPMLFeed(title: $0.title, url: $0.url, folder: $0.folder?.name) })
     }
 
-    private static func isSubscribed(_ url: String, context: ModelContext) throws -> Bool {
+    public static func isSubscribed(_ url: String, context: ModelContext) throws -> Bool {
         try context.fetchCount(FetchDescriptor<Feed>(predicate: #Predicate { $0.url == url })) > 0
     }
 
@@ -179,7 +179,7 @@ public enum Library {
         var titlesOnly = false
         for article in articles {
             let head = "\n- [\(article.feed?.title ?? article.sourceTitle)] \(article.title)"
-            let excerpt = String(plainText(article.content ?? "").prefix(digestExcerptLength))
+            let excerpt = String(plainText(readableContent(article) ?? "").prefix(digestExcerptLength))
             let full = excerpt.isEmpty ? head : head + " — " + excerpt
             if !titlesOnly, prompt.count + full.count <= digestPromptBudget {
                 prompt += full
@@ -202,14 +202,47 @@ public enum Library {
         Titre : \(article.title)
 
         """
-        return head + plainText(article.content ?? "").prefix(max(0, digestPromptBudget - head.count))
+        return head + plainText(readableContent(article) ?? "").prefix(max(0, digestPromptBudget - head.count))
     }
 
     static let excerptLength = 500
 
-    /// Whether the feed gives only a short excerpt of the article.
+    /// The article's full text when it was loaded, else the feed's content: what summaries read.
+    public static func readableContent(_ article: Article) -> String? {
+        article.fullContent ?? article.content
+    }
+
+    /// Articles of feeds set to "Toujours charger l'article complet", published since it was turned on, whose full
+    /// text was never attempted. Newest first.
+    public static func articlesAwaitingFullContent(context: ModelContext) throws -> [Article] {
+        try context.fetch(FetchDescriptor<Feed>()).flatMap { feed -> [Article] in
+            guard let since = feed.loadsFullContentSince else { return [] }
+            return (feed.articles ?? []).filter { $0.publishedAt >= since && $0.fullContentFetchedAt == nil }
+        }
+        .sorted { $0.publishedAt > $1.publishedAt }
+    }
+
+    /// Stores the outcome of a full-text load: the text on success; on failure only the attempt, the feed's content
+    /// staying as it was.
+    public static func recordFullContent(_ result: Result<ExtractedArticle, any Error>, for article: Article, now: Date = .now) {
+        article.fullContentFetchedAt = now
+        if case let .success(extracted) = result {
+            article.fullContent = extracted.content
+            article.showsFeedContent = false
+        }
+    }
+
+    /// What the reading pane shows: the full text unless the user went back to the feed's content.
+    public static func displayedContent(_ article: Article) -> String? {
+        article.showsFeedContent ? article.content : readableContent(article)
+    }
+
+    /// Whether the article's summary was made from a short excerpt given by the feed, not from its full text.
     public static func isExcerpt(_ article: Article) -> Bool {
-        plainText(article.content ?? "").count < excerptLength
+        if article.fullContent != nil, let loaded = article.fullContentFetchedAt, (article.summaryDate ?? .distantFuture) >= loaded {
+            return false
+        }
+        return plainText(article.content ?? "").count < excerptLength
     }
 
     /// Deletes digests created more than `days` days before `now`.

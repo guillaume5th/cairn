@@ -11,7 +11,9 @@ let package = Package(
         .package(url: "https://github.com/nmdias/FeedKit.git", from: "10.10.2"),
     ],
     targets: [
-        .target(name: "CairnCore", dependencies: ["FeedKit"]),
+        // Readability.js 0.6.0 (Mozilla, Apache 2.0), from the npm package @mozilla/readability.
+        .target(name: "CairnCore", dependencies: ["FeedKit"],
+                exclude: ["Resources/Readability-LICENSE.md"], resources: [.copy("Resources/Readability.js")]),
         .testTarget(
             name: "CairnCoreTests",
             dependencies: ["CairnCore"],

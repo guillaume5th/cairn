@@ -32,9 +32,16 @@ struct CairnApp: App {
         WindowGroup {
             content
                 // iOS may terminate a backgrounded app without notice: save before that can happen.
-                .onChange(of: scenePhase) { if scenePhase == .background { state.save() } }
+                .onChange(of: scenePhase) {
+                    if scenePhase == .background {
+                        state.save()
+                        BackgroundRefresh.schedule()
+                    }
+                }
         }
         .commands { CairnCommands(state: state) }
+        .backgroundTask(.appRefresh(BackgroundRefresh.identifier)) { await state.runInBackground(digest: false) }
+        .backgroundTask(.processingTask(BackgroundRefresh.digestIdentifier)) { await state.runInBackground(digest: true) }
         #endif
     }
 

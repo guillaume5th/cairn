@@ -7,14 +7,19 @@ public struct FeedFetcher: Sendable {
         self.session = session
     }
 
-    public func fetch(_ url: URL) async throws -> ParsedFeed {
+    public func fetch(_ url: URL, timeout: TimeInterval = 20) async throws -> ParsedFeed {
+        try FeedParser.parse(try await download(url, timeout: timeout).data)
+    }
+
+    /// The body and the final URL (after redirects); an HTTP error status throws.
+    func download(_ url: URL, timeout: TimeInterval = 20) async throws -> (data: Data, url: URL) {
         // A refresh must reach the server: heuristic HTTP caching would otherwise hide new items.
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 20)
+        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw CairnError.httpStatus(http.statusCode)
         }
-        return try FeedParser.parse(data)
+        return (data, response.url ?? url)
     }
 
     /// Fetches every URL, at most `maxConcurrent` at a time. One failing feed never affects the others.
