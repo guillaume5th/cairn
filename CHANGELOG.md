@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/guillaume5th/cairn/compare/v1.3.0...v1.4.0) (2026-11-12)
+
+
+### Features
+
+* share, feed discovery, full articles and background digest ([#11](https://github.com/guillaume5th/cairn/issues/11)) ([af7bc4c](https://github.com/guillaume5th/cairn/commit/af7bc4c65de64e01e441612ccfd74874d696cebe))
+
 ## [1.3.0](https://github.com/guillaume5th/cairn/compare/v1.2.0...v1.3.0) (2026-11-12)
 
 
