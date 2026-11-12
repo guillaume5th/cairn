@@ -40,11 +40,20 @@ struct ContentView: View {
     @State private var multiFeeds: Set<PersistentIdentifier> = []
     /// Articles selected together (two or more).
     @State private var multiArticles: Set<PersistentIdentifier> = []
+    /// Mac selection mode (iOS uses its edit mode): ticking never opens nor marks an article read, even a single one.
+    @State private var isSelectionModeOn = false
     /// Digests selected together (two or more).
     @State private var multiDigests: Set<PersistentIdentifier> = []
+    /// Digest the user picked themself, for the compact layout (see `isCompact`).
+    @State private var pickedDigestID: PersistentIdentifier?
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var sizeClass
+    #endif
     /// Article shown in a multi-feed list, which has no memory.
     @State private var multiFeedArticle: PersistentIdentifier?
     @State private var unreadOnly = false
+    /// iOS: the add-feed alert's field.
+    @State private var newFeedURL = ""
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
 
@@ -69,12 +78,18 @@ struct ContentView: View {
             if entry == .digests {
                 DigestDetail(digests: selectedDigests.count > 1 ? selectedDigests : displayedDigest.map { [$0] } ?? [],
                              query: searchText, hasDigests: !digests.isEmpty)
-            } else if selectedArticles.count > 1 {
+            } else if selectedArticles.count > 1 || isSelectionModeOn {
                 ArticleSelectionView(articles: selectedArticles)
             } else if let article = articles.first(where: { $0.persistentModelID == displayedArticleID }) {
                 ArticleDetailView(article: article, marksRead: article.persistentModelID == pickedID, query: searchText)
+                    // iPhone: marking it unread means "later", so go back to the list (the iPad and Mac show it beside).
+                    .onChange(of: article.isRead) { wasRead, isRead in if isCompact && wasRead && !isRead { pickedID = nil } }
             } else {
                 ContentUnavailableView("Aucun article sélectionné", systemImage: "doc.text")
+                    #if os(macOS)
+                    // A reading pane without toolbar items lets the list's buttons drift to the window's trailing edge.
+                    .toolbar { ToolbarSpacer(.flexible) }
+                    #endif
             }
         }
         .onAppear {
@@ -102,15 +117,46 @@ struct ContentView: View {
             }
             settleArticle()
         }
-        .onChange(of: memory.item) { searchText = ""; multiArticles = []; multiDigests = []; settleArticle() }
-        .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil }
+        .onChange(of: memory.item) {
+            searchText = ""; multiArticles = []; multiDigests = []; pickedDigestID = nil; isSelectionModeOn = false
+            settleArticle()
+        }
+        .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil; isSelectionModeOn = false }
         .onChange(of: memory) { memory.save() }
         .onChange(of: state.isSearchRequested) {
             guard state.isSearchRequested else { return }
             state.isSearchRequested = false
             isSearchFocused = true
         }
+        #if os(macOS)
         .sheet(isPresented: $state.isAddingFeed) { AddFeedSheet() }
+        #else
+        // Same alert as "Nouveau dossier"; a failure (unreadable feed) comes back in the app's message alert.
+        .alert("Ajouter un abonnement", isPresented: $state.isAddingFeed) {
+            TextField("URL du flux", text: $newFeedURL, prompt: Text("https://exemple.com/feed.xml"))
+                .keyboardType(.URL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            Button("Annuler", role: .cancel) { newFeedURL = "" }
+            Button("Ajouter") {
+                let url = newFeedURL
+                newFeedURL = ""
+                Task {
+                    do { try await state.addFeed(url) } catch { state.message = error.localizedDescription }
+                }
+            }
+            .disabled(newFeedURL.trimmingCharacters(in: .whitespaces).isEmpty)
+        }
+        #endif
+        #if os(iOS)
+        .sheet(isPresented: $state.isShowingSettings) {
+            NavigationStack {
+                SettingsView()
+                    .navigationTitle("Réglages")
+                    .toolbar { Button("OK") { state.isShowingSettings = false } }
+            }
+        }
+        #endif
         .fileImporter(isPresented: $state.isImporting, allowedContentTypes: [.opml, .xml]) { state.importOPML($0) }
         .fileExporter(isPresented: $state.isExporting, document: state.exportDocument, contentType: .opml,
                       defaultFilename: "Cairn.opml") { result in
@@ -129,9 +175,17 @@ struct ContentView: View {
         // marked read; an empty set is a deselection, not a pick.
         let selection = Binding<Set<PersistentIdentifier>> {
             let picked = selectedArticles
-            return picked.count > 1 ? Set(picked.map(\.persistentModelID)) : Set([displayedArticleID].compactMap { $0 })
+            if picked.count > 1 || isSelectionModeOn { return Set(picked.map(\.persistentModelID)) }
+            return Set([isCompact ? pickedID : displayedArticleID].compactMap { $0 })
         } set: { ids in
-            if ids.count > 1 {
+            if isSelectionModeOn {
+                multiArticles = ids
+                pickedID = nil
+            } else if ids.isEmpty && (isCompact || !multiArticles.isEmpty) {
+                // Back to the list, or a multiple selection dropped: keep the remembered article.
+                multiArticles = []
+                pickedID = nil
+            } else if ids.count > 1 {
                 multiArticles = ids
                 pickedID = nil
             } else {
@@ -140,9 +194,10 @@ struct ContentView: View {
                 pickedID = ids.first
             }
         }
-        ArticleListView(articles: visibleArticles, query: searchText, selection: selection, unreadOnly: $unreadOnly)
-            .navigationTitle(title)
+        ArticleListView(articles: visibleArticles, title: title, query: searchText, isCompact: isCompact,
+                        selection: selection, isSelectionModeOn: $isSelectionModeOn, unreadOnly: $unreadOnly)
             .toolbar {
+                #if os(macOS) // iOS refreshes by pulling the list down (and ⌘R on an iPad keyboard)
                 ToolbarItem {
                     // The icon spins instead of being replaced: a ProgressView or a disabled button splits the item out
                     // of the toolbar capsule. A click while refreshing is ignored by refresh().
@@ -150,12 +205,23 @@ struct ContentView: View {
                         .symbolEffect(.rotate, options: .repeat(.continuous).speed(2.5), isActive: state.isRefreshing)
                         .help(state.isRefreshing ? "Rafraîchissement en cours" : "Rafraîchir tous les abonnements (⌘R)")
                 }
+                #endif
             }
             .searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher")
             .searchFocused($isSearchFocused)
     }
 
     private var entry: SidebarItem { memory.item ?? .all }
+
+    /// iPhone (or a narrow iPad window): the split view pushes whatever is selected, so only what the user tapped
+    /// counts as selected; the remembered article would otherwise open full screen on its own.
+    private var isCompact: Bool {
+        #if os(iOS)
+        sizeClass == .compact
+        #else
+        false
+        #endif
+    }
 
     private var isMultiFeed: Bool { multiFeeds.count > 1 }
 
@@ -187,13 +253,17 @@ struct ContentView: View {
     private var digestSelection: Binding<Set<PersistentIdentifier>> {
         Binding {
             let picked = selectedDigests
-            return picked.count > 1 ? Set(picked.map(\.persistentModelID)) : Set([displayedDigest?.persistentModelID].compactMap { $0 })
+            if picked.count > 1 { return Set(picked.map(\.persistentModelID)) }
+            return Set([isCompact ? pickedDigestID : displayedDigest?.persistentModelID].compactMap { $0 })
         } set: { ids in
-            if ids.count > 1 {
+            if isCompact && ids.isEmpty {
+                pickedDigestID = nil
+            } else if ids.count > 1 {
                 multiDigests = ids
             } else {
                 multiDigests = []
                 memory.articles[.digests] = ids.first
+                pickedDigestID = ids.first
             }
         }
     }
@@ -257,21 +327,33 @@ struct ContentView: View {
 
 struct ArticleListView: View {
     let articles: [Article]
+    let title: String
     /// Current search, highlighted in the rows.
     let query: String
+    /// The window's width class, from ContentView: the list's own is compact on an iPad too (a split view column).
+    let isCompact: Bool
     @Binding var selection: Set<PersistentIdentifier>
+    /// Mac only: selection mode turned on with the button (iOS uses its edit mode).
+    @Binding var isSelectionModeOn: Bool
     @Binding var unreadOnly: Bool
     @Environment(\.modelContext) private var context
     @State private var articlesToDelete: [Article] = []
     @State private var articlesToUnkeep: [Article] = []
     @State private var articlesToOpen: [Article] = []
     @AppStorage("showListIcons") private var showListIcons = true
+    @Environment(AppState.self) private var state
+    #if os(iOS)
+    @Environment(\.editMode) private var editMode
+    #endif
 
     var body: some View {
-        List(articles, selection: $selection) { article in
+        List(articles, selection: listSelection) { article in
             HStack(spacing: 10) {
+                #if os(macOS)
+                if isSelecting { SelectionMark(isTicked: selection.contains(article.persistentModelID)) }
+                #endif
                 // Hidden rather than removed when read, so every row keeps the same alignment.
-                UnreadDot()
+                UnreadDot(isOnHighlight: isHighlighted(article))
                     .opacity(article.isRead ? 0 : 1)
                     .accessibilityLabel("Non lu")
                     .accessibilityHidden(article.isRead)
@@ -287,7 +369,7 @@ struct ArticleListView: View {
                             .lineLimit(2)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        if article.isKept { Image("cairn.fill").foregroundStyle(.tint) }
+                        if article.isKept { KeptMark(isOnHighlight: isHighlighted(article)) }
                         Text(article.sourceTitle).lineLimit(1)
                         Spacer()
                         Text(article.publishedAt, format: .relative(presentation: .named))
@@ -297,6 +379,12 @@ struct ArticleListView: View {
                 }
             }
             .padding(.vertical, 2)
+            #if os(macOS)
+            .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([article.persistentModelID]) })
+            .modifier(TickedRow(isTicked: isSelectionModeOn && selection.contains(article.persistentModelID),
+                                joinsAbove: isSelectionModeOn && isTicked(article, offset: -1),
+                                joinsBelow: isSelectionModeOn && isTicked(article, offset: 1)))
+            #endif
         }
         // It gets the selection when the clicked row is part of it, else that row alone.
         .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
@@ -306,10 +394,29 @@ struct ArticleListView: View {
                                  articlesToDelete: $articlesToDelete)
             }
         }
+        #if os(macOS)
+        .onExitCommand { if isSelecting { leaveSelection() } }
+        .safeAreaInset(edge: .bottom) {
+            // The Mac's counterpart of the iPhone's bottom bar: the selection's actions under the list.
+            if isSelecting {
+                HStack(spacing: 22) {
+                    SelectionActions(articles: selectedArticles, articlesToUnkeep: $articlesToUnkeep,
+                                     articlesToOpen: $articlesToOpen, articlesToDelete: $articlesToDelete)
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .font(.title2)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+                .glassEffect(.regular, in: .capsule)
+                .padding(.bottom, 10)
+            }
+        }
         .onDeleteCommand {
             let lot = articles.filter { selection.contains($0.persistentModelID) }
             if !lot.isEmpty, lot.allSatisfy({ $0.feed == nil }) { articlesToDelete = lot }
         }
+        #endif
         .confirmationDialog(articlesToDelete.count == 1 ? "Supprimer « \(articlesToDelete[0].title) » ?"
                                                         : "Supprimer \(articlesToDelete.count) articles ?",
                             isPresented: Binding(get: { !articlesToDelete.isEmpty }, set: { if !$0 { articlesToDelete = [] } }),
@@ -331,7 +438,22 @@ struct ArticleListView: View {
         .overlay {
             if articles.isEmpty { ContentUnavailableView("Aucun article", systemImage: "tray") }
         }
+        .refreshable { await state.refresh() }
+        .navigationTitle(listTitle)
+        #if os(iOS)
+        // Leaving selection mode drops what was ticked without an action.
+        .onChange(of: editMode?.wrappedValue.isEditing) { if editMode?.wrappedValue.isEditing != true { selection = [] } }
+        #endif
         .toolbar {
+            // A toggle, like the unread filter, so the toolbar shows it on. An icon rather than EditButton, whose
+            // "Modifier" text outweighs the icon buttons next to it. Its own item: two toggles in one macOS toolbar
+            // group act as one control, and switching the filter also switched selection mode.
+            ToolbarItem {
+                Toggle(isOn: Binding { isSelecting } set: { $0 ? enterSelection() : leaveSelection() }) {
+                    Label("Sélectionner", systemImage: "checklist")
+                }
+                .help(isSelecting ? "Terminer la sélection (Échap)" : "Sélectionner des articles")
+            }
             ToolbarItemGroup {
                 Toggle(isOn: $unreadOnly) { Label("Non lus seulement", systemImage: "line.3.horizontal.decrease.circle") }
                     .help("N'afficher que les articles non lus")
@@ -340,7 +462,128 @@ struct ArticleListView: View {
                 }
                 .help("Marquer tous les articles de la liste comme lus")
             }
+            #if os(iOS)
+            selectionBar
+            #endif
         }
+    }
+
+    private var isSelecting: Bool {
+        #if os(iOS)
+        editMode?.wrappedValue.isEditing == true
+        #else
+        isSelectionModeOn || selection.count > 1
+        #endif
+    }
+
+    /// Count in the title and actions under the list: on the Mac and the iPhone. The iPad keeps its reading pane.
+    private var showsSelectionBar: Bool {
+        #if os(iOS)
+        isSelecting && isCompact
+        #else
+        isSelecting
+        #endif
+    }
+
+    /// Whether the row sits on the blue selection highlight: on iOS, the selected row outside selection mode on a
+    /// regular width (the iPhone and selection mode tick rows in grey). The Mac relies on the prominence.
+    private func isHighlighted(_ article: Article) -> Bool {
+        #if os(iOS)
+        !isSelecting && !isCompact && selection.contains(article.persistentModelID)
+        #else
+        false
+        #endif
+    }
+
+        /// Whether the row `offset` rows away from `article` is ticked.
+    private func isTicked(_ article: Article, offset: Int) -> Bool {
+        guard selection.contains(article.persistentModelID),
+              let index = articles.firstIndex(where: { $0.persistentModelID == article.persistentModelID }),
+              articles.indices.contains(index + offset) else { return false }
+        return selection.contains(articles[index + offset].persistentModelID)
+    }
+
+    /// Only what is still listed.
+    private var selectedArticles: [Article] { articles.filter { selection.contains($0.persistentModelID) } }
+
+    private func enterSelection() {
+        #if os(iOS)
+        withAnimation { editMode?.wrappedValue = .active }
+        #else
+        isSelectionModeOn = true
+        #endif
+    }
+
+    /// Drops what was ticked without an action.
+    private func leaveSelection() {
+        #if os(iOS)
+        withAnimation { editMode?.wrappedValue = .inactive } // the onChange clears the selection
+        #else
+        isSelectionModeOn = false
+        selection = []
+        #endif
+    }
+
+    /// In the Mac's selection mode the rows' own click ticks them (see `TickOnClick`), so the table selects
+    /// nothing: its native selection waits before dropping a row of a multiple selection, in case of a drag.
+    private var listSelection: Binding<Set<PersistentIdentifier>> {
+        #if os(macOS)
+        isSelectionModeOn ? .constant([]) : $selection
+        #else
+        $selection
+        #endif
+    }
+
+    /// In selection mode, the count replaces the list's name, as in Mail.
+    private var listTitle: String {
+        guard showsSelectionBar else { return title }
+        let count = selectedArticles.count
+        return count == 0 ? "Aucune sélection" : count == 1 ? "1 sélectionné" : "\(count) sélectionnés"
+    }
+
+    #if os(iOS)
+    // iPhone: no reading pane to show the selection's actions (the iPad shows ArticleSelectionView there).
+    @ToolbarContentBuilder private var selectionBar: some ToolbarContent {
+        if showsSelectionBar {
+            ToolbarSpacer(.flexible, placement: .bottomBar)
+            ToolbarItemGroup(placement: .bottomBar) {
+                SelectionActions(articles: selectedArticles, articlesToUnkeep: $articlesToUnkeep,
+                                 articlesToOpen: $articlesToOpen, articlesToDelete: $articlesToDelete)
+            }
+            ToolbarSpacer(.flexible, placement: .bottomBar)
+        }
+    }
+    #endif
+}
+
+/// Actions on the ticked articles, under the list (Mac) or in the bottom bar (iPhone).
+private struct SelectionActions: View {
+    let articles: [Article]
+    @Binding var articlesToUnkeep: [Article]
+    @Binding var articlesToOpen: [Article]
+    @Binding var articlesToDelete: [Article]
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        let anyUnread = articles.contains { !$0.isRead }
+        Group {
+            KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
+            Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                   systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
+                for article in articles { article.isRead = anyUnread }
+            }
+            .help(anyUnread ? "Marquer ces articles comme lus" : "Marquer ces articles comme non lus")
+            Button("Ouvrir dans le navigateur", systemImage: "safari") {
+                OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
+            }
+            .help("Ouvrir ces articles dans le navigateur")
+            // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
+            if !articles.isEmpty, articles.allSatisfy({ $0.feed == nil }) {
+                Button("Supprimer", systemImage: "trash", role: .destructive) { articlesToDelete = articles }
+                    .help("Supprimer ces articles")
+            }
+        }
+        .disabled(articles.isEmpty)
     }
 }
 
@@ -363,10 +606,75 @@ extension AttributedString {
 }
 
 /// Blue like Mail, white on a selected row where blue would vanish into the accent-colored highlight.
-private struct UnreadDot: View {
+#if os(macOS)
+/// In the Mac's selection mode, a click on the row ticks it. Added only then: a gesture on every row slows the list
+/// down (rebuilding it on a filter change) and gets in the way of the table's own clicks.
+private struct TickOnClick: ViewModifier {
+    let isOn: Bool
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        if isOn { content.contentShape(.rect).onTapGesture(perform: action) } else { content }
+    }
+}
+#endif
+
+#if os(macOS)
+/// A ticked row in the Mac's selection mode, drawn like the table's own selection (as after a ⌘-click): the table
+/// selects nothing in that mode, its native selection being slow to drop a row. Ticked neighbours make one block,
+/// rounded only at its ends.
+private struct TickedRow: ViewModifier {
+    let isTicked: Bool
+    let joinsAbove: Bool
+    let joinsBelow: Bool
+
+    func body(content: Content) -> some View {
+        if isTicked {
+            let top: CGFloat = joinsAbove ? 0 : 8, bottom: CGFloat = joinsBelow ? 0 : 8
+            content
+                .foregroundStyle(.white)
+                .environment(\.backgroundProminence, .increased) // white checkbox and unread dot, as on a selected row
+                .listRowSeparator(.hidden)
+                .listRowBackground(UnevenRoundedRectangle(topLeadingRadius: top, bottomLeadingRadius: bottom,
+                                                          bottomTrailingRadius: bottom, topTrailingRadius: top)
+                    .fill(Color(nsColor: .selectedContentBackgroundColor)).padding(.horizontal, 10))
+        } else {
+            content
+        }
+    }
+}
+#endif
+
+/// The Mac's selection-mode checkbox: white on a highlighted (selected) row, where the tint would vanish.
+private struct SelectionMark: View {
+    let isTicked: Bool
     @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
-        Circle().fill(prominence == .increased ? Color.white : Color.blue).frame(width: 8, height: 8)
+        Image(systemName: isTicked ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(prominence == .increased ? AnyShapeStyle(.white)
+                                                      : isTicked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
+            .accessibilityHidden(true)
+    }
+}
+
+/// The cairn icon of a kept article's row: tinted, white on the blue selection highlight (like UnreadDot).
+private struct KeptMark: View {
+    var isOnHighlight = false
+    @Environment(\.backgroundProminence) private var prominence
+
+    var body: some View {
+        Image("cairn.fill")
+            .foregroundStyle(isOnHighlight || prominence == .increased ? AnyShapeStyle(.white) : AnyShapeStyle(.tint))
+    }
+}
+
+private struct UnreadDot: View {
+    /// The row is drawn on the blue selection highlight (iPadOS does not always raise the prominence for it).
+    var isOnHighlight = false
+    @Environment(\.backgroundProminence) private var prominence
+
+    var body: some View {
+        Circle().fill(isOnHighlight || prominence == .increased ? Color.white : Color.blue).frame(width: 8, height: 8)
     }
 }

@@ -54,8 +54,32 @@ struct SettingsView: View {
     @State private var modelsError: String?
     @State private var reloadCount = 0
 
+    #if os(macOS)
+    private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
+    private static let ollamaPlace = "Ollama doit tourner sur ce Mac ou sur ton réseau."
+    #else
+    // iOS suspends the app in the background: the digest waits for the next time Cairn is on screen.
+    private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est à l'écran, sinon à ton retour dans l'app."
+    private static let ollamaPlace = "Ollama doit tourner sur un ordinateur de ton réseau local : indique son adresse, par exemple http://192.168.1.10:11434."
+    @AppStorage(TextScale.key) private var textScale = 1.0
+    @AppStorage("showListIcons") private var showListIcons = true
+    #endif
+
     var body: some View {
         Form {
+            #if os(iOS)
+            // The Mac keeps these in its View menu.
+            Section("Affichage") {
+                // A Stepper, not two Buttons: buttons sharing a Form row on iOS all fire on a single tap.
+                Stepper(onIncrement: textScale < TextScale.range.upperBound ? { textScale = TextScale.stepped(textScale, by: 0.1) } : nil,
+                        onDecrement: textScale > TextScale.range.lowerBound ? { textScale = TextScale.stepped(textScale, by: -0.1) } : nil) {
+                    LabeledContent("Taille du texte", value: textScale, format: .percent.precision(.fractionLength(0)))
+                }
+                Button("Taille normale") { textScale = 1 }
+                    .disabled(textScale == 1)
+                Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
+            }
+            #endif
             Section {
                 DatePicker("Heure du résumé", selection: timeBinding, displayedComponents: .hourAndMinute)
                 LabeledContent("Conserver les résumés") {
@@ -78,7 +102,7 @@ struct SettingsView: View {
             } header: {
                 Text("Résumé quotidien")
             } footer: {
-                Text("Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant.")
+                Text(Self.scheduleNote)
                     .foregroundStyle(.secondary)
             }
 
@@ -111,20 +135,22 @@ struct SettingsView: View {
             } footer: {
                 Group {
                     if engine == .apple {
-                        Text("Les résumés quotidiens et les résumés d'articles sont rédigés sur ce Mac : les articles ne sont envoyés à aucun service en ligne.")
+                        Text("Les résumés quotidiens et les résumés d'articles sont rédigés sur cet appareil : les articles ne sont envoyés à aucun service en ligne.")
                     } else if let modelsError {
                         Label(modelsError, systemImage: "exclamationmark.triangle")
                     } else {
-                        Text("Sert aux résumés quotidiens et aux résumés d'articles. Ollama doit tourner sur ce Mac ou sur ton réseau. Installe d'autres modèles avec « ollama pull », puis actualise la liste.")
+                        Text("Sert aux résumés quotidiens et aux résumés d'articles. \(Self.ollamaPlace) Installe d'autres modèles avec « ollama pull », puis actualise la liste.")
                     }
                 }
                 .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+        #if os(macOS)
         .scrollIndicators(.never) // the window fits its content; no scroller
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
+        #endif
         .task(id: "\(engine.rawValue)|\(ollamaURL)|\(reloadCount)") { await loadModels() }
     }
 
@@ -197,7 +223,9 @@ struct DigestListView: View {
                 }
             }
         }
+        #if os(macOS)
         .onDeleteCommand { digestsToDelete = digests.filter { selection.contains($0.persistentModelID) } }
+        #endif
         .toolbar {
             // Trailing edge of the list column, like the article list's buttons.
             ToolbarItem {

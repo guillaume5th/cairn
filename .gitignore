@@ -4,3 +4,4 @@ build/
 DerivedData/
 CairnCore/.build/
 CairnCore/.swiftpm/
+Config/Local.xcconfig

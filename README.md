@@ -8,13 +8,14 @@ one cairn at a time.
 ## Prérequis
 
 - macOS 27 ou plus récent (Xcode 27)
+- Pour iPhone et iPad : iOS/iPadOS 27 et le simulateur iOS installé dans Xcode
 - Xcode (premier lancement effectué : `sudo xcodebuild -runFirstLaunch`)
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) : `brew install xcodegen`
 
 ## Structure
 
 - `CairnCore/` : package Swift avec toute la logique (modèles SwiftData, lecture des flux, OPML, rétention, recherche) et ses tests.
-- `App/` : l'application SwiftUI macOS (vues et commandes uniquement).
+- `App/` : l'application SwiftUI (vues et commandes uniquement), partagée par la cible Mac `Cairn` et la cible iPhone/iPad `Cairn iOS`.
 - `project.yml` : description du projet Xcode. `Cairn.xcodeproj` est généré et n'est pas versionné.
 
 ## Commandes
@@ -29,6 +30,9 @@ xcodebuild -scheme Cairn -destination 'platform=macOS' -derivedDataPath build bu
 
 # Lancer l'app
 open build/Build/Products/Debug/Cairn.app
+
+# Construire l'app iPhone/iPad pour le simulateur
+xcodebuild -scheme 'Cairn iOS' -destination 'generic/platform=iOS Simulator' -derivedDataPath build build
 ```
 
 Pour développer dans Xcode : `xcodegen && open Cairn.xcodeproj`.
@@ -37,6 +41,29 @@ Les données sont stockées localement dans
 `~/Library/Containers/dev.cairn.Cairn/Data/Library/Application Support/default.store`.
 
 ## Installation
+
+### iPhone et iPad
+
+L'app iOS s'installe depuis Xcode, sur tes propres appareils :
+
+```sh
+echo 'DEVELOPMENT_TEAM = <ton identifiant d'équipe Apple>' > Config/Local.xcconfig   # une fois, non versionné
+xcodegen && open Cairn.xcodeproj
+```
+
+Dans Xcode, choisis le schéma « Cairn iOS », ton iPhone ou iPad comme destination, puis Run.
+L'identifiant d'équipe se trouve dans Xcode > Réglages > Comptes. L'identifiant de l'app est suffixé par cette équipe
+(`dev.cairn.Cairn-<équipe>`), Apple refusant un identifiant déjà pris. Avec un Apple ID gratuit, l'app installée expire au bout de 7 jours :
+relance-la depuis Xcode pour la réinstaller.
+
+- Chaque appareil a sa propre bibliothèque, sans synchronisation. Pour retrouver tes abonnements, exporte-les en OPML sur le
+  Mac (Fichier > Exporter OPML…) et importe le fichier sur l'iPhone (menu « … » de la barre latérale > Importer OPML…).
+- iOS refuse les flux en `http://` non chiffré sur Internet : seuls les flux `https://` sont lisibles.
+- Le résumé quotidien est produit quand l'app est à l'écran : iOS ne la laisse pas tourner en arrière-plan.
+- Ollama : lance-le sur un Mac du réseau en écoute sur toutes les interfaces (`OLLAMA_HOST=0.0.0.0 ollama serve`), puis indique
+  `http://<adresse du Mac>:11434` dans les Réglages de l'app et accepte l'accès au réseau local.
+
+### Mac
 
 Télécharge le `.dmg` depuis les [Releases](https://github.com/guillaume5th/cairn/releases) et glisse Cairn dans Applications.
 L'app n'est pas notarisée par Apple : au premier lancement, macOS la bloque. Débloque-la avec

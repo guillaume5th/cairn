@@ -56,16 +56,18 @@ struct ArticleDetailView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
-                Button("Marquer comme non lu", systemImage: "circle") { article.isRead = false }
-                    .help("Marquer comme non lu")
-                Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
-                    .disabled(url == nil)
-                    .help("Ouvrir dans le navigateur")
+                // Reading first, then filing, then leaving the app last.
                 Button(article.summary == nil ? "Résumer" : "Régénérer le résumé", systemImage: "text.append") { summarize() }
                     .disabled((article.content ?? "").isEmpty || isSummarizing)
                     .help((article.content ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
                           : article.summary == nil ? "Résumer cet article avec l'IA" : "Refaire le résumé de cet article")
+                KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
+                // The filled dot the list shows on unread rows.
+                Button("Marquer comme non lu", systemImage: "circle.inset.filled") { article.isRead = false }
+                    .help("Marquer comme non lu")
+                Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
+                    .disabled(url == nil)
+                    .help("Ouvrir dans le navigateur")
             }
         }
         .unkeepConfirmation($articlesToUnkeep)
@@ -323,12 +325,18 @@ struct ArticleSelectionView: View {
 
     var body: some View {
         let anyUnread = articles.contains { !$0.isRead }
-        ContentUnavailableView("\(articles.count) articles sélectionnés", systemImage: "doc.on.doc")
+        ContentUnavailableView(articles.isEmpty ? "Aucun article sélectionné"
+                                   : articles.count == 1 ? "1 article sélectionné" : "\(articles.count) articles sélectionnés",
+                               systemImage: "doc.on.doc")
+            #if os(macOS)
+            // The actions are under the list; without an item of its own here, the list's buttons slide right.
+            .toolbar { ToolbarSpacer(.flexible) }
+            #else
             .toolbar {
                 ToolbarItemGroup {
                     KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
                     Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
-                           systemImage: anyUnread ? "checkmark.circle" : "circle") {
+                           systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
                         for article in articles { article.isRead = anyUnread }
                     }
                     .help(anyUnread ? "Marquer ces articles comme lus" : "Marquer ces articles comme non lus")
@@ -338,6 +346,7 @@ struct ArticleSelectionView: View {
                     .help("Ouvrir ces articles dans le navigateur")
                 }
             }
+            #endif
             .unkeepConfirmation($articlesToUnkeep)
             .openConfirmation($articlesToOpen)
     }

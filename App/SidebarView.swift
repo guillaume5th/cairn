@@ -1,4 +1,3 @@
-import AppKit
 import CairnCore
 import SwiftData
 import SwiftUI
@@ -61,53 +60,14 @@ struct SidebarView: View {
                     }
                 }
             } header: {
-                HStack {
-                    Text("Cairns")
-                    Spacer()
-                    Button("Nouveau cairn", systemImage: "plus") { startNaming(.newCairn) }
-                        .labelStyle(.iconOnly)
-                        .buttonStyle(.borderless)
-                        .help("Nouveau cairn")
-                        // Inset to line up with the unread counters of the rows below.
-                        .padding(.trailing, 21)
-                }
+                Text("Cairns")
             }
 
-            Section {
-                ForEach(folders) { folder in
-                    DisclosureGroup(isExpanded: isExpanded(folder)) {
-                        ForEach(feeds.filter { $0.folder?.persistentModelID == folder.persistentModelID }, content: feedRow)
-                    } label: {
-                        Label(folder.name, systemImage: "folder")
-                            .badge(folder.unreadCount)
-                            .tag(SidebarItem.folder(folder.persistentModelID))
-                            .dropDestination(for: String.self) { urls, _ in return move(urls, to: folder) }
-                    }
-                }
-                ForEach(feeds.filter { $0.folder == nil }, content: feedRow)
-            } header: {
-                HStack {
-                    Text("Abonnements")
-                    Spacer()
-                    // A Button popping an NSMenu rather than a SwiftUI Menu, whose label renders brighter and
-                    // larger than the "Nouveau cairn" button above whatever its style.
-                    Button("Ajouter", systemImage: "plus") {
-                        ActionMenu.popUp([
-                            ("Ajouter un abonnement…", { state.isAddingFeed = true }),
-                            ("Nouveau dossier…", { startNaming(.newFolder) }),
-                        ])
-                    }
-                    .labelStyle(.iconOnly)
-                    .buttonStyle(.borderless)
-                    .help("Ajouter un abonnement (⌘N) ou un dossier")
-                    .padding(.trailing, 21)
-                }
-                // Dropping a feed on the section header takes it out of its folder.
-                .dropDestination(for: String.self) { urls, _ in return move(urls, to: nil) }
-            }
+            subscriptionsSection
         }
         // One menu for the whole list: it gets the selection when the clicked row is part of it, else that row alone.
         .contextMenu(forSelectionType: SidebarItem.self, menu: menu)
+        .toolbar { sidebarCommands }
         // Dragging a selected feed drags the whole selection of feeds.
         .dragContainer(for: String.self, itemID: \.self) { urls in urls }
         .dragContainerSelection(selectedFeeds.map(\.url))
@@ -140,6 +100,48 @@ struct SidebarView: View {
             case 1: Text("Son article ne sera plus gardé et perdra sa note et ses tags.")
             case let count: Text("Ses \(count) articles ne seront plus gardés et perdront leur note et leurs tags.")
             }
+        }
+    }
+
+    /// What can be created, in one "+" (a header button would sit on iOS's collapse chevron).
+    @ToolbarContentBuilder private var sidebarCommands: some ToolbarContent {
+        ToolbarItemGroup {
+            Menu("Ajouter", systemImage: "plus") {
+                Button("Ajouter un abonnement…", systemImage: "dot.radiowaves.up.forward") { state.isAddingFeed = true }
+                Button("Nouveau dossier…", systemImage: "folder.badge.plus") { startNaming(.newFolder) }
+                Button("Nouveau cairn…", image: ImageResource(name: "cairn", bundle: .main)) { startNaming(.newCairn) }
+            }
+            .help("Ajouter un abonnement (⌘N), un dossier ou un cairn")
+            #if os(iOS)
+            // No menu bar on iOS: the commands the Mac keeps in its File menu and Settings window.
+            Menu("Plus", systemImage: "ellipsis.circle") {
+                Button("Importer OPML…", systemImage: "square.and.arrow.down") { state.isImporting = true }
+                Button("Exporter OPML…", systemImage: "square.and.arrow.up") { state.prepareExport() }
+                Divider()
+                Button("Réglages…", systemImage: "gear") { state.isShowingSettings = true }
+            }
+            #endif
+        }
+    }
+
+    /// Folders and feeds, split out of `body`, which is otherwise too big for the type checker on iOS.
+    private var subscriptionsSection: some View {
+        Section {
+            ForEach(folders) { folder in
+                DisclosureGroup(isExpanded: isExpanded(folder)) {
+                    ForEach(feeds.filter { $0.folder?.persistentModelID == folder.persistentModelID }, content: feedRow)
+                } label: {
+                    Label(folder.name, systemImage: "folder")
+                        .badge(folder.unreadCount)
+                        .tag(SidebarItem.folder(folder.persistentModelID))
+                        .dropDestination(for: String.self) { urls, _ in return move(urls, to: folder) }
+                }
+            }
+            ForEach(feeds.filter { $0.folder == nil }, content: feedRow)
+        } header: {
+            Text("Abonnements")
+                // Dropping a feed on the section header takes it out of its folder.
+                .dropDestination(for: String.self) { urls, _ in return move(urls, to: nil) }
         }
     }
 
@@ -237,6 +239,7 @@ struct SidebarView: View {
         self.naming = naming
     }
 
+
     private func save(_ naming: Naming) {
         do {
             switch naming {
@@ -276,25 +279,5 @@ struct SidebarView: View {
         }
         // After the List has moved its selection to a neighbouring row (see the folder deletion).
         if wasSelected { Task { selection = [.all] } }
-    }
-}
-
-/// Pops a native menu under the mouse, for a button that must look like a plain Button.
-private enum ActionMenu {
-    private final class Item: NSMenuItem {
-        let handler: () -> Void
-        init(_ title: String, _ handler: @escaping () -> Void) {
-            self.handler = handler
-            super.init(title: title, action: #selector(run), keyEquivalent: "")
-            target = self
-        }
-        required init(coder: NSCoder) { fatalError() }
-        @objc func run() { handler() }
-    }
-
-    static func popUp(_ items: [(String, () -> Void)]) {
-        let menu = NSMenu()
-        items.forEach { menu.addItem(Item($0.0, $0.1)) }
-        menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
     }
 }

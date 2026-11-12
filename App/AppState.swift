@@ -15,6 +15,8 @@ final class AppState {
     var isImporting = false
     var isExporting = false
     var isSearchRequested = false
+    /// iOS only: the Settings sheet (the Mac has a Settings window).
+    var isShowingSettings = false
     var exportDocument: OPMLDocument?
     var message: String?
     /// Articles being summarized, and the last failure per article; neither is stored.
@@ -115,7 +117,14 @@ final class AppState {
     }
 
     /// Looks up the icons that are due (see `Library.iconCheckInterval`). A failed lookup keeps the stored icon.
-    func refreshIcons() async {
+    /// Checks the URL is a readable feed, then subscribes; the icon follows without being waited for.
+    func addFeed(_ url: String) async throws {
+        _ = try await Library.addFeed(urlString: url, context: context, fetcher: fetcher)
+        save()
+        Task { await refreshIcons() }
+    }
+
+        func refreshIcons() async {
         do {
             try await Library.refreshIcons(context: context, fetcher: fetcher)
             try context.save()
@@ -159,7 +168,8 @@ final class AppState {
 }
 
 extension UTType {
-    static let opml = UTType(filenameExtension: "opml", conformingTo: .xml) ?? .xml
+    /// Declared in both apps' Info.plist (UTImportedTypeDeclarations).
+    static let opml = UTType(importedAs: "org.opml.opml", conformingTo: .xml)
 }
 
 struct OPMLDocument: FileDocument {
