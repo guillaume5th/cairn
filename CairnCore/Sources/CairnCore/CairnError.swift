@@ -11,6 +11,9 @@ public enum CairnError: LocalizedError, Equatable {
     case emptyCairnName
     case duplicateCairn
     case lastCairn
+    case ollamaUnreachable
+    case ollamaModelNotFound(String)
+    case summarizerUnavailable(String)
 
     public var errorDescription: String? {
         switch self {
@@ -24,6 +27,9 @@ public enum CairnError: LocalizedError, Equatable {
         case .emptyCairnName: "Le nom du cairn ne peut pas être vide."
         case .duplicateCairn: "Un cairn porte déjà ce nom."
         case .lastCairn: "Le dernier cairn ne peut pas être supprimé."
+        case .ollamaUnreachable: "Le serveur Ollama est injoignable. Vérifie qu'il tourne et son adresse dans les Réglages."
+        case let .ollamaModelNotFound(model): "Le modèle Ollama « \(model) » est introuvable. Installe-le avec « ollama pull \(model) »."
+        case let .summarizerUnavailable(reason): reason
         }
     }
 }
