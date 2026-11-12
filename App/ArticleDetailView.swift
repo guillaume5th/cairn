@@ -316,39 +316,31 @@ struct ArticleMenuItems: View {
     }
 }
 
-/// Reading pane for several selected articles: their count, and the reader actions applied to all of them.
+/// Reading pane for several selected articles: their count. Their actions are under the list.
 struct ArticleSelectionView: View {
     let articles: [Article]
-    @Environment(\.openURL) private var openURL
-    @State private var articlesToUnkeep: [Article] = []
-    @State private var articlesToOpen: [Article] = []
 
     var body: some View {
-        let anyUnread = articles.contains { !$0.isRead }
         ContentUnavailableView(articles.isEmpty ? "Aucun article sélectionné"
                                    : articles.count == 1 ? "1 article sélectionné" : "\(articles.count) articles sélectionnés",
                                systemImage: "doc.on.doc")
-            #if os(macOS)
-            // The actions are under the list; without an item of its own here, the list's buttons slide right.
-            .toolbar { ToolbarSpacer(.flexible) }
-            #else
-            .toolbar {
-                ToolbarItemGroup {
-                    KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
-                    Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
-                           systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
-                        for article in articles { article.isRead = anyUnread }
-                    }
-                    .help(anyUnread ? "Marquer ces articles comme lus" : "Marquer ces articles comme non lus")
-                    Button("Ouvrir dans le navigateur", systemImage: "safari") {
-                        OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
-                    }
-                    .help("Ouvrir ces articles dans le navigateur")
-                }
+            .toolbar { DisabledReaderToolbar() }
+    }
+}
+
+/// The reader's buttons, greyed out, for a pane without a single article (as Mail does): the toolbar keeps its
+/// layout instead of the list's buttons sliding to the window's trailing edge.
+struct DisabledReaderToolbar: ToolbarContent {
+    var body: some ToolbarContent {
+        ToolbarItemGroup {
+            Group {
+                Button("Résumer", systemImage: "text.append") {}
+                Button("Conserver", image: ImageResource(name: "cairn", bundle: .main)) {}
+                Button("Marquer comme non lu", systemImage: "circle.inset.filled") {}
+                Button("Ouvrir dans le navigateur", systemImage: "safari") {}
             }
-            #endif
-            .unkeepConfirmation($articlesToUnkeep)
-            .openConfirmation($articlesToOpen)
+            .disabled(true)
+        }
     }
 }
 

@@ -61,25 +61,29 @@ struct SettingsView: View {
     // iOS suspends the app in the background: the digest waits for the next time Cairn is on screen.
     private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est à l'écran, sinon à ton retour dans l'app."
     private static let ollamaPlace = "Ollama doit tourner sur un ordinateur de ton réseau local : indique son adresse, par exemple http://192.168.1.10:11434."
+    #endif
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
-    #endif
 
     var body: some View {
         Form {
-            #if os(iOS)
-            // The Mac keeps these in its View menu.
+            // Also in the Mac's View menu.
             Section("Affichage") {
                 // A Stepper, not two Buttons: buttons sharing a Form row on iOS all fire on a single tap.
-                Stepper(onIncrement: textScale < TextScale.range.upperBound ? { textScale = TextScale.stepped(textScale, by: 0.1) } : nil,
-                        onDecrement: textScale > TextScale.range.lowerBound ? { textScale = TextScale.stepped(textScale, by: -0.1) } : nil) {
-                    LabeledContent("Taille du texte", value: textScale, format: .percent.precision(.fractionLength(0)))
+                // Value then arrows on the right, like "Conserver les résumés".
+                LabeledContent("Taille du texte") {
+                    HStack {
+                        Text(textScale, format: .percent.precision(.fractionLength(0))).monospacedDigit()
+                        Stepper("Taille du texte",
+                                onIncrement: textScale < TextScale.range.upperBound ? { textScale = TextScale.stepped(textScale, by: 0.1) } : nil,
+                                onDecrement: textScale > TextScale.range.lowerBound ? { textScale = TextScale.stepped(textScale, by: -0.1) } : nil)
+                            .labelsHidden()
+                    }
                 }
                 Button("Taille normale") { textScale = 1 }
                     .disabled(textScale == 1)
                 Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
             }
-            #endif
             Section {
                 DatePicker("Heure du résumé", selection: timeBinding, displayedComponents: .hourAndMinute)
                 LabeledContent("Conserver les résumés") {

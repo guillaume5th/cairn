@@ -74,7 +74,7 @@ Le système SHALL accepter sur iPad avec clavier les mêmes raccourcis que sur M
 - **THEN** tous les abonnements sont rafraîchis
 
 ### Requirement: Réglages sur iOS
-Le système SHALL présenter les Réglages dans une feuille qui regroupe les réglages du résumé (heure, moteur, adresse et modèle Ollama, conservation) et les préférences d'affichage que le Mac met dans le menu Présentation : taille du texte du panneau de lecture et icônes dans la liste d'articles.
+Le système SHALL présenter les Réglages dans une feuille qui regroupe les réglages du résumé (heure, moteur, adresse et modèle Ollama, conservation) et les préférences d'affichage, que le Mac propose aussi dans son menu Présentation : taille du texte du panneau de lecture et icônes dans la liste d'articles.
 
 #### Scenario: Changer la taille du texte sur iPhone
 - **WHEN** l'utilisateur agrandit le texte dans les Réglages puis ouvre un article

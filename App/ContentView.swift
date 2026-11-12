@@ -86,10 +86,7 @@ struct ContentView: View {
                     .onChange(of: article.isRead) { wasRead, isRead in if isCompact && wasRead && !isRead { pickedID = nil } }
             } else {
                 ContentUnavailableView("Aucun article sélectionné", systemImage: "doc.text")
-                    #if os(macOS)
-                    // A reading pane without toolbar items lets the list's buttons drift to the window's trailing edge.
-                    .toolbar { ToolbarSpacer(.flexible) }
-                    #endif
+                    .toolbar { DisabledReaderToolbar() }
             }
         }
         .onAppear {
@@ -128,15 +125,14 @@ struct ContentView: View {
             state.isSearchRequested = false
             isSearchFocused = true
         }
-        #if os(macOS)
-        .sheet(isPresented: $state.isAddingFeed) { AddFeedSheet() }
-        #else
         // Same alert as "Nouveau dossier"; a failure (unreadable feed) comes back in the app's message alert.
         .alert("Ajouter un abonnement", isPresented: $state.isAddingFeed) {
             TextField("URL du flux", text: $newFeedURL, prompt: Text("https://exemple.com/feed.xml"))
+                .autocorrectionDisabled()
+                #if os(iOS)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
+                #endif
             Button("Annuler", role: .cancel) { newFeedURL = "" }
             Button("Ajouter") {
                 let url = newFeedURL
@@ -147,7 +143,6 @@ struct ContentView: View {
             }
             .disabled(newFeedURL.trimmingCharacters(in: .whitespaces).isEmpty)
         }
-        #endif
         #if os(iOS)
         .sheet(isPresented: $state.isShowingSettings) {
             NavigationStack {
@@ -441,8 +436,12 @@ struct ArticleListView: View {
         .refreshable { await state.refresh() }
         .navigationTitle(listTitle)
         #if os(iOS)
-        // Leaving selection mode drops what was ticked without an action.
-        .onChange(of: editMode?.wrappedValue.isEditing) { if editMode?.wrappedValue.isEditing != true { selection = [] } }
+        // Leaving selection mode drops what was ticked without an action. The reading pane follows the mode, as on the Mac.
+        .onChange(of: editMode?.wrappedValue.isEditing) {
+            let isEditing = editMode?.wrappedValue.isEditing == true
+            if !isEditing { selection = [] }
+            isSelectionModeOn = isEditing
+        }
         #endif
         .toolbar {
             // A toggle, like the unread filter, so the toolbar shows it on. An icon rather than EditButton, whose
@@ -476,17 +475,8 @@ struct ArticleListView: View {
         #endif
     }
 
-    /// Count in the title and actions under the list: on the Mac and the iPhone. The iPad keeps its reading pane.
-    private var showsSelectionBar: Bool {
-        #if os(iOS)
-        isSelecting && isCompact
-        #else
-        isSelecting
-        #endif
-    }
-
     /// Whether the row sits on the blue selection highlight: on iOS, the selected row outside selection mode on a
-    /// regular width (the iPhone and selection mode tick rows in grey). The Mac relies on the prominence.
+    /// regular width (iOS's selection mode ticks rows in grey). The Mac relies on the prominence.
     private func isHighlighted(_ article: Article) -> Bool {
         #if os(iOS)
         !isSelecting && !isCompact && selection.contains(article.persistentModelID)
@@ -536,15 +526,15 @@ struct ArticleListView: View {
 
     /// In selection mode, the count replaces the list's name, as in Mail.
     private var listTitle: String {
-        guard showsSelectionBar else { return title }
+        guard isSelecting else { return title }
         let count = selectedArticles.count
         return count == 0 ? "Aucune sélection" : count == 1 ? "1 sélectionné" : "\(count) sélectionnés"
     }
 
     #if os(iOS)
-    // iPhone: no reading pane to show the selection's actions (the iPad shows ArticleSelectionView there).
+    // The selection's actions under the list, as the Mac's capsule (iOS's edit mode draws the rows).
     @ToolbarContentBuilder private var selectionBar: some ToolbarContent {
-        if showsSelectionBar {
+        if isSelecting {
             ToolbarSpacer(.flexible, placement: .bottomBar)
             ToolbarItemGroup(placement: .bottomBar) {
                 SelectionActions(articles: selectedArticles, articlesToUnkeep: $articlesToUnkeep,
@@ -617,9 +607,7 @@ private struct TickOnClick: ViewModifier {
         if isOn { content.contentShape(.rect).onTapGesture(perform: action) } else { content }
     }
 }
-#endif
 
-#if os(macOS)
 /// A ticked row in the Mac's selection mode, drawn like the table's own selection (as after a ⌘-click): the table
 /// selects nothing in that mode, its native selection being slow to drop a row. Ticked neighbours make one block,
 /// rounded only at its ends.
