@@ -46,6 +46,8 @@ struct SidebarView: View {
             Label("Tous les articles", systemImage: "tray.full")
                 .badge(unreadArticles.count)
                 .tag(SidebarItem.all)
+            Label("Résumés", systemImage: "text.append")
+                .tag(SidebarItem.digests)
 
             Section {
                 ForEach(cairns) { cairn in

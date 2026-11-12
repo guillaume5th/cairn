@@ -10,6 +10,7 @@ final class AppState {
     let container: ModelContainer
     let fetcher = FeedFetcher()
     var isRefreshing = false
+    var isDigesting = false
     var isAddingFeed = false
     var isImporting = false
     var isExporting = false
@@ -33,10 +34,45 @@ final class AppState {
         }
         do {
             try Library.purge(context: context)
+            try Library.purgeDigests(context: context, olderThan: DigestSettings.retention)
         } catch {
             message = "La purge des anciens articles a échoué : \(error.localizedDescription)"
         }
         await refresh()
+        // Catch-up at launch, then a check every minute while the app is open (survives sleep and setting changes).
+        Task {
+            while !Task.isCancelled {
+                if DigestSettings.isDue { await makeDigest() }
+                try? await Task.sleep(for: .seconds(60))
+            }
+        }
+    }
+
+    /// Refreshes, then has the chosen engine summarize the articles of the last 24 hours. Counts as the day's attempt
+    /// whatever the outcome. No digest (and no engine call) when there is no article.
+    func makeDigest(manual: Bool = false) async {
+        guard !isDigesting else { return }
+        isDigesting = true
+        defer { isDigesting = false }
+        UserDefaults.standard.set(Date.now, forKey: DigestSettings.lastAttemptKey)
+        await refresh()
+        do {
+            let now = Date.now
+            let articles = try Library.digestArticles(context: context, now: now)
+            guard !articles.isEmpty else {
+                if manual { message = "Aucun article publié ces dernières 24 heures : pas de résumé." }
+                return
+            }
+            let items = Library.digestItems(for: articles)
+            let prompt = Library.digestPrompt(for: articles)
+            let (summarizer, engine) = try DigestSettings.summarizer()
+            let text = try await summarizer.summarize(prompt)
+            context.insert(Digest(createdAt: now, text: text, items: items, engine: engine))
+            try Library.purgeDigests(context: context, olderThan: DigestSettings.retention)
+            try context.save()
+        } catch {
+            message = "Le résumé n'a pas pu être produit : \(error.localizedDescription)"
+        }
     }
 
     /// Ignored while a refresh is already running.

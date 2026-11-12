@@ -151,6 +151,56 @@ public enum Library {
         context.delete(article)
     }
 
+    // MARK: Digests
+
+    /// Articles published in the 24 hours before `now`, newest first.
+    public static func digestArticles(context: ModelContext, now: Date = .now) throws -> [Article] {
+        let start = now.addingTimeInterval(-86_400)
+        return try context.fetch(FetchDescriptor<Article>(predicate: #Predicate { $0.publishedAt > start && $0.publishedAt <= now },
+                                                          sortBy: [SortDescriptor(\.publishedAt, order: .reverse)]))
+    }
+
+    public static func digestItems(for articles: [Article]) -> [DigestItem] {
+        articles.map { DigestItem(title: $0.title, source: $0.feed?.title ?? $0.sourceTitle, link: $0.link) }
+    }
+
+    /// Fits Apple's on-device model: 4,096 tokens for prompt and answer together.
+    static let digestPromptBudget = 6_000
+    static let digestExcerptLength = 200
+
+    /// Instructions, then one line per article: source, title and a short excerpt while the budget allows,
+    /// then source and title only, then nothing (the article still appears in the digest's list).
+    public static func digestPrompt(for articles: [Article]) -> String {
+        var prompt = """
+        Résume en français, en Markdown, les articles ci-dessous publiés ces dernières 24 heures. \
+        Regroupe les sujets proches sous de courts intertitres, reste factuel et n'invente rien.
+
+        """
+        var titlesOnly = false
+        for article in articles {
+            let head = "\n- [\(article.feed?.title ?? article.sourceTitle)] \(article.title)"
+            let excerpt = String(plainText(article.content ?? "").prefix(digestExcerptLength))
+            let full = excerpt.isEmpty ? head : head + " — " + excerpt
+            if !titlesOnly, prompt.count + full.count <= digestPromptBudget {
+                prompt += full
+            } else if prompt.count + head.count <= digestPromptBudget {
+                titlesOnly = true
+                prompt += head
+            } else {
+                break
+            }
+        }
+        return prompt
+    }
+
+    /// Deletes digests created more than `days` days before `now`.
+    public static func purgeDigests(context: ModelContext, olderThan days: Int, now: Date = .now) throws {
+        let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
+        for digest in try context.fetch(FetchDescriptor<Digest>(predicate: #Predicate { $0.createdAt < cutoff })) {
+            context.delete(digest)
+        }
+    }
+
     // MARK: Folders
 
     @discardableResult
@@ -300,6 +350,17 @@ public enum Library {
         return nil
     }
 
+    /// Short excerpt around the query's first occurrence in the digest text (Markdown marks and line breaks dropped), then in an
+    /// article title or source; nil when the query is empty or not found.
+    public static func snippet(for query: String, in digest: Digest) -> String? {
+        let text = digest.text.replacing(/[*#`_]/, with: "").split(whereSeparator: \.isWhitespace).joined(separator: " ")
+        let sources = [text] + digest.items.flatMap { [$0.title, $0.source] }
+        for text in sources {
+            if let range = matchRanges(of: query, in: text).first { return excerpt(text, around: range) }
+        }
+        return nil
+    }
+
     /// ~40 characters before and ~80 after the match, cut on a space, with "…" where text was dropped.
     static func excerpt(_ text: String, around range: Range<String.Index>) -> String {
         var lower = text.index(range.lowerBound, offsetBy: -40, limitedBy: text.startIndex) ?? text.startIndex
@@ -325,6 +386,16 @@ public enum Library {
         }
         text = text.replacing("&amp;", with: "&")
         return text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    /// Digests whose text, or an article title or source, contains the query (case and accents ignored, like articles).
+    public static func search(_ query: String, in digests: [Digest]) -> [Digest] {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return digests }
+        return digests.filter { digest in
+            digest.text.localizedStandardContains(query)
+                || digest.items.contains { $0.title.localizedStandardContains(query) || $0.source.localizedStandardContains(query) }
+        }
     }
 
     /// Case- and diacritic-insensitive search over title, content, note and tag names.

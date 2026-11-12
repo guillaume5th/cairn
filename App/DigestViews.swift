@@ -1,0 +1,299 @@
+import CairnCore
+import SwiftData
+import SwiftUI
+
+/// Daily digest settings, kept on this Mac (UserDefaults). Keys shared by `@AppStorage` and `AppState`.
+enum DigestSettings {
+    static let timeKey = "digestTime"
+    static let engineKey = "digestEngine"
+    static let ollamaURLKey = "ollamaURL"
+    static let ollamaModelKey = "ollamaModel"
+    static let retentionKey = "digestRetentionDays"
+    static let lastAttemptKey = "digestLastAttempt"
+
+    /// Minutes after midnight.
+    static let defaultTime = 8 * 60
+    static let defaultOllamaURL = "http://localhost:11434"
+    static let defaultOllamaModel = "llama3.2"
+    static let defaultRetention = 7
+    static let retentionRange = 1...90
+
+    private static var defaults: UserDefaults { .standard }
+    static var time: Int { defaults.object(forKey: timeKey) as? Int ?? defaultTime }
+    static var retention: Int { defaults.object(forKey: retentionKey) as? Int ?? defaultRetention }
+    static var lastAttempt: Date? { defaults.object(forKey: lastAttemptKey) as? Date }
+
+    static var isDue: Bool { Digest.isDue(now: .now, minutes: time, lastAttempt: lastAttempt) }
+
+    /// The chosen engine and its display name.
+    static func summarizer() throws -> (any Summarizer, String) {
+        guard defaults.string(forKey: engineKey) == Engine.ollama.rawValue else { return (AppleSummarizer(), "Apple") }
+        let model = defaults.string(forKey: ollamaModelKey) ?? defaultOllamaModel
+        let address = defaults.string(forKey: ollamaURLKey) ?? defaultOllamaURL
+        guard let url = URL(string: address), ["http", "https"].contains(url.scheme?.lowercased()) else { throw CairnError.invalidURL }
+        return (OllamaSummarizer(baseURL: url, model: model), "Ollama (\(model))")
+    }
+
+    static func timeText(_ minutes: Int) -> String {
+        Calendar.current.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: .now)?
+            .formatted(date: .omitted, time: .shortened) ?? ""
+    }
+
+    enum Engine: String, CaseIterable {
+        case apple, ollama
+    }
+}
+
+struct SettingsView: View {
+    @AppStorage(DigestSettings.timeKey) private var time = DigestSettings.defaultTime
+    @AppStorage(DigestSettings.engineKey) private var engine = DigestSettings.Engine.apple
+    @AppStorage(DigestSettings.ollamaURLKey) private var ollamaURL = DigestSettings.defaultOllamaURL
+    @AppStorage(DigestSettings.ollamaModelKey) private var ollamaModel = DigestSettings.defaultOllamaModel
+    @AppStorage(DigestSettings.retentionKey) private var retention = DigestSettings.defaultRetention
+    @State private var installedModels: [String] = []
+    @State private var modelsError: String?
+    @State private var reloadCount = 0
+
+    var body: some View {
+        Form {
+            Section("Résumé quotidien") {
+                DatePicker("Heure du résumé", selection: timeBinding, displayedComponents: .hourAndMinute)
+                LabeledContent("Conserver les résumés") {
+                    HStack(spacing: 4) {
+                        TextField("Jours", value: $retention, format: .number)
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 44)
+                        Stepper("Jours", value: $retention, in: DigestSettings.retentionRange)
+                            .labelsHidden()
+                        Text("jours")
+                    }
+                }
+                .onChange(of: retention) {
+                    let range = DigestSettings.retentionRange
+                    if !range.contains(retention) { retention = min(max(retention, range.lowerBound), range.upperBound) }
+                }
+            }
+            Section("Moteur d'IA") {
+                Picker("Moteur", selection: $engine) {
+                    Text("Apple (sur ce Mac)").tag(DigestSettings.Engine.apple)
+                    Text("Ollama (local)").tag(DigestSettings.Engine.ollama)
+                }
+                Group {
+                    TextField("Adresse Ollama", text: $ollamaURL)
+                    LabeledContent("Modèle Ollama") {
+                        HStack(spacing: 4) {
+                            Picker("Modèle Ollama", selection: $ollamaModel) {
+                                ForEach(modelChoices, id: \.self) { name in
+                                    Text(installedModels.contains(name) ? name : "\(name) (non installé)").tag(name)
+                                }
+                            }
+                            .labelsHidden()
+                            Button("Actualiser la liste des modèles", systemImage: "arrow.clockwise") { reloadCount += 1 }
+                                .labelStyle(.iconOnly)
+                                .buttonStyle(.borderless)
+                                .help("Relire les modèles installés sur le serveur Ollama")
+                        }
+                    }
+                    if let modelsError {
+                        Text(modelsError).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .disabled(engine != .ollama)
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: 440)
+        .fixedSize(horizontal: false, vertical: true)
+        .task(id: "\(engine.rawValue)|\(ollamaURL)|\(reloadCount)") { await loadModels() }
+    }
+
+    /// Installed models, plus the configured one when the server lacks it (shown as not installed).
+    private var modelChoices: [String] {
+        installedModels.contains(ollamaModel) ? installedModels : [ollamaModel] + installedModels
+    }
+
+    private func loadModels() async {
+        guard engine == .ollama else { return }
+        try? await Task.sleep(for: .milliseconds(400)) // the address may still be being typed
+        guard !Task.isCancelled else { return }
+        do {
+            guard let url = URL(string: ollamaURL), ["http", "https"].contains(url.scheme?.lowercased()) else {
+                throw CairnError.invalidURL
+            }
+            let models = try await OllamaSummarizer(baseURL: url, model: ollamaModel).installedModels()
+            guard !Task.isCancelled else { return }
+            installedModels = models
+            modelsError = models.isEmpty ? "Aucun modèle installé. Installe-en un avec « ollama pull <modèle> »." : nil
+            // "llama3.2" and "llama3.2:latest" are the same model: use the name the server lists.
+            if !models.contains(ollamaModel), models.contains(ollamaModel + ":latest") { ollamaModel += ":latest" }
+        } catch {
+            guard !Task.isCancelled else { return }
+            installedModels = []
+            modelsError = error.localizedDescription
+        }
+    }
+
+    private var timeBinding: Binding<Date> {
+        Binding(
+            get: { Calendar.current.date(bySettingHour: time / 60, minute: time % 60, second: 0, of: .now) ?? .now },
+            set: {
+                let parts = Calendar.current.dateComponents([.hour, .minute], from: $0)
+                time = (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+            }
+        )
+    }
+}
+
+struct DigestListView: View {
+    let digests: [Digest]
+    /// Current search: a highlighted excerpt is shown under each row.
+    let query: String
+    @Binding var selection: PersistentIdentifier?
+    @Environment(AppState.self) private var state
+    @State private var digestToDelete: Digest?
+
+    var body: some View {
+        List(digests, selection: $selection) { digest in
+            VStack(alignment: .leading, spacing: 2) {
+                Text(digest.createdAt.formatted(.dateTime.weekday(.wide).day().month(.wide)).capitalized)
+                Text("\(digest.createdAt.formatted(date: .omitted, time: .shortened)) · \(digest.items.count) article(s) · \(digest.engine)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if let snippet = Library.snippet(for: query, in: digest) {
+                    Text(AttributedString(snippet, highlighting: query))
+                        .font(.caption)
+                        .lineLimit(2)
+                }
+            }
+            .padding(.vertical, 2)
+            .contextMenu {
+                Button("Supprimer le résumé…", role: .destructive) { digestToDelete = digest }
+            }
+        }
+        .onDeleteCommand { digestToDelete = digests.first { $0.persistentModelID == selection } }
+        .toolbar {
+            // Trailing edge of the list column, like the article list's buttons.
+            ToolbarItem {
+                Button("Générer un résumé", systemImage: "text.badge.plus") { Task { await state.makeDigest(manual: true) } }
+                    .symbolEffect(.pulse, isActive: state.isDigesting)
+                    .disabled(state.isDigesting)
+                    .help(state.isDigesting ? "Résumé en cours" : "Générer un résumé des dernières 24 heures maintenant")
+            }
+        }
+        .digestDeleteConfirmation($digestToDelete)
+        .overlay {
+            if digests.isEmpty { ContentUnavailableView("Aucun résumé", systemImage: "text.append") }
+        }
+    }
+}
+
+/// Deletes the digest once confirmed. The list then shows the next one (see `ContentView.displayedDigest`).
+struct DigestDeleteConfirmation: ViewModifier {
+    @Binding var digest: Digest?
+    @Environment(\.modelContext) private var context
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog("Supprimer le résumé du \(digest?.createdAt.formatted(date: .long, time: .shortened) ?? "") ?",
+                                   isPresented: Binding(get: { digest != nil }, set: { if !$0 { digest = nil } }),
+                                   presenting: digest) { digest in
+            Button("Supprimer", role: .destructive) {
+                context.delete(digest)
+                try? context.save()
+            }
+        } message: { _ in
+            Text("Cette action est définitive.")
+        }
+    }
+}
+
+extension View {
+    func digestDeleteConfirmation(_ digest: Binding<Digest?>) -> some View {
+        modifier(DigestDeleteConfirmation(digest: digest))
+    }
+}
+
+/// Reading pane of the « Résumés » entry: the digest shown, or why there is none.
+struct DigestDetail: View {
+    let digest: Digest?
+    let query: String
+    /// Whether any digest exists, searched or not.
+    let hasDigests: Bool
+    @AppStorage(DigestSettings.timeKey) private var digestTime = DigestSettings.defaultTime
+    @State private var digestToDelete: Digest?
+
+    var body: some View {
+        Group {
+            if let digest {
+                DigestView(digest: digest, query: query)
+            } else if hasDigests {
+                ContentUnavailableView.search(text: query)
+            } else {
+                ContentUnavailableView("Aucun résumé", systemImage: "text.append",
+                                       description: Text("Prochain résumé à \(DigestSettings.timeText(digestTime))."))
+            }
+        }
+        .toolbar {
+            // Leading edge of the reading pane, like the article actions. Kept (disabled) without a digest: a reading
+            // pane without toolbar items lets the list's buttons drift to the window's trailing edge.
+            ToolbarItem {
+                Button("Supprimer le résumé", systemImage: "trash") { digestToDelete = digest }
+                    .disabled(digest == nil)
+                    .help("Supprimer ce résumé")
+            }
+        }
+        .digestDeleteConfirmation($digestToDelete)
+    }
+}
+
+struct DigestView: View {
+    let digest: Digest
+    /// Current search, highlighted in the text and the article list.
+    let query: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(digest.createdAt.formatted(date: .complete, time: .shortened))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ForEach(Array(digest.text.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
+                    markdownLine(line)
+                }
+                Divider().padding(.vertical, 8)
+                Text("Articles résumés").font(.headline)
+                ForEach(digest.items, id: \.self) { item in
+                    VStack(alignment: .leading, spacing: 0) {
+                        let title = AttributedString(item.title.isEmpty ? item.link : item.title, highlighting: query)
+                        if let url = URL(string: item.link) {
+                            Link(destination: url) { Text(title) }
+                        } else {
+                            Text(title)
+                        }
+                        Text(AttributedString(item.source, highlighting: query)).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .textSelection(.enabled)
+            .frame(maxWidth: 700, alignment: .leading)
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// `Text` renders inline Markdown only, so headings are turned into a bold font here.
+    @ViewBuilder
+    private func markdownLine(_ line: String) -> some View {
+        let heading = line.prefix { $0 == "#" }.count
+        let body = heading > 0 ? String(line.dropFirst(heading)).trimmingCharacters(in: .whitespaces) : line
+        var attributed = (try? AttributedString(markdown: body, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+            ?? AttributedString(body)
+        let _ = attributed.highlight(query)
+        let text = Text(attributed)
+        if heading > 0 {
+            text.font(heading == 1 ? .title2.bold() : .headline).padding(.top, 6)
+        } else if !line.trimmingCharacters(in: .whitespaces).isEmpty {
+            text
+        }
+    }
+}

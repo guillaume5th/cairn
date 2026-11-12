@@ -108,10 +108,53 @@ public final class Cairn {
     }
 }
 
+/// An AI summary of the articles of the last 24 hours. Articles are copied as `DigestItem`s:
+/// they are purged on their own schedule.
+@Model
+public final class Digest {
+    public var createdAt: Date = Date.now
+    /// Markdown written by the engine.
+    public var text: String = ""
+    /// JSON-encoded `[DigestItem]`.
+    public var itemsData: Data = Data()
+    /// Engine that wrote it, for display.
+    public var engine: String = ""
+
+    public init(createdAt: Date, text: String, items: [DigestItem], engine: String) {
+        self.createdAt = createdAt
+        self.text = text
+        self.itemsData = (try? JSONEncoder().encode(items)) ?? Data()
+        self.engine = engine
+    }
+
+    public var items: [DigestItem] {
+        (try? JSONDecoder().decode([DigestItem].self, from: itemsData)) ?? []
+    }
+
+    /// True when today's run time (`minutes` after midnight) has passed and no run was attempted since.
+    /// Covers catch-up at launch, missed days (one run) and a run time moved earlier.
+    public static func isDue(now: Date, minutes: Int, lastAttempt: Date?, calendar: Calendar = .current) -> Bool {
+        guard let scheduled = calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: now) else { return false }
+        return now >= scheduled && (lastAttempt ?? .distantPast) < scheduled
+    }
+}
+
+public struct DigestItem: Codable, Equatable, Hashable, Sendable {
+    public var title: String
+    public var source: String
+    public var link: String
+
+    public init(title: String, source: String, link: String) {
+        self.title = title
+        self.source = source
+        self.link = link
+    }
+}
+
 public enum CairnStore {
     public static func container(inMemory: Bool = false) throws -> ModelContainer {
         try ModelContainer(
-            for: Feed.self, Article.self, Tag.self, Folder.self, Cairn.self,
+            for: Feed.self, Article.self, Tag.self, Folder.self, Cairn.self, Digest.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
         )
     }

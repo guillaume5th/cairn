@@ -22,6 +22,7 @@ struct CairnApp: App {
                 .task { await state.launch() }
         }
         .commands { CairnCommands(state: state) }
+        Settings { SettingsView() }
     }
 }
 
@@ -52,6 +53,8 @@ struct CairnCommands: Commands {
             Button("Rafraîchir") { Task { await state.refresh() } }
                 .keyboardShortcut("r")
                 .disabled(state.isRefreshing)
+            Button("Générer le résumé maintenant") { Task { await state.makeDigest(manual: true) } }
+                .disabled(state.isDigesting)
             Divider()
             Button("Agrandir le texte") { textScale = TextScale.stepped(textScale, by: 0.1) }
                 .keyboardShortcut("+")

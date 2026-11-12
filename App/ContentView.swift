@@ -4,6 +4,7 @@ import SwiftUI
 
 enum SidebarItem: Hashable, Codable {
     case all
+    case digests
     case cairn(PersistentIdentifier)
     /// A tag shown under a cairn: the cairn, then the tag key.
     case tag(PersistentIdentifier, String)
@@ -29,6 +30,7 @@ struct ContentView: View {
     @Query private var feeds: [Feed]
     @Query private var folders: [Folder]
     @Query private var cairns: [Cairn]
+    @Query(sort: \Digest.createdAt, order: .reverse) private var digests: [Digest]
     @Environment(\.modelContext) private var context
     @State private var memory = SelectionMemory.load()
     /// Article the user picked themself; only that one is marked read when shown.
@@ -43,10 +45,22 @@ struct ContentView: View {
             SidebarView(selection: Binding(get: { memory.item }, set: show))
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         } content: {
-            articleList
-                .navigationSplitViewColumnWidth(min: 260, ideal: 340)
+            Group {
+                if entry == .digests {
+                    DigestListView(digests: visibleDigests, query: searchText, selection: Binding(get: { displayedDigest?.persistentModelID },
+                                                                               set: { memory.articles[.digests] = $0 }))
+                        .navigationTitle(title)
+                        .searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher")
+                        .searchFocused($isSearchFocused)
+                } else {
+                    articleList
+                }
+            }
+            .navigationSplitViewColumnWidth(min: 260, ideal: 340)
         } detail: {
-            if let article = articles.first(where: { $0.persistentModelID == displayedArticleID }) {
+            if entry == .digests {
+                DigestDetail(digest: displayedDigest, query: searchText, hasDigests: !digests.isEmpty)
+            } else if let article = articles.first(where: { $0.persistentModelID == displayedArticleID }) {
                 ArticleDetailView(article: article, marksRead: article.persistentModelID == pickedID, query: searchText)
             } else {
                 ContentUnavailableView("Aucun article sélectionné", systemImage: "doc.text")
@@ -132,13 +146,23 @@ struct ContentView: View {
     /// On entering an entry, a remembered article no longer listed gives way to the first one. Not done while
     /// reading, or the unread filter would hide the article just read and auto-show the next one.
     private func settleArticle() {
+        guard entry != .digests else { return }
         if let id = memory.articles[entry], visibleArticles.contains(where: { $0.persistentModelID == id }) { return }
         memory.articles[entry] = visibleArticles.first?.persistentModelID
+    }
+
+    private var visibleDigests: [Digest] { Library.search(searchText, in: digests) }
+
+    /// Remembered digest while it is listed, else the newest one listed.
+    private var displayedDigest: Digest? {
+        let listed = visibleDigests
+        return listed.first { $0.persistentModelID == memory.articles[.digests] } ?? listed.first
     }
 
     private var title: String {
         switch memory.item {
         case .all, nil: "Tous les articles"
+        case .digests: "Résumés"
         case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
         case let .tag(_, key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
         case let .feed(id): feeds.first { $0.persistentModelID == id }?.title ?? "Abonnement"
@@ -154,6 +178,7 @@ struct ContentView: View {
     private var visibleArticles: [Article] {
         var list: [Article] = switch memory.item {
         case .all, nil: articles
+        case .digests: []
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
         case let .folder(id): articles.filter { $0.feed?.folder?.persistentModelID == id }
         case let .cairn(id): kept(in: id)
@@ -254,6 +279,12 @@ extension AttributedString {
     /// `text` with every occurrence of the search query on a yellow background (same rule as the search).
     init(_ text: String, highlighting query: String) {
         self.init(text)
+        highlight(query)
+    }
+
+    /// Puts every occurrence of the query on a yellow background, keeping existing styling (e.g. parsed Markdown).
+    mutating func highlight(_ query: String) {
+        let text = String(characters)
         for range in Library.matchRanges(of: query, in: text) {
             let start = characters.index(startIndex, offsetBy: text.distance(from: text.startIndex, to: range.lowerBound))
             let end = characters.index(start, offsetBy: text.distance(from: range.lowerBound, to: range.upperBound))

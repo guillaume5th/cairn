@@ -36,6 +36,17 @@ Pour développer dans Xcode : `xcodegen && open Cairn.xcodeproj`.
 Les données sont stockées localement dans
 `~/Library/Containers/dev.cairn.Cairn/Data/Library/Application Support/default.store`.
 
+## Résumé quotidien
+
+Chaque jour à l'heure réglée (8 h par défaut), pendant que l'app est ouverte, Cairn rafraîchit les abonnements et fait résumer par une IA locale les articles publiés dans les 24 heures précédentes. Si l'app était fermée à cette heure-là, le résumé est fait au lancement suivant. Les résumés apparaissent dans l'entrée « Résumés » de la barre latérale et sont gardés 7 jours par défaut. « Présentation > Générer le résumé maintenant » relance à la main.
+
+Réglages (⌘,) : heure, durée de conservation (1 à 90 jours) et moteur :
+
+- **Apple** (par défaut) : le modèle intégré au Mac, qui demande Apple Intelligence activé.
+- **Ollama** : un serveur local (`http://localhost:11434` par défaut). Le modèle se choisit dans la liste des modèles installés sur ce serveur ; installe-en un avec `ollama pull <modèle>`, puis actualise la liste.
+
+Le modèle d'Apple lit environ 4 000 tokens : les jours chargés, seuls les premiers articles ont un extrait, les suivants n'apportent que leur titre.
+
 ## Dépendances
 
 Dependabot (`.github/dependabot.yml`) vérifie chaque semaine les paquets Swift de `CairnCore` et ouvre une pull request à chaque nouvelle version. Avant de fusionner : `cd CairnCore && swift test`, puis construire l'app.
