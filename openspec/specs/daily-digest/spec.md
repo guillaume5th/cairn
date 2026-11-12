@@ -7,12 +7,17 @@ Résume chaque jour, à l'heure choisie et par une IA qui tourne sur la machine,
 ## Requirements
 
 ### Requirement: Heure du résumé quotidien
-Le système SHALL produire un résumé par jour à l'heure réglée par l'utilisateur, 8 h par défaut. Le réglage MUST être conservé sur ce Mac entre les lancements. Le résumé est produit pendant que l'app est ouverte ; aucun processus ne tourne quand elle est fermée.
+Le système SHALL produire un résumé par jour à l'heure réglée par l'utilisateur, 8 h par défaut. Le réglage MUST être conservé sur ce Mac entre les lancements. Le résumé est produit tant que l'app tourne, même sans fenêtre ouverte ; aucun processus ne tourne quand elle est quittée.
 
 #### Scenario: Heure atteinte app ouverte
 - **GIVEN** l'heure du résumé est 8 h et aucun résumé n'a encore été tenté aujourd'hui
 - **WHEN** l'app est ouverte et il devient 8 h
 - **THEN** un résumé est produit dans la minute
+
+#### Scenario: Heure atteinte sans fenêtre
+- **GIVEN** l'heure du résumé est 8 h, aucun résumé n'a encore été tenté aujourd'hui, et la fenêtre a été fermée sans quitter l'app
+- **WHEN** il devient 8 h
+- **THEN** un résumé est produit dans la minute et apparaît à la réouverture de la fenêtre
 
 #### Scenario: Changement de l'heure
 - **GIVEN** le résumé d'aujourd'hui n'a pas encore été tenté
