@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/guillaume5th/cairn/compare/v1.2.0...v1.3.0) (2026-11-12)
+
+
+### Features
+
+* align the interface across Mac, iPhone and iPad ([#8](https://github.com/guillaume5th/cairn/issues/8)) ([0579dc8](https://github.com/guillaume5th/cairn/commit/0579dc862c45d4d0e4d2a548fdd8b26c697ce53f))
+
 ## [1.2.0](https://github.com/guillaume5th/cairn/compare/v1.1.0...v1.2.0) (2026-11-12)
 
 
