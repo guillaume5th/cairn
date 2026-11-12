@@ -9,7 +9,7 @@ struct ArticleDetailView: View {
     /// Current search, highlighted in the title and the content.
     var query = ""
     @Environment(\.openURL) private var openURL
-    @State private var articleToUnkeep: Article?
+    @State private var articlesToUnkeep: [Article] = []
     @AppStorage(TextScale.key) private var textScale = 1.0
 
     var body: some View {
@@ -49,7 +49,7 @@ struct ArticleDetailView: View {
         }
         .toolbar {
             ToolbarItemGroup {
-                KeepButton(article: article, articleToUnkeep: $articleToUnkeep)
+                KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
                 Button("Marquer comme non lu", systemImage: "circle") { article.isRead = false }
                     .help("Marquer comme non lu")
                 Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
@@ -57,7 +57,7 @@ struct ArticleDetailView: View {
                     .help("Ouvrir dans le navigateur")
             }
         }
-        .unkeepConfirmation($articleToUnkeep)
+        .unkeepConfirmation($articlesToUnkeep)
         .task(id: article.persistentModelID) { if marksRead { article.isRead = true } }
     }
 
@@ -66,61 +66,160 @@ struct ArticleDetailView: View {
     }
 }
 
-/// Keep / unkeep control shared by the reader toolbar and the article context menu. With one cairn it is a
-/// toggle; with several, a menu of the cairns (the current one checked; picking another moves the article).
-/// Unkeeping an article with a note or tags goes through `unkeepConfirmation`, since they are lost.
+/// Keep / unkeep control for one or more articles, shared by the reader toolbar, the selection summary and the
+/// article context menu. With one cairn it is a toggle; with several, a menu of the cairns (checked when every
+/// article is in it; picking one keeps them all there, moving those kept elsewhere). « Retirer du cairn » is offered
+/// only when every article is kept; unkeeping articles with a note or tags goes through `unkeepConfirmation`.
 struct KeepButton: View {
-    let article: Article
-    @Binding var articleToUnkeep: Article?
+    let articles: [Article]
+    @Binding var articlesToUnkeep: [Article]
     @Query(sort: \Cairn.name) private var cairns: [Cairn]
 
     var body: some View {
+        let allKept = !articles.isEmpty && articles.allSatisfy(\.isKept)
+        let icon = ImageResource(name: allKept ? "cairn.fill" : "cairn", bundle: .main)
         if cairns.count > 1 {
             Menu {
                 ForEach(cairns) { cairn in
                     Toggle(cairn.name, isOn: Binding {
-                        article.cairn?.persistentModelID == cairn.persistentModelID
+                        articles.allSatisfy { $0.cairn?.persistentModelID == cairn.persistentModelID }
                     } set: { isOn in
-                        if isOn { Library.keep(article, in: cairn) }
+                        if isOn { for article in articles { Library.keep(article, in: cairn) } }
                     })
                 }
-                if article.isKept {
+                if allKept {
                     Divider()
                     Button("Retirer du cairn", role: .destructive, action: unkeep)
                 }
             } label: {
-                Label("Garder dans", image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main))
+                Label("Garder dans", image: icon)
             }
             // Without the arrow, the menu looks and sits like the other reader buttons.
             .menuIndicator(.hidden)
-            .help("Choisir le cairn de cet article")
+            .help(articles.count == 1 ? "Choisir le cairn de cet article" : "Choisir le cairn de ces articles")
         } else {
-            Button(article.isKept ? "Retirer du cairn" : "Garder dans le cairn",
-                   image: ImageResource(name: article.isKept ? "cairn.fill" : "cairn", bundle: .main)) {
-                if article.isKept { unkeep() } else if let cairn = cairns.first { Library.keep(article, in: cairn) }
+            Button(allKept ? "Retirer du cairn" : "Garder dans le cairn", image: icon) {
+                if allKept {
+                    unkeep()
+                } else if let cairn = cairns.first {
+                    for article in articles where !article.isKept { Library.keep(article, in: cairn) }
+                }
             }
-            .help(article.isKept ? "Retirer cet article du cairn" : "Garder cet article dans le cairn")
+            .help(allKept ? "Retirer du cairn" : "Garder dans le cairn")
         }
     }
 
     private func unkeep() {
-        if article.note.isEmpty && (article.tags ?? []).isEmpty {
-            Library.unkeep(article)
+        if articles.allSatisfy({ $0.note.isEmpty && ($0.tags ?? []).isEmpty }) {
+            for article in articles { Library.unkeep(article) }
         } else {
-            articleToUnkeep = article
+            articlesToUnkeep = articles
         }
     }
 }
 
 extension View {
-    func unkeepConfirmation(_ article: Binding<Article?>) -> some View {
-        confirmationDialog("Retirer cet article du cairn ?",
-                           isPresented: Binding(get: { article.wrappedValue != nil }, set: { if !$0 { article.wrappedValue = nil } }),
-                           presenting: article.wrappedValue) { article in
-            Button("Retirer", role: .destructive) { Library.unkeep(article) }
-        } message: { _ in
-            Text("Sa note et ses tags seront perdus.")
+    /// Confirms unkeeping articles of which at least one has a note or tags, which are lost.
+    func unkeepConfirmation(_ articles: Binding<[Article]>) -> some View {
+        let lot = articles.wrappedValue
+        let losing = lot.count { !$0.note.isEmpty || !($0.tags ?? []).isEmpty }
+        return confirmationDialog(lot.count == 1 ? "Retirer cet article du cairn ?" : "Retirer ces \(lot.count) articles du cairn ?",
+                                  isPresented: Binding(get: { !lot.isEmpty }, set: { if !$0 { articles.wrappedValue = [] } }),
+                                  presenting: lot) { lot in
+            Button("Retirer", role: .destructive) { for article in lot { Library.unkeep(article) } }
+        } message: { lot in
+            Text(lot.count == 1 ? "Sa note et ses tags seront perdus."
+                 : losing == 1 ? "1 article perdra sa note ou ses tags." : "\(losing) articles perdront leur note ou leurs tags.")
         }
+    }
+
+    /// Confirms opening more than `OpenInBrowser.confirmAbove` articles at once.
+    func openConfirmation(_ articles: Binding<[Article]>) -> some View {
+        modifier(OpenConfirmation(articles: articles))
+    }
+}
+
+/// Opens the links of articles in the default browser.
+@MainActor
+enum OpenInBrowser {
+    static let confirmAbove = 10
+
+    static func url(of article: Article) -> URL? {
+        URL(string: article.link).flatMap { ["http", "https"].contains($0.scheme?.lowercased()) ? $0 : nil }
+    }
+
+    /// Opens them, or asks first (through `toConfirm`, see `openConfirmation`) when there are many.
+    static func open(_ articles: [Article], with openURL: OpenURLAction, toConfirm: Binding<[Article]>) {
+        if articles.count > confirmAbove {
+            toConfirm.wrappedValue = articles
+        } else {
+            for article in articles { if let url = url(of: article) { openURL(url) } }
+        }
+    }
+}
+
+private struct OpenConfirmation: ViewModifier {
+    @Binding var articles: [Article]
+    @Environment(\.openURL) private var openURL
+
+    func body(content: Content) -> some View {
+        content.confirmationDialog("Ouvrir \(articles.count) articles dans le navigateur ?",
+                                   isPresented: Binding(get: { !articles.isEmpty }, set: { if !$0 { articles = [] } }),
+                                   presenting: articles) { lot in
+            Button("Ouvrir") { for article in lot { if let url = OpenInBrowser.url(of: article) { openURL(url) } } }
+        }
+    }
+}
+
+/// Context-menu items for one or more articles (the clicked one, or the selection holding it).
+struct ArticleMenuItems: View {
+    let articles: [Article]
+    @Binding var articlesToUnkeep: [Article]
+    @Binding var articlesToOpen: [Article]
+    @Binding var articlesToDelete: [Article]
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        let anyUnread = articles.contains { !$0.isRead }
+        KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
+        Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu") { for article in articles { article.isRead = anyUnread } }
+        Button("Ouvrir dans le navigateur") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
+        // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
+        if articles.allSatisfy({ $0.feed == nil }) {
+            Divider()
+            Button(articles.count == 1 ? "Supprimer l'article…" : "Supprimer \(articles.count) articles…", role: .destructive) {
+                articlesToDelete = articles
+            }
+        }
+    }
+}
+
+/// Reading pane for several selected articles: their count, and the reader actions applied to all of them.
+struct ArticleSelectionView: View {
+    let articles: [Article]
+    @Environment(\.openURL) private var openURL
+    @State private var articlesToUnkeep: [Article] = []
+    @State private var articlesToOpen: [Article] = []
+
+    var body: some View {
+        let anyUnread = articles.contains { !$0.isRead }
+        ContentUnavailableView("\(articles.count) articles sélectionnés", systemImage: "doc.on.doc")
+            .toolbar {
+                ToolbarItemGroup {
+                    KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
+                    Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                           systemImage: anyUnread ? "checkmark.circle" : "circle") {
+                        for article in articles { article.isRead = anyUnread }
+                    }
+                    .help(anyUnread ? "Marquer ces articles comme lus" : "Marquer ces articles comme non lus")
+                    Button("Ouvrir dans le navigateur", systemImage: "safari") {
+                        OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
+                    }
+                    .help("Ouvrir ces articles dans le navigateur")
+                }
+            }
+            .unkeepConfirmation($articlesToUnkeep)
+            .openConfirmation($articlesToOpen)
     }
 }
 

@@ -35,6 +35,15 @@ struct ContentView: View {
     @State private var memory = SelectionMemory.load()
     /// Article the user picked themself; only that one is marked read when shown.
     @State private var pickedID: PersistentIdentifier?
+    // Multiple selections are never remembered: they live here, while `memory` keeps the last single ones.
+    /// Feeds selected together in the sidebar (two or more), shown as one list.
+    @State private var multiFeeds: Set<PersistentIdentifier> = []
+    /// Articles selected together (two or more).
+    @State private var multiArticles: Set<PersistentIdentifier> = []
+    /// Digests selected together (two or more).
+    @State private var multiDigests: Set<PersistentIdentifier> = []
+    /// Article shown in a multi-feed list, which has no memory.
+    @State private var multiFeedArticle: PersistentIdentifier?
     @State private var unreadOnly = false
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
@@ -42,13 +51,12 @@ struct ContentView: View {
     var body: some View {
         @Bindable var state = state
         NavigationSplitView {
-            SidebarView(selection: Binding(get: { memory.item }, set: show))
+            SidebarView(selection: Binding(get: { sidebarSelection }, set: showSidebar))
                 .navigationSplitViewColumnWidth(min: 180, ideal: 220)
         } content: {
             Group {
                 if entry == .digests {
-                    DigestListView(digests: visibleDigests, query: searchText, selection: Binding(get: { displayedDigest?.persistentModelID },
-                                                                               set: { memory.articles[.digests] = $0 }))
+                    DigestListView(digests: visibleDigests, query: searchText, selection: digestSelection)
                         .navigationTitle(title)
                         .searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher")
                         .searchFocused($isSearchFocused)
@@ -59,7 +67,10 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 260, ideal: 340)
         } detail: {
             if entry == .digests {
-                DigestDetail(digest: displayedDigest, query: searchText, hasDigests: !digests.isEmpty)
+                DigestDetail(digests: selectedDigests.count > 1 ? selectedDigests : displayedDigest.map { [$0] } ?? [],
+                             query: searchText, hasDigests: !digests.isEmpty)
+            } else if selectedArticles.count > 1 {
+                ArticleSelectionView(articles: selectedArticles)
             } else if let article = articles.first(where: { $0.persistentModelID == displayedArticleID }) {
                 ArticleDetailView(article: article, marksRead: article.persistentModelID == pickedID, query: searchText)
             } else {
@@ -91,7 +102,8 @@ struct ContentView: View {
             }
             settleArticle()
         }
-        .onChange(of: memory.item) { searchText = ""; settleArticle() }
+        .onChange(of: memory.item) { searchText = ""; multiArticles = []; multiDigests = []; settleArticle() }
+        .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil }
         .onChange(of: memory) { memory.save() }
         .onChange(of: state.isSearchRequested) {
             guard state.isSearchRequested else { return }
@@ -113,8 +125,21 @@ struct ContentView: View {
 
     @ViewBuilder
     private var articleList: some View {
-        // The List only calls this setter on a user pick (mouse or keyboard); nil is a deselection, not a pick.
-        let selection = Binding(get: { displayedArticleID }, set: { memory.articles[entry] = $0; pickedID = $0 })
+        // The List only calls this setter on a user pick (mouse or keyboard). Only a single article is remembered and
+        // marked read; an empty set is a deselection, not a pick.
+        let selection = Binding<Set<PersistentIdentifier>> {
+            let picked = selectedArticles
+            return picked.count > 1 ? Set(picked.map(\.persistentModelID)) : Set([displayedArticleID].compactMap { $0 })
+        } set: { ids in
+            if ids.count > 1 {
+                multiArticles = ids
+                pickedID = nil
+            } else {
+                multiArticles = []
+                if isMultiFeed { multiFeedArticle = ids.first } else { memory.articles[entry] = ids.first }
+                pickedID = ids.first
+            }
+        }
         ArticleListView(articles: visibleArticles, query: searchText, selection: selection, unreadOnly: $unreadOnly)
             .navigationTitle(title)
             .toolbar {
@@ -132,15 +157,45 @@ struct ContentView: View {
 
     private var entry: SidebarItem { memory.item ?? .all }
 
+    private var isMultiFeed: Bool { multiFeeds.count > 1 }
+
+    private var sidebarSelection: Set<SidebarItem> {
+        isMultiFeed ? Set(multiFeeds.map(SidebarItem.feed)) : Set([memory.item].compactMap { $0 })
+    }
+
+    /// Several feeds go together; any other entry is shown alone (see `SelectionRule`).
+    private func showSidebar(_ new: Set<SidebarItem>) {
+        let items = SelectionRule.restrict(old: sidebarSelection, new: new) { if case .feed = $0 { true } else { false } }
+        let feedIDs = items.compactMap { if case let .feed(id) = $0 { id } else { nil } }
+        if items.count > 1 {
+            multiFeeds = Set(feedIDs)
+            pickedID = nil
+        } else {
+            multiFeeds = []
+            memory.item = items.first
+            pickedID = nil
+        }
+    }
+
     /// Remembered article of the entry while it still exists, else the first one listed.
     private var displayedArticleID: PersistentIdentifier? {
-        if let id = memory.articles[entry], articles.contains(where: { $0.persistentModelID == id }) { return id }
+        let remembered = isMultiFeed ? multiFeedArticle : memory.articles[entry]
+        if let id = remembered, articles.contains(where: { $0.persistentModelID == id }) { return id }
         return visibleArticles.first?.persistentModelID
     }
 
-    private func show(_ item: SidebarItem?) {
-        memory.item = item
-        pickedID = nil
+    private var digestSelection: Binding<Set<PersistentIdentifier>> {
+        Binding {
+            let picked = selectedDigests
+            return picked.count > 1 ? Set(picked.map(\.persistentModelID)) : Set([displayedDigest?.persistentModelID].compactMap { $0 })
+        } set: { ids in
+            if ids.count > 1 {
+                multiDigests = ids
+            } else {
+                multiDigests = []
+                memory.articles[.digests] = ids.first
+            }
+        }
     }
 
     /// On entering an entry, a remembered article no longer listed gives way to the first one. Not done while
@@ -153,6 +208,11 @@ struct ContentView: View {
 
     private var visibleDigests: [Digest] { Library.search(searchText, in: digests) }
 
+    // Only what is still listed: a lot action (delete, unkeep, mark read under the unread filter) can remove items
+    // from the list without going through the List's selection setter.
+    private var selectedArticles: [Article] { visibleArticles.filter { multiArticles.contains($0.persistentModelID) } }
+    private var selectedDigests: [Digest] { visibleDigests.filter { multiDigests.contains($0.persistentModelID) } }
+
     /// Remembered digest while it is listed, else the newest one listed.
     private var displayedDigest: Digest? {
         let listed = visibleDigests
@@ -160,7 +220,8 @@ struct ContentView: View {
     }
 
     private var title: String {
-        switch memory.item {
+        if isMultiFeed { return "\(multiFeeds.count) abonnements" }
+        return switch memory.item {
         case .all, nil: "Tous les articles"
         case .digests: "Résumés"
         case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
@@ -176,13 +237,17 @@ struct ContentView: View {
     }
 
     private var visibleArticles: [Article] {
-        var list: [Article] = switch memory.item {
+        var list: [Article] = if isMultiFeed {
+            articles.filter { $0.feed.map { multiFeeds.contains($0.persistentModelID) } ?? false }
+        } else {
+            switch memory.item {
         case .all, nil: articles
         case .digests: []
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
         case let .folder(id): articles.filter { $0.feed?.folder?.persistentModelID == id }
         case let .cairn(id): kept(in: id)
         case let .tag(id, key): kept(in: id).filter { $0.tags?.contains { $0.key == key } ?? false }
+            }
         }
         list = Library.search(searchText, in: list)
         if unreadOnly { list = list.filter { !$0.isRead } }
@@ -194,11 +259,12 @@ struct ArticleListView: View {
     let articles: [Article]
     /// Current search, highlighted in the rows.
     let query: String
-    @Binding var selection: PersistentIdentifier?
+    @Binding var selection: Set<PersistentIdentifier>
     @Binding var unreadOnly: Bool
     @Environment(\.modelContext) private var context
-    @State private var articleToDelete: Article?
-    @State private var articleToUnkeep: Article?
+    @State private var articlesToDelete: [Article] = []
+    @State private var articlesToUnkeep: [Article] = []
+    @State private var articlesToOpen: [Article] = []
     @AppStorage("showListIcons") private var showListIcons = true
 
     var body: some View {
@@ -231,31 +297,34 @@ struct ArticleListView: View {
                 }
             }
             .padding(.vertical, 2)
-            .contextMenu {
-                KeepButton(article: article, articleToUnkeep: $articleToUnkeep)
-                Button(article.isRead ? "Marquer comme non lu" : "Marquer comme lu") { article.isRead.toggle() }
-                if article.feed == nil {
-                    Divider()
-                    Button("Supprimer l'article…", role: .destructive) { articleToDelete = article }
-                }
+        }
+        // It gets the selection when the clicked row is part of it, else that row alone.
+        .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
+            let lot = articles.filter { ids.contains($0.persistentModelID) }
+            if !lot.isEmpty {
+                ArticleMenuItems(articles: lot, articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen,
+                                 articlesToDelete: $articlesToDelete)
             }
         }
         .onDeleteCommand {
-            if let article = articles.first(where: { $0.persistentModelID == selection }), article.feed == nil {
-                articleToDelete = article
-            }
+            let lot = articles.filter { selection.contains($0.persistentModelID) }
+            if !lot.isEmpty, lot.allSatisfy({ $0.feed == nil }) { articlesToDelete = lot }
         }
-        .confirmationDialog("Supprimer « \(articleToDelete?.title ?? "") » ?",
-                            isPresented: Binding(get: { articleToDelete != nil }, set: { if !$0 { articleToDelete = nil } }),
-                            presenting: articleToDelete) { article in
+        .confirmationDialog(articlesToDelete.count == 1 ? "Supprimer « \(articlesToDelete[0].title) » ?"
+                                                        : "Supprimer \(articlesToDelete.count) articles ?",
+                            isPresented: Binding(get: { !articlesToDelete.isEmpty }, set: { if !$0 { articlesToDelete = [] } }),
+                            presenting: articlesToDelete) { lot in
             Button("Supprimer", role: .destructive) {
-                if selection == article.persistentModelID { selection = nil }
-                Library.delete(article, context: context)
+                selection.subtract(lot.map(\.persistentModelID))
+                for article in lot { Library.delete(article, context: context) }
             }
-        } message: { article in
-            Text(article.isKept ? "Il sera retiré du cairn avec sa note et ses tags." : "Cette action est définitive.")
+        } message: { lot in
+            Text(lot.contains(where: \.isKept) ? (lot.count == 1 ? "Il sera retiré du cairn avec sa note et ses tags."
+                                                                  : "Les articles gardés seront retirés du cairn avec leur note et leurs tags.")
+                                               : "Cette action est définitive.")
         }
-        .unkeepConfirmation($articleToUnkeep)
+        .unkeepConfirmation($articlesToUnkeep)
+        .openConfirmation($articlesToOpen)
         // shortcut: macOS List keeps a stale (clipped) height for rows inserted while it is on screen,
         // so it is rebuilt when articles arrive. Costs a scroll reset on refresh; drop once SwiftUI fixes it.
         .id(articles.count)

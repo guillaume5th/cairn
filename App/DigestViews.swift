@@ -169,9 +169,9 @@ struct DigestListView: View {
     let digests: [Digest]
     /// Current search: a highlighted excerpt is shown under each row.
     let query: String
-    @Binding var selection: PersistentIdentifier?
+    @Binding var selection: Set<PersistentIdentifier>
     @Environment(AppState.self) private var state
-    @State private var digestToDelete: Digest?
+    @State private var digestsToDelete: [Digest] = []
 
     var body: some View {
         List(digests, selection: $selection) { digest in
@@ -187,11 +187,17 @@ struct DigestListView: View {
                 }
             }
             .padding(.vertical, 2)
-            .contextMenu {
-                Button("Supprimer le résumé…", role: .destructive) { digestToDelete = digest }
+        }
+        // It gets the selection when the clicked row is part of it, else that row alone.
+        .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
+            let lot = digests.filter { ids.contains($0.persistentModelID) }
+            if !lot.isEmpty {
+                Button(lot.count == 1 ? "Supprimer le résumé…" : "Supprimer \(lot.count) résumés…", role: .destructive) {
+                    digestsToDelete = lot
+                }
             }
         }
-        .onDeleteCommand { digestToDelete = digests.first { $0.persistentModelID == selection } }
+        .onDeleteCommand { digestsToDelete = digests.filter { selection.contains($0.persistentModelID) } }
         .toolbar {
             // Trailing edge of the list column, like the article list's buttons.
             ToolbarItem {
@@ -201,7 +207,7 @@ struct DigestListView: View {
                     .help(state.isDigesting ? "Résumé en cours" : "Générer un résumé des dernières 24 heures maintenant")
             }
         }
-        .digestDeleteConfirmation($digestToDelete)
+        .digestDeleteConfirmation($digestsToDelete)
         .overlay {
             if digests.isEmpty { ContentUnavailableView("Aucun résumé", systemImage: "text.append") }
         }
@@ -210,15 +216,17 @@ struct DigestListView: View {
 
 /// Deletes the digest once confirmed. The list then shows the next one (see `ContentView.displayedDigest`).
 struct DigestDeleteConfirmation: ViewModifier {
-    @Binding var digest: Digest?
+    @Binding var digests: [Digest]
     @Environment(\.modelContext) private var context
 
     func body(content: Content) -> some View {
-        content.confirmationDialog("Supprimer le résumé du \(digest?.createdAt.formatted(date: .long, time: .shortened) ?? "") ?",
-                                   isPresented: Binding(get: { digest != nil }, set: { if !$0 { digest = nil } }),
-                                   presenting: digest) { digest in
+        content.confirmationDialog(digests.count == 1
+                                   ? "Supprimer le résumé du \(digests[0].createdAt.formatted(date: .long, time: .shortened)) ?"
+                                   : "Supprimer \(digests.count) résumés ?",
+                                   isPresented: Binding(get: { !digests.isEmpty }, set: { if !$0 { digests = [] } }),
+                                   presenting: digests) { lot in
             Button("Supprimer", role: .destructive) {
-                context.delete(digest)
+                for digest in lot { context.delete(digest) }
                 try? context.save()
             }
         } message: { _ in
@@ -228,23 +236,26 @@ struct DigestDeleteConfirmation: ViewModifier {
 }
 
 extension View {
-    func digestDeleteConfirmation(_ digest: Binding<Digest?>) -> some View {
-        modifier(DigestDeleteConfirmation(digest: digest))
+    func digestDeleteConfirmation(_ digests: Binding<[Digest]>) -> some View {
+        modifier(DigestDeleteConfirmation(digests: digests))
     }
 }
 
-/// Reading pane of the « Résumés » entry: the digest shown, or why there is none.
+/// Reading pane of the « Résumés » entry: the digest shown, the count of several selected ones, or why there is none.
 struct DigestDetail: View {
-    let digest: Digest?
+    /// Selected digests: one is shown, several are counted.
+    let digests: [Digest]
     let query: String
     /// Whether any digest exists, searched or not.
     let hasDigests: Bool
     @AppStorage(DigestSettings.timeKey) private var digestTime = DigestSettings.defaultTime
-    @State private var digestToDelete: Digest?
+    @State private var digestsToDelete: [Digest] = []
 
     var body: some View {
         Group {
-            if let digest {
+            if digests.count > 1 {
+                ContentUnavailableView("\(digests.count) résumés sélectionnés", systemImage: "doc.on.doc")
+            } else if let digest = digests.first {
                 DigestView(digest: digest, query: query)
             } else if hasDigests {
                 ContentUnavailableView.search(text: query)
@@ -257,12 +268,14 @@ struct DigestDetail: View {
             // Leading edge of the reading pane, like the article actions. Kept (disabled) without a digest: a reading
             // pane without toolbar items lets the list's buttons drift to the window's trailing edge.
             ToolbarItem {
-                Button("Supprimer le résumé", systemImage: "trash") { digestToDelete = digest }
-                    .disabled(digest == nil)
-                    .help("Supprimer ce résumé")
+                Button(digests.count > 1 ? "Supprimer les résumés" : "Supprimer le résumé", systemImage: "trash") {
+                    digestsToDelete = digests
+                }
+                .disabled(digests.isEmpty)
+                .help(digests.count > 1 ? "Supprimer ces résumés" : "Supprimer ce résumé")
             }
         }
-        .digestDeleteConfirmation($digestToDelete)
+        .digestDeleteConfirmation($digestsToDelete)
     }
 }
 

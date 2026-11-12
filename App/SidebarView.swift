@@ -4,7 +4,8 @@ import SwiftData
 import SwiftUI
 
 struct SidebarView: View {
-    @Binding var selection: SidebarItem?
+    /// Several feeds, or a single entry of any kind (see `SelectionRule`).
+    @Binding var selection: Set<SidebarItem>
     @Environment(\.modelContext) private var context
     @Environment(AppState.self) private var state
     @Query(sort: \Feed.title) private var feeds: [Feed]
@@ -13,7 +14,7 @@ struct SidebarView: View {
     @Query(sort: \CairnCore.Tag.name) private var tags: [CairnCore.Tag]
     // Every unread article, kept ones without a feed included, like the "Tous les articles" list.
     @Query(filter: #Predicate<Article> { !$0.isRead }) private var unreadArticles: [Article]
-    @State private var feedToDelete: Feed?
+    @State private var feedsToDelete: [Feed] = []
     /// Keys of the collapsed folders, one per line, kept on this Mac.
     @AppStorage("collapsedFolders") private var collapsedFolders = ""
     /// What the name alert creates or renames; nil when it is closed.
@@ -53,11 +54,6 @@ struct SidebarView: View {
                 ForEach(cairns) { cairn in
                     Label(cairn.name, image: "cairn")
                         .tag(SidebarItem.cairn(cairn.persistentModelID))
-                        .contextMenu {
-                            Button("Renommer…") { startNaming(.cairn(cairn)) }
-                            Button("Supprimer le cairn…", role: .destructive) { cairnToDelete = cairn }
-                                .disabled(cairns.count == 1)
-                        }
                     ForEach(tags(in: cairn)) { tag in
                         Label(tag.name, systemImage: "tag")
                             .padding(.leading, 12)
@@ -85,16 +81,6 @@ struct SidebarView: View {
                         Label(folder.name, systemImage: "folder")
                             .badge(folder.unreadCount)
                             .tag(SidebarItem.folder(folder.persistentModelID))
-                            .contextMenu {
-                                Button("Renommer…") { startNaming(.folder(folder)) }
-                                Button("Supprimer le dossier", role: .destructive) {
-                                    let wasSelected = selection == .folder(folder.persistentModelID)
-                                    Library.delete(folder, context: context)
-                                    // After the List has moved its selection to a neighbouring row, which it does
-                                    // when the selected row disappears.
-                                    if wasSelected { Task { selection = .all } }
-                                }
-                            }
                             .dropDestination(for: String.self) { urls, _ in return move(urls, to: folder) }
                     }
                 }
@@ -120,15 +106,23 @@ struct SidebarView: View {
                 .dropDestination(for: String.self) { urls, _ in return move(urls, to: nil) }
             }
         }
-        .confirmationDialog("Supprimer « \(feedToDelete?.title ?? "") » ?",
-                            isPresented: Binding(get: { feedToDelete != nil }, set: { if !$0 { feedToDelete = nil } }),
-                            presenting: feedToDelete) { feed in
+        // One menu for the whole list: it gets the selection when the clicked row is part of it, else that row alone.
+        .contextMenu(forSelectionType: SidebarItem.self, menu: menu)
+        // Dragging a selected feed drags the whole selection of feeds.
+        .dragContainer(for: String.self, itemID: \.self) { urls in urls }
+        .dragContainerSelection(selectedFeeds.map(\.url))
+        .confirmationDialog(feedsToDelete.count == 1 ? "Supprimer « \(feedsToDelete[0].title) » ?"
+                                                     : "Supprimer \(feedsToDelete.count) abonnements ?",
+                            isPresented: Binding(get: { !feedsToDelete.isEmpty }, set: { if !$0 { feedsToDelete = [] } }),
+                            presenting: feedsToDelete) { feeds in
             Button("Supprimer", role: .destructive) {
-                if selection == .feed(feed.persistentModelID) { selection = .all }
-                Library.delete(feed, context: context)
+                let wasSelected = feeds.contains { selection.contains(.feed($0.persistentModelID)) }
+                if wasSelected { selection = [.all] }
+                for feed in feeds { Library.delete(feed, context: context) }
             }
-        } message: { _ in
-            Text("Ses articles non gardés seront supprimés. Les articles gardés restent dans leur cairn.")
+        } message: { feeds in
+            Text(feeds.count == 1 ? "Ses articles non gardés seront supprimés. Les articles gardés restent dans leur cairn."
+                                  : "Leurs articles non gardés seront supprimés. Les articles gardés restent dans leur cairn.")
         }
         .alert(naming?.title ?? "", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } }),
                presenting: naming) { naming in
@@ -164,21 +158,52 @@ struct SidebarView: View {
             SourceIcon(data: feed.iconData)
         }
         .badge(feed.unreadCount)
+        .draggable(containerItemID: feed.url)
+        // Last: a selection tag under the drag modifier would no longer reach the List row.
         .tag(SidebarItem.feed(feed.persistentModelID))
-        .draggable(feed.url)
-        .contextMenu {
+    }
+
+    private var selectedFeeds: [Feed] { feeds.filter { selection.contains(.feed($0.persistentModelID)) } }
+
+    /// Menu of the clicked entry or of the selection holding it: a cairn or a folder alone, or one or more feeds.
+    @ViewBuilder
+    private func menu(for items: Set<SidebarItem>) -> some View {
+        let lot = feeds.filter { items.contains(.feed($0.persistentModelID)) }
+        if let cairn = single(items, cairns, as: SidebarItem.cairn) {
+            Button("Renommer…") { startNaming(.cairn(cairn)) }
+            Button("Supprimer le cairn…", role: .destructive) { cairnToDelete = cairn }
+                .disabled(cairns.count == 1)
+        } else if let folder = single(items, folders, as: SidebarItem.folder) {
+            Button("Renommer…") { startNaming(.folder(folder)) }
+            Button("Supprimer le dossier", role: .destructive) {
+                let wasSelected = selection.contains(.folder(folder.persistentModelID))
+                Library.delete(folder, context: context)
+                // After the List has moved its selection to a neighbouring row, which it does
+                // when the selected row disappears.
+                if wasSelected { Task { selection = [.all] } }
+            }
+        } else if !lot.isEmpty, lot.count == items.count {
             Menu("Déplacer vers") {
                 ForEach(folders) { folder in
-                    Button(folder.name) { Library.move(feed, to: folder) }
-                        .disabled(feed.folder?.persistentModelID == folder.persistentModelID)
+                    Button(folder.name) { for feed in lot { Library.move(feed, to: folder) } }
+                        .disabled(lot.allSatisfy { $0.folder?.persistentModelID == folder.persistentModelID })
                 }
                 if !folders.isEmpty { Divider() }
-                Button("Aucun dossier") { Library.move(feed, to: nil) }
-                    .disabled(feed.folder == nil)
+                Button("Aucun dossier") { for feed in lot { Library.move(feed, to: nil) } }
+                    .disabled(lot.allSatisfy { $0.folder == nil })
             }
             Divider()
-            Button("Supprimer l'abonnement…", role: .destructive) { feedToDelete = feed }
+            Button(lot.count == 1 ? "Supprimer l'abonnement…" : "Supprimer \(lot.count) abonnements…", role: .destructive) {
+                feedsToDelete = lot
+            }
         }
+    }
+
+    /// The model of `items` when it is its only entry and of the given kind.
+    private func single<M: PersistentModel>(_ items: Set<SidebarItem>, _ models: [M],
+                                            as item: (PersistentIdentifier) -> SidebarItem) -> M? {
+        guard items.count == 1 else { return nil }
+        return models.first { items.contains(item($0.persistentModelID)) }
     }
 
     private func isExpanded(_ folder: Folder) -> Binding<Bool> {
@@ -237,9 +262,11 @@ struct SidebarView: View {
 
     private func delete(_ cairn: Cairn) {
         let id = cairn.persistentModelID
-        let wasSelected = switch selection {
-        case .cairn(id), .tag(id, _): true
-        default: false
+        let wasSelected = selection.contains { item in
+            switch item {
+            case .cairn(id), .tag(id, _): true
+            default: false
+            }
         }
         do {
             try Library.delete(cairn, context: context)
@@ -248,7 +275,7 @@ struct SidebarView: View {
             return
         }
         // After the List has moved its selection to a neighbouring row (see the folder deletion).
-        if wasSelected { Task { selection = .all } }
+        if wasSelected { Task { selection = [.all] } }
     }
 }
 
