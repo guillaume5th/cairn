@@ -111,11 +111,11 @@ struct SettingsView: View {
             } footer: {
                 Group {
                     if engine == .apple {
-                        Text("Le résumé est rédigé sur ce Mac : les articles ne sont envoyés à aucun service en ligne.")
+                        Text("Les résumés quotidiens et les résumés d'articles sont rédigés sur ce Mac : les articles ne sont envoyés à aucun service en ligne.")
                     } else if let modelsError {
                         Label(modelsError, systemImage: "exclamationmark.triangle")
                     } else {
-                        Text("Ollama doit tourner sur ce Mac ou sur ton réseau. Installe d'autres modèles avec « ollama pull », puis actualise la liste.")
+                        Text("Sert aux résumés quotidiens et aux résumés d'articles. Ollama doit tourner sur ce Mac ou sur ton réseau. Installe d'autres modèles avec « ollama pull », puis actualise la liste.")
                     }
                 }
                 .foregroundStyle(.secondary)
@@ -291,7 +291,7 @@ struct DigestView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 ForEach(Array(digest.text.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
-                    markdownLine(line)
+                    MarkdownLine(line: line, query: query)
                 }
                 Divider().padding(.vertical, 8)
                 Text("Articles résumés").font(.headline)
@@ -313,10 +313,14 @@ struct DigestView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+}
 
-    /// `Text` renders inline Markdown only, so headings are turned into a bold font here.
-    @ViewBuilder
-    private func markdownLine(_ line: String) -> some View {
+/// One line of an AI summary. `Text` renders inline Markdown only, so headings are turned into a bold font here.
+struct MarkdownLine: View {
+    let line: String
+    var query = ""
+
+    var body: some View {
         let heading = line.prefix { $0 == "#" }.count
         let body = heading > 0 ? String(line.dropFirst(heading)).trimmingCharacters(in: .whitespaces) : line
         var attributed = (try? AttributedString(markdown: body, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
@@ -325,8 +329,30 @@ struct DigestView: View {
         let text = Text(attributed)
         if heading > 0 {
             text.font(heading == 1 ? .title2.bold() : .headline).padding(.top, 6)
+        } else if let item = Self.listItem(line) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(item.level == 0 ? "•" : "◦").foregroundStyle(.secondary)
+                Self.inline(item.text, query: query)
+            }
+            .padding(.leading, CGFloat(item.level) * 16)
         } else if !line.trimmingCharacters(in: .whitespaces).isEmpty {
             text
         }
+    }
+
+    /// A Markdown list line ("* ", "- " or "+ "), its nesting level (two spaces or a tab per level) and its text.
+    static func listItem(_ line: String) -> (level: Int, text: String)? {
+        let indent = line.prefix { $0 == " " || $0 == "\t" }
+        let rest = line.dropFirst(indent.count)
+        guard let marker = rest.first, "*-+".contains(marker), rest.dropFirst().first == " " else { return nil }
+        let width = indent.reduce(0) { $0 + ($1 == "\t" ? 2 : 1) }
+        return (width / 2, String(rest.dropFirst(2)))
+    }
+
+    private static func inline(_ markdown: String, query: String) -> Text {
+        var attributed = (try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)))
+            ?? AttributedString(markdown)
+        let _ = attributed.highlight(query)
+        return Text(attributed)
     }
 }

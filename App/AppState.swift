@@ -17,6 +17,9 @@ final class AppState {
     var isSearchRequested = false
     var exportDocument: OPMLDocument?
     var message: String?
+    /// Articles being summarized, and the last failure per article; neither is stored.
+    var summarizing: Set<PersistentIdentifier> = []
+    var summaryErrors: [PersistentIdentifier: String] = [:]
 
     var context: ModelContext { container.mainContext }
 
@@ -72,6 +75,24 @@ final class AppState {
             try context.save()
         } catch {
             message = "Le résumé n'a pas pu être produit : \(error.localizedDescription)"
+        }
+    }
+
+    /// Has the chosen engine summarize the article. A failure keeps the previous summary and is kept per article.
+    func summarize(_ article: Article) async {
+        let id = article.persistentModelID
+        guard summarizing.insert(id).inserted else { return }
+        defer { summarizing.remove(id) }
+        summaryErrors[id] = nil
+        do {
+            let (summarizer, engine) = try DigestSettings.summarizer()
+            let text = try await summarizer.summarize(Library.articleSummaryPrompt(for: article))
+            article.summary = text
+            article.summaryDate = .now
+            article.summaryEngine = engine
+            save()
+        } catch {
+            summaryErrors[id] = "Le résumé n'a pas pu être produit : \(error.localizedDescription)"
         }
     }
 

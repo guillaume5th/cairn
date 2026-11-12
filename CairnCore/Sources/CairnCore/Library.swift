@@ -193,6 +193,25 @@ public enum Library {
         return prompt
     }
 
+    /// Instructions, the title, then the article's plain text cut to fit the same budget as a digest.
+    public static func articleSummaryPrompt(for article: Article) -> String {
+        let head = """
+        Résume en français, en Markdown, l'article ci-dessous en quelques phrases ou puces. \
+        Reste factuel et n'invente rien.
+
+        Titre : \(article.title)
+
+        """
+        return head + plainText(article.content ?? "").prefix(max(0, digestPromptBudget - head.count))
+    }
+
+    static let excerptLength = 500
+
+    /// Whether the feed gives only a short excerpt of the article.
+    public static func isExcerpt(_ article: Article) -> Bool {
+        plainText(article.content ?? "").count < excerptLength
+    }
+
     /// Deletes digests created more than `days` days before `now`.
     public static func purgeDigests(context: ModelContext, olderThan days: Int, now: Date = .now) throws {
         let cutoff = now.addingTimeInterval(-Double(days) * 86_400)

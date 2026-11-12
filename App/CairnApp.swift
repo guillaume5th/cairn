@@ -20,6 +20,8 @@ struct CairnApp: App {
                 .environment(state)
                 .modelContainer(state.container)
                 .task { await state.launch() }
+                // Autosave can lag behind the last edit: without this, a change made just before quitting is lost.
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in state.save() }
         }
         .commands { CairnCommands(state: state) }
         Settings { SettingsView() }

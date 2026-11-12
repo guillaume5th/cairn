@@ -72,6 +72,20 @@ struct DigestTests {
         #expect(!big.contains("Titre 499"))
     }
 
+    @Test func articleSummaryPrompt() throws {
+        let context = try makeContext()
+        let short = article("Court", hoursAgo: 1, content: "<p>Un <b>texte</b> bref.</p>", context: context)
+        let prompt = Library.articleSummaryPrompt(for: short)
+        #expect(prompt.contains("Titre : Court"))
+        #expect(prompt.hasSuffix("Un texte bref."))
+        #expect(prompt.contains("français"))
+        #expect(Library.isExcerpt(short))
+
+        let long = article("Long", hoursAgo: 1, content: "<p>" + String(repeating: "mot ", count: 5_000) + "</p>", context: context)
+        #expect(Library.articleSummaryPrompt(for: long).count <= Library.digestPromptBudget)
+        #expect(!Library.isExcerpt(long))
+    }
+
     @Test func itemsKeepSourceAndLink() throws {
         let context = try makeContext()
         let items = Library.digestItems(for: [article("A", hoursAgo: 1, context: context)])

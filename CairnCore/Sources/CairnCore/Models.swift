@@ -51,6 +51,10 @@ public final class Article {
     public var cairn: Cairn?
     @Relationship(deleteRule: .nullify, inverse: \Tag.articles)
     public var tags: [Tag]? = []
+    /// AI summary made on request, with when and by which engine; set together, only on success.
+    public var summary: String?
+    public var summaryDate: Date?
+    public var summaryEngine: String?
 
     public init(externalID: String, link: String, title: String, publishedAt: Date, content: String?, sourceTitle: String) {
         self.externalID = externalID

@@ -9,8 +9,11 @@ struct ArticleDetailView: View {
     /// Current search, highlighted in the title and the content.
     var query = ""
     @Environment(\.openURL) private var openURL
+    @Environment(AppState.self) private var state
     @State private var articlesToUnkeep: [Article] = []
     @AppStorage(TextScale.key) private var textScale = 1.0
+    /// Hidden summaries stay hidden from one article to the next, like a collapsed section.
+    @AppStorage("articleSummaryHidden") private var summaryHidden = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -28,6 +31,7 @@ struct ArticleDetailView: View {
             }
             .padding()
             Divider()
+            summaryBox
 
             if let html = article.content {
                 HTMLView(html: html, baseURL: url, query: query)
@@ -55,10 +59,97 @@ struct ArticleDetailView: View {
                 Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
                     .disabled(url == nil)
                     .help("Ouvrir dans le navigateur")
+                Button(article.summary == nil ? "Résumer" : "Régénérer le résumé", systemImage: "text.append") { summarize() }
+                    .disabled((article.content ?? "").isEmpty || isSummarizing)
+                    .help((article.content ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
+                          : article.summary == nil ? "Résumer cet article avec l'IA" : "Refaire le résumé de cet article")
             }
         }
         .unkeepConfirmation($articlesToUnkeep)
         .task(id: article.persistentModelID) { if marksRead { article.isRead = true } }
+    }
+
+    private var isSummarizing: Bool { state.summarizing.contains(article.persistentModelID) }
+
+    /// Not tied to the view: switching articles does not cancel it, and the result goes to this article.
+    private func summarize() {
+        let article = article
+        Task { await state.summarize(article) }
+    }
+
+    /// The article's AI summary, its progress or its failure, above the content.
+    @ViewBuilder
+    private var summaryBox: some View {
+        let error = state.summaryErrors[article.persistentModelID]
+        if article.summary != nil || isSummarizing || error != nil {
+            GroupBox {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Button(summaryHidden ? "Afficher le résumé" : "Masquer le résumé",
+                               systemImage: summaryHidden ? "chevron.right" : "chevron.down") { summaryHidden.toggle() }
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(.borderless)
+                            .help(summaryHidden ? "Afficher le résumé" : "Masquer le résumé")
+                            .accessibilityLabel(summaryHidden ? "Afficher le résumé" : "Masquer le résumé")
+                        Text(summaryHeader).font(.caption).foregroundStyle(.secondary)
+                        Spacer()
+                        if isSummarizing {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Button(article.summary == nil ? "Réessayer" : "Régénérer", systemImage: "arrow.clockwise") { summarize() }
+                                .labelStyle(.iconOnly)
+                                .buttonStyle(.borderless)
+                                .help(article.summary == nil ? "Réessayer le résumé" : "Régénérer le résumé")
+                                .accessibilityLabel(article.summary == nil ? "Réessayer" : "Régénérer")
+                            if article.summary != nil {
+                                Button("Supprimer le résumé", systemImage: "trash") { deleteSummary() }
+                                    .labelStyle(.iconOnly)
+                                    .buttonStyle(.borderless)
+                                    .help("Supprimer le résumé de cet article")
+                                    .accessibilityLabel("Supprimer le résumé")
+                            }
+                        }
+                    }
+                    if !summaryHidden {
+                    if let summary = article.summary {
+                        let text = VStack(alignment: .leading, spacing: 4) {
+                            ForEach(Array(summary.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
+                                MarkdownLine(line: line)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                        // As tall as the text up to a limit, then scrolls, so the article stays in view.
+                        ScrollView { text }
+                            .scrollBounceBehavior(.basedOnSize)
+                            .frame(maxHeight: 220)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let error {
+                        Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled)
+                    }
+                    if Library.isExcerpt(article) {
+                        Text("Résumé de l'extrait fourni par le flux").font(.caption).foregroundStyle(.secondary)
+                    }
+                    }
+                }
+                .padding(4)
+            }
+            .padding([.horizontal, .top])
+        }
+    }
+
+    private func deleteSummary() {
+        article.summary = nil
+        article.summaryDate = nil
+        article.summaryEngine = nil
+        state.summaryErrors[article.persistentModelID] = nil
+        state.save()
+    }
+
+    private var summaryHeader: String {
+        guard let date = article.summaryDate, article.summary != nil else { return isSummarizing ? "Résumé en cours…" : "Résumé" }
+        return ["Résumé", date.formatted(date: .abbreviated, time: .shortened), article.summaryEngine].compactMap(\.self).joined(separator: " · ")
     }
 
     private var url: URL? {
