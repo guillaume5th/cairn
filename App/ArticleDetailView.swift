@@ -14,6 +14,9 @@ struct ArticleDetailView: View {
     @AppStorage(TextScale.key) private var textScale = 1.0
     /// Hidden summaries stay hidden from one article to the next, like a collapsed section.
     @AppStorage("articleSummaryHidden") private var summaryHidden = false
+    /// True while part of the summary is below its scroll view: macOS hides scroll bars until one scrolls.
+    @State private var summaryHasMore = false
+    @State private var summaryScroll = ScrollPosition()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -66,7 +69,11 @@ struct ArticleDetailView: View {
             }
         }
         .unkeepConfirmation($articlesToUnkeep)
-        .task(id: article.persistentModelID) { if marksRead { article.isRead = true } }
+        .task(id: article.persistentModelID) {
+            if marksRead { article.isRead = true }
+            // The view is reused across articles: start each summary at its top.
+            summaryScroll.scrollTo(edge: .top)
+        }
     }
 
     private var isSummarizing: Bool { state.summarizing.contains(article.persistentModelID) }
@@ -122,8 +129,30 @@ struct ArticleDetailView: View {
                         // As tall as the text up to a limit, then scrolls, so the article stays in view.
                         ScrollView { text }
                             .scrollBounceBehavior(.basedOnSize)
+                            .scrollPosition($summaryScroll)
+                            .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.maxY < $0.contentSize.height - 1 } action: { _, hasMore in
+                                summaryHasMore = hasMore
+                            }
                             .frame(maxHeight: 220)
                             .fixedSize(horizontal: false, vertical: true)
+                            .mask {
+                                VStack(spacing: 0) {
+                                    Rectangle()
+                                    LinearGradient(colors: [.black, .black.opacity(summaryHasMore ? 0 : 1)], startPoint: .top, endPoint: .bottom)
+                                        .frame(height: 32)
+                                }
+                            }
+                            .overlay(alignment: .bottom) {
+                                if summaryHasMore {
+                                    Button("Lire la suite du résumé", systemImage: "chevron.down") {
+                                        withAnimation { summaryScroll.scrollTo(edge: .bottom) }
+                                    }
+                                    .labelStyle(.iconOnly)
+                                    .buttonStyle(.borderless)
+                                    .help("Lire la suite du résumé")
+                                }
+                            }
+                            .animation(.default, value: summaryHasMore)
                     }
                     if let error {
                         Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled)
