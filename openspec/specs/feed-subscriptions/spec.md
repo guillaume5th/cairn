@@ -104,7 +104,7 @@ Le système SHALL permettre d'exporter tous les abonnements dans un fichier OPML
 - **THEN** les mêmes abonnements sont recréés, dans les mêmes dossiers
 
 ### Requirement: Sélectionner plusieurs abonnements
-Le système SHALL permettre de sélectionner plusieurs abonnements dans la barre latérale (⌘-clic, ⇧-clic) et lister alors ensemble leurs articles, du plus récent au plus ancien, comme pour un dossier. Seuls des abonnements peuvent être sélectionnés ensemble : ajouter une autre entrée (« Tous les articles », dossier, cairn, tag, « Résumés ») à la sélection MUST la remplacer par cette seule entrée.
+Le système SHALL permettre de sélectionner plusieurs abonnements dans la barre latérale (⌘-clic, ⇧-clic) et lister alors ensemble leurs articles, du plus récent au plus ancien, comme pour un dossier. Seuls des abonnements peuvent être sélectionnés ensemble : ajouter une autre entrée (« Tous les articles », dossier, cairn, tag, « Résumés quotidiens ») à la sélection MUST la remplacer par cette seule entrée.
 
 #### Scenario: Deux abonnements sélectionnés
 - **WHEN** l'utilisateur sélectionne un abonnement puis ⌘-clique sur un second

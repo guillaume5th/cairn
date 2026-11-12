@@ -223,7 +223,7 @@ struct ContentView: View {
         if isMultiFeed { return "\(multiFeeds.count) abonnements" }
         return switch memory.item {
         case .all, nil: "Tous les articles"
-        case .digests: "Résumés"
+        case .digests: "Résumés quotidiens"
         case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
         case let .tag(_, key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
         case let .feed(id): feeds.first { $0.persistentModelID == id }?.title ?? "Abonnement"

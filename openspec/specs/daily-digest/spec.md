@@ -127,14 +127,14 @@ Pendant une recherche dans les résumés, le système SHALL surligner le terme d
 - **THEN** « Émulateur » est surligné dans la liste des articles du résumé
 
 ### Requirement: Afficher les résumés
-Le système SHALL afficher, quand l'utilisateur sélectionne l'entrée « Résumés » de la barre latérale, la liste des résumés du plus récent au plus ancien, chacun désigné par sa date et son heure ; le résumé sélectionné s'affiche dans le volet de lecture.
+Le système SHALL afficher, quand l'utilisateur sélectionne l'entrée « Résumés quotidiens » de la barre latérale, la liste des résumés du plus récent au plus ancien, chacun désigné par sa date et son heure ; le résumé sélectionné s'affiche dans le volet de lecture.
 
 #### Scenario: Ouvrir un résumé
-- **WHEN** l'utilisateur sélectionne l'entrée « Résumés » puis un résumé
+- **WHEN** l'utilisateur sélectionne l'entrée « Résumés quotidiens » puis un résumé
 - **THEN** son texte et la liste de ses articles s'affichent dans le volet de lecture
 
 #### Scenario: Aucun résumé
-- **WHEN** l'utilisateur sélectionne l'entrée « Résumés » alors qu'il n'y a aucun résumé
+- **WHEN** l'utilisateur sélectionne l'entrée « Résumés quotidiens » alors qu'il n'y a aucun résumé
 - **THEN** la liste est vide et le volet indique l'heure du prochain résumé
 
 ### Requirement: Supprimer un résumé

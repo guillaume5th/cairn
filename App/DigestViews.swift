@@ -241,7 +241,7 @@ extension View {
     }
 }
 
-/// Reading pane of the « Résumés » entry: the digest shown, the count of several selected ones, or why there is none.
+/// Reading pane of the « Résumés quotidiens » entry: the digest shown, the count of several selected ones, or why there is none.
 struct DigestDetail: View {
     /// Selected digests: one is shown, several are counted.
     let digests: [Digest]
