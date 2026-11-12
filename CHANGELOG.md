@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.0](https://github.com/guillaume5th/cairn/compare/v1.0.0...v1.1.0) (2026-11-12)
+
+
+### Features
+
+* update DMG creation command to use diskutil for improved compatibility ([f51ea2c](https://github.com/guillaume5th/cairn/commit/f51ea2c26dbf32cfe012fe129401a090bf4066a7))
+
+
+### Bug Fixes
+
+* keep running when the window is closed ([#5](https://github.com/guillaume5th/cairn/issues/5)) ([9e35a07](https://github.com/guillaume5th/cairn/commit/9e35a07d1734d59e5225b68cff7df29ba5f45280))
+
 ## [1.0.0](https://github.com/guillaume5th/cairn/compare/v0.1.0...v1.0.0) (2026-11-12)
 
 
