@@ -23,7 +23,7 @@ mkdir -p "$stage"
 cp -R "$app" "$stage/"
 ln -s /Applications "$stage/Applications"
 dmg="$out/Cairn-$version.dmg"
-hdiutil create -volname "Cairn $version" -srcfolder "$stage" -format UDZO -ov "$dmg"
+diskutil image create from --volumeName "Cairn $version" "$stage" "$dmg"
 
 gh release upload "$tag" "$dmg" --clobber
 echo "✓ $dmg attaché à la release $tag"
