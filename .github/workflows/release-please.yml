@@ -1,0 +1,18 @@
+# Conventional commits on main -> Release PR (version bump + CHANGELOG.md).
+# Merging it tags vX.Y.Z and publishes the GitHub Release. The DMG is attached locally: scripts/release.sh.
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
