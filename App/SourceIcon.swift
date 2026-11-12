@@ -1,4 +1,9 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
+import CairnCore
 import SwiftUI
 
 /// Icon of an article's source in a Liquid Glass circle: its favicon, or a generic symbol when there is none
@@ -30,9 +35,9 @@ struct SourceIcon: View {
     @ViewBuilder private var content: some View {
         if let icon, icon.fillsCircle {
             // A full square picture is masked round, like an app icon, with a ring of glass around it.
-            inset(Image(nsImage: icon.image).resizable().interpolation(.high).scaledToFill(), ratio: 0.8, round: true)
+            inset(Image(decorative: icon.image, scale: 1).resizable().interpolation(.high).scaledToFill(), ratio: 0.8, round: true)
         } else if let icon {
-            inset(Image(nsImage: icon.image).resizable().interpolation(.high).scaledToFit(), ratio: 0.62)
+            inset(Image(decorative: icon.image, scale: 1).resizable().interpolation(.high).scaledToFit(), ratio: 0.62)
         } else {
             inset(Image(systemName: "dot.radiowaves.up.forward").resizable().scaledToFit(), ratio: 0.62)
                 .foregroundStyle(.secondary)
@@ -50,9 +55,14 @@ struct SourceIcon: View {
 
     /// Height of an article row whose title takes its two allowed lines: body ×2 + caption + the row's 2 pt spacing.
     static let articleRowSide: CGFloat = {
+        #if os(macOS)
         let layout = NSLayoutManager()
         let body = layout.defaultLineHeight(for: .preferredFont(forTextStyle: .body))
         let caption = layout.defaultLineHeight(for: .preferredFont(forTextStyle: .caption1))
+        #else
+        let body = UIFont.preferredFont(forTextStyle: .body).lineHeight
+        let caption = UIFont.preferredFont(forTextStyle: .caption1).lineHeight
+        #endif
         return (2 * body + caption + 2).rounded(.up)
     }()
 }
@@ -60,7 +70,7 @@ struct SourceIcon: View {
 /// A favicon decoded once, with what the circle needs to know about it.
 @MainActor
 final class DecodedIcon {
-    let image: NSImage
+    let image: CGImage
     /// All four corners opaque: a full square picture, masked round. Otherwise a cut-out logo, shown as is.
     let fillsCircle: Bool
 
@@ -76,13 +86,9 @@ final class DecodedIcon {
     }
 
     private init?(_ data: Data) {
-        guard let image = NSImage(data: data), image.isValid else { return nil }
-        let widest = image.representations.max { $0.pixelsWide < $1.pixelsWide }
-        let pixels = widest.map { CGSize(width: $0.pixelsWide, height: $0.pixelsHigh) } ?? .zero
-        var rect = CGRect(origin: .zero, size: pixels.width > 0 ? pixels : CGSize(width: 64, height: 64))
-        guard let cg = image.cgImage(forProposedRect: &rect, context: nil, hints: nil) else { return nil }
+        guard let image = FeedIcon.decode(data) else { return nil }
         self.image = image
-        fillsCircle = Self.cornersAreOpaque(cg)
+        fillsCircle = Self.cornersAreOpaque(image)
     }
 
     private static func cornersAreOpaque(_ cg: CGImage) -> Bool {

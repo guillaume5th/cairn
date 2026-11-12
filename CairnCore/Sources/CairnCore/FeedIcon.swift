@@ -1,5 +1,5 @@
-import AppKit
 import Foundation
+import ImageIO
 
 /// Finding a feed's site icon (favicon).
 public enum FeedIcon {
@@ -33,6 +33,13 @@ public enum FeedIcon {
 
     // `mask-icon` is excluded: it is a monochrome Safari pinned-tab mask, not a favicon.
     private static let iconRels: Set<Substring> = ["icon", "apple-touch-icon", "apple-touch-icon-precomposed"]
+
+    /// The largest image in `data` (an .ico holds several sizes), or nil when it cannot be decoded.
+    public static func decode(_ data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        let images = (0..<CGImageSourceGetCount(source)).compactMap { CGImageSourceCreateImageAtIndex(source, $0, nil) }
+        return images.max { $0.width < $1.width }
+    }
 
     private static func attribute(_ name: String, in tag: String) -> String? {
         // name="…", name='…' or name=… (unquoted)
@@ -95,19 +102,18 @@ extension FeedFetcher {
 
     private func image(at url: URL) async -> Data? {
         guard let (data, _) = await download(url, limit: Self.maxIconBytes, truncate: false),
-              let image = NSImage(data: data), image.isValid, Self.isVisible(image) else { return nil }
+              let image = FeedIcon.decode(data), Self.isVisible(image) else { return nil }
         return data
     }
 
     /// Some sites serve a near-transparent "ghost" icon; one that has no pixel at least half opaque is unreadable.
-    static func isVisible(_ image: NSImage) -> Bool {
+    static func isVisible(_ image: CGImage) -> Bool {
         let side = 64
-        var rect = CGRect(x: 0, y: 0, width: side, height: side)
-        guard let cg = image.cgImage(forProposedRect: &rect, context: nil, hints: nil),
-              let context = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
+        let rect = CGRect(x: 0, y: 0, width: side, height: side)
+        guard let context = CGContext(data: nil, width: side, height: side, bitsPerComponent: 8, bytesPerRow: side * 4,
                                       space: CGColorSpaceCreateDeviceRGB(),
                                       bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
-        context.draw(cg, in: rect)
+        context.draw(image, in: rect)
         guard let pixels = context.data?.assumingMemoryBound(to: UInt8.self) else { return false }
         return (0..<side * side).contains { pixels[$0 * 4 + 3] >= 128 }
     }

@@ -19,10 +19,10 @@ public struct AppleSummarizer: Summarizer {
 
     static func message(for reason: SystemLanguageModel.Availability.UnavailableReason) -> String {
         switch reason {
-        case .deviceNotEligible: "Ce Mac ne prend pas en charge Apple Intelligence. Choisis Ollama dans les Réglages."
-        case .appleIntelligenceNotEnabled: "Apple Intelligence est désactivé. Active-le dans les Réglages Système ou choisis Ollama."
+        case .deviceNotEligible: "Cet appareil ne prend pas en charge Apple Intelligence. Choisis Ollama dans les Réglages."
+        case .appleIntelligenceNotEnabled: "Apple Intelligence est désactivé. Active-le dans les Réglages ou choisis Ollama."
         case .modelNotReady: "Le modèle d'Apple n'est pas encore prêt (téléchargement en cours ?). Réessaie plus tard."
-        @unknown default: "Le modèle d'Apple n'est pas disponible sur ce Mac."
+        @unknown default: "Le modèle d'Apple n'est pas disponible sur cet appareil."
         }
     }
 }

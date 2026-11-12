@@ -4,7 +4,11 @@ import SwiftUI
 
 @main
 struct CairnApp: App {
+    #if os(macOS)
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
+    #else
+    @Environment(\.scenePhase) private var scenePhase
+    #endif
     @State private var state: AppState
 
     init() {
@@ -16,16 +20,29 @@ struct CairnApp: App {
     }
 
     var body: some Scene {
+        #if os(macOS)
         Window("Cairn", id: "main") {
-            ContentView()
-                .environment(state)
-                .modelContainer(state.container)
-                .task { await state.launch() }
+            content
                 // Autosave can lag behind the last edit: without this, a change made just before quitting is lost.
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in state.save() }
         }
         .commands { CairnCommands(state: state) }
         Settings { SettingsView() }
+        #else
+        WindowGroup {
+            content
+                // iOS may terminate a backgrounded app without notice: save before that can happen.
+                .onChange(of: scenePhase) { if scenePhase == .background { state.save() } }
+        }
+        .commands { CairnCommands(state: state) }
+        #endif
+    }
+
+    private var content: some View {
+        ContentView()
+            .environment(state)
+            .modelContainer(state.container)
+            .task { await state.launch() }
     }
 }
 
@@ -79,7 +96,9 @@ struct CairnCommands: Commands {
     }
 }
 
+#if os(macOS)
 /// Closing the window keeps the app (and its daily digest) running, like Mail; the Dock icon reopens it.
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 }
+#endif

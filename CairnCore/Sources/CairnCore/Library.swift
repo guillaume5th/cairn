@@ -361,7 +361,9 @@ public enum Library {
     /// Short excerpt around the query's first occurrence in the note, a tag or the content, for a search result
     /// whose title does not show the query; nil when the title shows it or nothing readable matches.
     public static func snippet(for query: String, in article: Article) -> String? {
-        guard matchRanges(of: query, in: article.title).isEmpty else { return nil }
+        // Checked first: every row asks, and turning the content's HTML into text is the costly part.
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              matchRanges(of: query, in: article.title).isEmpty else { return nil }
         let sources = [article.note] + (article.tags ?? []).map(\.name) + [plainText(article.content ?? "")]
         for text in sources {
             if let range = matchRanges(of: query, in: text).first { return excerpt(text, around: range) }
@@ -372,6 +374,7 @@ public enum Library {
     /// Short excerpt around the query's first occurrence in the digest text (Markdown marks and line breaks dropped), then in an
     /// article title or source; nil when the query is empty or not found.
     public static func snippet(for query: String, in digest: Digest) -> String? {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
         let text = digest.text.replacing(/[*#`_]/, with: "").split(whereSeparator: \.isWhitespace).joined(separator: " ")
         let sources = [text] + digest.items.flatMap { [$0.title, $0.source] }
         for text in sources {

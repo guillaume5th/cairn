@@ -8,6 +8,8 @@ struct AddFeedSheet: View {
     @State private var error: String?
     @State private var isLoading = false
 
+    private var canAdd: Bool { !isLoading && !url.trimmingCharacters(in: .whitespaces).isEmpty }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Ajouter un abonnement").font(.headline)
@@ -25,7 +27,7 @@ struct AddFeedSheet: View {
                     .keyboardShortcut(.cancelAction)
                 Button("Ajouter") { Task { await add() } }
                     .keyboardShortcut(.defaultAction)
-                    .disabled(isLoading || url.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .disabled(!canAdd)
             }
         }
         .padding(20)
@@ -36,11 +38,8 @@ struct AddFeedSheet: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            _ = try await Library.addFeed(urlString: url, context: state.context, fetcher: state.fetcher)
-            state.save()
+            try await state.addFeed(url)
             dismiss()
-            // The icon appears without waiting for the next refresh; the sheet does not wait for it.
-            Task { await state.refreshIcons() }
         } catch {
             self.error = error.localizedDescription
         }

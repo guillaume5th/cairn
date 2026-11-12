@@ -1,4 +1,8 @@
+#if os(macOS)
 import AppKit
+#else
+import UIKit
+#endif
 import SwiftUI
 import WebKit
 
@@ -110,7 +114,13 @@ private struct LinkOpener: WebPage.NavigationDeciding {
         case .other:
             return .allow // our own load(html:)
         case .linkActivated:
-            if let url = action.request.url { NSWorkspace.shared.open(url) }
+            if let url = action.request.url {
+                #if os(macOS)
+                NSWorkspace.shared.open(url)
+                #else
+                await UIApplication.shared.open(url)
+                #endif
+            }
             return .cancel
         default:
             return .cancel
