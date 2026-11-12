@@ -138,7 +138,7 @@ Le système SHALL afficher le titre, la source, la date et le contenu fourni par
 - **THEN** le panneau indique qu'aucun contenu n'est disponible et propose de l'ouvrir dans le navigateur
 
 ### Requirement: Taille du texte de l'article
-Le système SHALL permettre d'agrandir, de réduire et de rétablir la taille du texte du panneau de lecture depuis le menu Présentation (⌘+, ⌘−, ⌘0). La taille MUST s'appliquer au titre, à la ligne source et date et au contenu de l'article, rester entre un minimum et un maximum, et être conservée d'un lancement à l'autre.
+Le système SHALL permettre d'agrandir, de réduire et de rétablir la taille du texte du panneau de lecture depuis le menu Présentation (⌘+, ⌘−, ⌘0) et depuis la section « Affichage » des Réglages, sur tous les appareils. La taille MUST s'appliquer au titre, à la ligne source et date et au contenu de l'article, rester entre un minimum et un maximum, et être conservée d'un lancement à l'autre.
 
 #### Scenario: Agrandir le texte
 - **WHEN** l'utilisateur choisit « Agrandir le texte » ou appuie sur ⌘+
@@ -151,6 +151,10 @@ Le système SHALL permettre d'agrandir, de réduire et de rétablir la taille du
 #### Scenario: Limite atteinte
 - **WHEN** la taille maximale est atteinte
 - **THEN** « Agrandir le texte » est indisponible et la taille ne change plus (et de même pour « Réduire le texte » au minimum)
+
+#### Scenario: Depuis les Réglages
+- **WHEN** l'utilisateur touche « + » sur la ligne « Taille du texte » des Réglages
+- **THEN** le pourcentage affiché augmente et l'article affiché grandit d'autant
 
 #### Scenario: Changement d'article et relancement
 - **WHEN** l'utilisateur a agrandi le texte puis affiche un autre article ou relance l'application
@@ -266,16 +270,24 @@ Le système SHALL permettre de sélectionner plusieurs articles dans toute liste
 - **THEN** l'action ne s'applique qu'à ce quatrième article
 
 ### Requirement: Volet de lecture d'une sélection multiple
-Le système SHALL, quand plusieurs articles sont sélectionnés, afficher dans le volet de lecture le nombre d'articles sélectionnés (« N articles sélectionnés ») au lieu d'un article. Sur iPad, le volet de lecture porte aussi les actions qui s'appliquent à toute la sélection ; sur Mac, elles sont sous la liste.
+Le système SHALL, quand plusieurs articles sont sélectionnés ou en mode sélection, afficher dans le volet de lecture le nombre d'articles sélectionnés (« N articles sélectionnés ») au lieu d'un article. Les actions sur la sélection MUST être sous la liste sur tous les appareils, pas dans le volet.
 
 #### Scenario: Plusieurs articles sélectionnés
 - **WHEN** l'utilisateur sélectionne trois articles
-- **THEN** le volet de lecture affiche « 3 articles sélectionnés », et les actions sur la sélection sont proposées sous la liste (Mac) ou dans le volet (iPad)
+- **THEN** le volet de lecture affiche « 3 articles sélectionnés », et les actions sur la sélection sont proposées sous la liste
 
 #### Scenario: Retour à un seul article
 - **GIVEN** trois articles sont sélectionnés au ⌘-clic, hors du mode sélection
 - **WHEN** l'utilisateur clique sur un seul article sans touche de modification
 - **THEN** cet article est affiché comme d'habitude
+
+### Requirement: Barre d'outils du volet sans article
+Le système SHALL, quand le volet de lecture n'affiche pas un article (aucun article sélectionné, sélection multiple ou mode sélection), y garder les boutons de lecture (Résumer, Garder, Marquer comme non lu, Ouvrir dans le navigateur) grisés, comme Mail, pour que la barre d'outils ne change pas de disposition.
+
+#### Scenario: Entrer en mode sélection
+- **GIVEN** un article est affiché dans le volet de lecture
+- **WHEN** l'utilisateur active le mode sélection
+- **THEN** les boutons de lecture restent à leur place, grisés, et ceux de la liste ne bougent pas
 
 ### Requirement: Marquer plusieurs articles comme lus ou non lus
 Le système SHALL permettre de marquer toute la sélection comme lue ou non lue. Quand au moins un article de la sélection est non lu, l'action proposée MUST être « Marquer comme lu » ; sinon « Marquer comme non lu ».
@@ -323,9 +335,9 @@ Le système SHALL proposer dans la barre d'outils de la liste d'articles un bout
 - **THEN** le mode sélection se termine et aucun article ne reste sélectionné
 
 ### Requirement: Titre et actions d'une sélection
-Le système SHALL, en mode sélection sur Mac et sur iPhone, remplacer le titre de la liste par le nombre d'articles sélectionnés (« Aucune sélection », « 1 sélectionné », « N sélectionnés ») et afficher sous la liste les actions qui s'appliquent à la sélection : garder dans un cairn, marquer comme lu ou non lu, ouvrir dans le navigateur, et supprimer quand tous les articles sélectionnés n'ont plus d'abonnement. Sans article sélectionné, ces actions MUST être inactives.
+Le système SHALL, en mode sélection sur Mac, iPhone et iPad, remplacer le titre de la liste par le nombre d'articles sélectionnés (« Aucune sélection », « 1 sélectionné », « N sélectionnés ») et afficher sous la liste les actions qui s'appliquent à la sélection : garder dans un cairn, marquer comme lu ou non lu, ouvrir dans le navigateur, et supprimer quand tous les articles sélectionnés n'ont plus d'abonnement. Sans article sélectionné, ces actions MUST être inactives.
 
-#### Scenario: Trois articles cochés sur Mac
+#### Scenario: Trois articles cochés
 - **WHEN** l'utilisateur coche trois articles en mode sélection
 - **THEN** le titre de la liste devient « 3 sélectionnés » et les actions apparaissent sous la liste
 

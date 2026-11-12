@@ -7,7 +7,7 @@ Permet à l'utilisateur de choisir les sources de sa veille : s'abonner à des f
 ## Requirements
 
 ### Requirement: Ajouter un abonnement par URL
-Le système SHALL permettre d'ajouter un abonnement à partir de l'URL d'un flux RSS ou Atom. Le système MUST vérifier que l'URL renvoie un flux lisible avant d'enregistrer l'abonnement, et utiliser le titre du flux comme nom de l'abonnement.
+Le système SHALL permettre d'ajouter un abonnement à partir de l'URL d'un flux RSS ou Atom. La saisie MUST se faire, sur tous les appareils, dans une alerte avec un champ URL, comme « Nouveau dossier ». Le système MUST vérifier que l'URL renvoie un flux lisible avant d'enregistrer l'abonnement, et utiliser le titre du flux comme nom de l'abonnement.
 
 #### Scenario: Flux valide
 - **WHEN** l'utilisateur saisit l'URL d'un flux RSS ou Atom valide
