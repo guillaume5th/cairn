@@ -1,6 +1,8 @@
+<p align="center"><img src="docs/icon.png" width="128" alt="Icône de Cairn"></p>
+
 # Cairn
 
-A tech watch app.
+A feed reader for your daily watch.
 
 Gather your sources, skim what's new, and keep the stones worth remembering,
 one cairn at a time.
