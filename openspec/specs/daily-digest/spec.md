@@ -7,7 +7,7 @@ Résume chaque jour, à l'heure choisie et par une IA qui tourne sur la machine,
 ## Requirements
 
 ### Requirement: Heure du résumé quotidien
-Le système SHALL produire un résumé par jour à l'heure réglée par l'utilisateur, 8 h par défaut. Le réglage MUST être conservé sur ce Mac entre les lancements. Le résumé est produit tant que l'app tourne, même sans fenêtre ouverte ; aucun processus ne tourne quand elle est quittée.
+Le système SHALL, quand le résumé automatique est activé, produire un résumé par jour à l'heure réglée par l'utilisateur, 8 h par défaut. Le réglage MUST être conservé sur ce Mac entre les lancements. Le résumé est produit tant que l'app tourne, même sans fenêtre ouverte ; aucun processus ne tourne quand elle est quittée.
 
 #### Scenario: Heure atteinte app ouverte
 - **GIVEN** l'heure du résumé est 8 h et aucun résumé n'a encore été tenté aujourd'hui
@@ -30,7 +30,7 @@ Le système SHALL produire un résumé par jour à l'heure réglée par l'utilis
 - **THEN** aucun autre résumé automatique n'est lancé avant le lendemain
 
 ### Requirement: Rattrapage au lancement
-Le système SHALL produire au lancement le résumé du jour quand l'heure réglée est passée et qu'aucun résumé n'a été tenté depuis.
+Le système SHALL, quand le résumé automatique est activé, produire au lancement le résumé du jour quand l'heure réglée est passée et qu'aucun résumé n'a été tenté depuis.
 
 #### Scenario: App fermée à l'heure prévue
 - **GIVEN** l'heure du résumé est 8 h et l'app était fermée à 8 h
@@ -45,6 +45,11 @@ Le système SHALL produire au lancement le résumé du jour quand l'heure régl�
 - **GIVEN** l'app est restée fermée trois jours
 - **WHEN** l'utilisateur la lance après l'heure du résumé
 - **THEN** un seul résumé est produit, celui du jour
+
+#### Scenario: Résumé automatique désactivé
+- **GIVEN** le résumé automatique est désactivé et l'app était fermée à l'heure du résumé
+- **WHEN** l'utilisateur lance l'app après cette heure
+- **THEN** aucun résumé n'est produit au lancement
 
 ### Requirement: Contenu du résumé
 Le système SHALL, pour produire un résumé, rafraîchir d'abord les abonnements puis résumer les articles publiés dans les 24 heures précédant le moment du résumé, tous abonnements confondus. Le résumé MUST être rédigé en français, regrouper les sujets proches, et être suivi de la liste des articles résumés avec leur titre, leur source et un lien vers chacun.
@@ -140,7 +145,7 @@ Le système SHALL afficher, quand l'utilisateur sélectionne l'entrée « Résum
 
 #### Scenario: Aucun résumé
 - **WHEN** l'utilisateur sélectionne l'entrée « Résumés quotidiens » alors qu'il n'y a aucun résumé
-- **THEN** la liste est vide et le volet indique l'heure du prochain résumé
+- **THEN** la liste est vide et le volet indique l'heure du prochain résumé, ou que le résumé automatique est désactivé
 
 ### Requirement: Supprimer un résumé
 Le système SHALL permettre de supprimer un résumé depuis la liste des résumés, par le bouton corbeille au-dessus du résumé affiché, son menu contextuel ou la touche Supprimer, après confirmation. La suppression MUST être définitive et ne touche ni les articles ni la date de la dernière tentative.
@@ -173,7 +178,7 @@ Le système SHALL supprimer, au lancement et après chaque nouveau résumé, les
 - **THEN** ce résumé reste
 
 ### Requirement: Réglages du résumé
-Le système SHALL offrir une fenêtre Réglages (⌘,) qui permet de régler l'heure du résumé, le moteur, l'adresse et le modèle Ollama, et la durée de conservation. Les réglages Ollama MUST n'être affichés que lorsque le moteur Ollama est choisi.
+Le système SHALL offrir une fenêtre Réglages (⌘,) qui permet d'activer ou de désactiver le résumé automatique et de régler l'heure du résumé, le moteur, l'adresse et le modèle Ollama, et la durée de conservation. Les réglages Ollama MUST n'être affichés que lorsque le moteur Ollama est choisi.
 
 #### Scenario: Choisir Ollama
 - **WHEN** l'utilisateur choisit le moteur Ollama dans les Réglages
@@ -251,3 +256,25 @@ Le système SHALL proposer dans la section Résumé quotidien des Réglages un i
 #### Scenario: Autorisation refusée
 - **WHEN** l'utilisateur active l'interrupteur et refuse la demande du système
 - **THEN** l'interrupteur revient à désactivé et un message explique comment autoriser les notifications
+
+### Requirement: Activer ou désactiver le résumé automatique
+Le système SHALL proposer dans la section Résumé quotidien des Réglages un interrupteur « Résumé automatique », activé par défaut et conservé sur ce Mac entre les lancements. Désactivé, le système MUST NOT produire de résumé automatiquement ; la génération à la demande, l'entrée « Résumés quotidiens » et les résumés déjà produits restent disponibles.
+
+#### Scenario: Désactiver
+- **GIVEN** l'interrupteur « Résumé automatique » est désactivé et l'heure du résumé est 8 h
+- **WHEN** l'app est ouverte et il devient 8 h
+- **THEN** aucun résumé n'est produit et aucune notification n'est envoyée
+
+#### Scenario: Générer à la demande
+- **GIVEN** l'interrupteur « Résumé automatique » est désactivé
+- **WHEN** l'utilisateur clique sur « Générer un résumé »
+- **THEN** un résumé est produit comme d'habitude
+
+#### Scenario: Réactiver après l'heure
+- **GIVEN** l'interrupteur est désactivé, l'heure du résumé est 8 h et aucun résumé n'a été tenté aujourd'hui
+- **WHEN** l'utilisateur l'active à 10 h
+- **THEN** le résumé d'aujourd'hui est produit sans attendre le lendemain
+
+#### Scenario: Réglages grisés
+- **WHEN** l'utilisateur désactive l'interrupteur
+- **THEN** l'heure du résumé et « Me prévenir quand le résumé est prêt » sont grisés, et la durée de conservation reste modifiable
