@@ -167,6 +167,9 @@ struct SidebarView: View {
             Button("Supprimer le cairn…", role: .destructive) { cairnToDelete = cairn }
                 .disabled(cairns.count == 1)
         } else if let folder = single(items, folders, as: SidebarItem.folder) {
+            Button("Marquer tout comme lu") { markRead(folder.feeds ?? []) }
+                .disabled(folder.unreadCount == 0)
+            Divider()
             Button("Renommer…") { startNaming(.folder(folder)) }
             Button("Supprimer le dossier", role: .destructive) {
                 let wasSelected = selection.contains(.folder(folder.persistentModelID))
@@ -176,6 +179,9 @@ struct SidebarView: View {
                 if wasSelected { Task { selection = [.all] } }
             }
         } else if !lot.isEmpty, lot.count == items.count {
+            Button("Marquer tout comme lu") { markRead(lot) }
+                .disabled(lot.allSatisfy { $0.unreadCount == 0 })
+            Divider()
             Menu("Déplacer vers") {
                 ForEach(folders) { folder in
                     Button(folder.name) { for feed in lot { Library.move(feed, to: folder) } }
@@ -199,6 +205,10 @@ struct SidebarView: View {
     }
 
     /// The model of `items` when it is its only entry and of the given kind.
+    private func markRead(_ feeds: [Feed]) {
+        for feed in feeds { for article in feed.articles ?? [] where !article.isRead { article.isRead = true } }
+    }
+
     private func single<M: PersistentModel>(_ items: Set<SidebarItem>, _ models: [M],
                                             as item: (PersistentIdentifier) -> SidebarItem) -> M? {
         guard items.count == 1 else { return nil }

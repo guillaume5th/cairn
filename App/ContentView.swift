@@ -398,6 +398,8 @@ struct ArticleListView: View {
         }
         .unkeepConfirmation($articlesToUnkeep)
         .openConfirmation($articlesToOpen)
+        .focusedSceneValue(\.articleSelection, ArticleSelection(articles: selectedArticles, articlesToUnkeep: $articlesToUnkeep,
+                                                               articlesToOpen: $articlesToOpen, articlesToDelete: $articlesToDelete))
         .overlay {
             if articles.isEmpty { ContentUnavailableView("Aucun article", systemImage: "tray") }
         }

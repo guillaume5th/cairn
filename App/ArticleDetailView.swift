@@ -329,7 +329,8 @@ private struct OpenConfirmation: ViewModifier {
     }
 }
 
-/// Context-menu items for one or more articles (the clicked one, or the selection holding it).
+/// Actions on one or more articles (the clicked one, or the selection holding it), shared by their context menu and
+/// the Article menu, so both list the same actions in the same order with the same shortcuts.
 struct ArticleMenuItems: View {
     let articles: [Article]
     @Binding var articlesToUnkeep: [Article]
@@ -339,18 +340,63 @@ struct ArticleMenuItems: View {
 
     var body: some View {
         let anyUnread = articles.contains { !$0.isRead }
-        KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
-        Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu") { for article in articles { article.isRead = anyUnread } }
-        if articles.count == 1 {
-            ShareButton(article: articles[0])
-        }
-        Button("Ouvrir dans le navigateur") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
-        // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
-        if articles.allSatisfy({ $0.feed == nil }) {
-            Divider()
-            Button(articles.count == 1 ? "Supprimer l'article…" : "Supprimer \(articles.count) articles…", role: .destructive) {
-                articlesToDelete = articles
+        let links = articles.compactMap(OpenInBrowser.url(of:))
+        Group {
+            // ⇧⌘L and ⇧⌘U as Mail's Flag and Mark as Unread.
+            KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
+                .keyboardShortcut("l", modifiers: [.command, .shift])
+            Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu") { for article in articles { article.isRead = anyUnread } }
+                .keyboardShortcut("u", modifiers: [.command, .shift])
+            if articles.count == 1 {
+                // Text only, like the other items: the menu bar would otherwise show its icon alone.
+                ShareButton(article: articles[0]).labelStyle(.titleOnly)
             }
+            Button("Ouvrir dans le navigateur") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
+                .keyboardShortcut(.return, modifiers: .command)
+                .disabled(links.isEmpty)
+            Button(links.count > 1 ? "Copier les liens" : "Copier le lien") {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(links.map(\.absoluteString).joined(separator: "\n"), forType: .string)
+            }
+            .disabled(links.isEmpty)
+            // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
+            if !articles.isEmpty, articles.allSatisfy({ $0.feed == nil }) {
+                Divider()
+                Button(articles.count == 1 ? "Supprimer l'article…" : "Supprimer \(articles.count) articles…", role: .destructive) {
+                    articlesToDelete = articles
+                }
+            }
+        }
+        .disabled(articles.isEmpty)
+    }
+}
+
+/// The article list's selection and its confirmations, for the Article menu.
+struct ArticleSelection {
+    let articles: [Article]
+    let articlesToUnkeep: Binding<[Article]>
+    let articlesToOpen: Binding<[Article]>
+    let articlesToDelete: Binding<[Article]>
+}
+
+extension FocusedValues {
+    @Entry var articleSelection: ArticleSelection?
+}
+
+/// The Article menu: the actions of the selected or displayed articles, greyed out without an article list.
+struct ArticleCommands: View {
+    let context: ModelContext
+    @FocusedValue(\.articleSelection) private var selection
+
+    var body: some View {
+        if let selection {
+            ArticleMenuItems(articles: selection.articles, articlesToUnkeep: selection.articlesToUnkeep,
+                             articlesToOpen: selection.articlesToOpen, articlesToDelete: selection.articlesToDelete)
+                .modelContext(context) // for KeepButton's cairns: menus are outside the window's container
+        } else {
+            ArticleMenuItems(articles: [], articlesToUnkeep: .constant([]), articlesToOpen: .constant([]),
+                             articlesToDelete: .constant([]))
+                .modelContext(context)
         }
     }
 }

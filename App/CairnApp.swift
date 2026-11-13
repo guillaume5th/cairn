@@ -76,6 +76,7 @@ struct CairnCommands: Commands {
             Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
             Divider()
         }
+        CommandMenu("Article") { ArticleCommands(context: state.context) }
         CommandGroup(after: .textEditing) {
             Button("Rechercher") { state.isSearchRequested = true }
                 .keyboardShortcut("f")
