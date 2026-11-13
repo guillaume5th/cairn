@@ -107,7 +107,7 @@ struct SidebarView: View {
 
     /// What can be created, in one "+".
     @ToolbarContentBuilder private var sidebarCommands: some ToolbarContent {
-        ToolbarItemGroup {
+        ToolbarItemGroup(placement: .navigation) {
             Menu("Ajouter", systemImage: "plus") {
                 Button("Ajouter un abonnement…", systemImage: "dot.radiowaves.up.forward") { state.isAddingFeed = true }
                 Button("Nouveau dossier…", systemImage: "folder.badge.plus") { startNaming(.newFolder) }
