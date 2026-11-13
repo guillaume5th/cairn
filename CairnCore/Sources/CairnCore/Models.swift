@@ -144,12 +144,6 @@ public final class Digest {
         (try? JSONDecoder().decode([DigestItem].self, from: itemsData)) ?? []
     }
 
-    /// Whether a run counts as the day's attempt. A run in the background that did not produce a digest does not:
-    /// the engine may not work there (or the system cut the time short), so the foreground catch-up runs it again.
-    public static func countsAsAttempt(succeeded: Bool, inBackground: Bool) -> Bool {
-        succeeded || !inBackground
-    }
-
     /// True when today's run time (`minutes` after midnight) has passed and no run was attempted since.
     /// Covers catch-up at launch, missed days (one run) and a run time moved earlier.
     public static func isDue(now: Date, minutes: Int, lastAttempt: Date?, calendar: Calendar = .current) -> Bool {
