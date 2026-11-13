@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/guillaume5th/cairn/compare/v1.4.0...v2.0.0) (2026-11-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* Cairn no longer builds for iPhone and iPad.
+
+### Features
+
+* focus on the Mac app, drop the iPhone and iPad app ([#13](https://github.com/guillaume5th/cairn/issues/13)) ([a987a3d](https://github.com/guillaume5th/cairn/commit/a987a3d25a93706410a765305ee810b848eb3d07))
+
 ## [1.4.0](https://github.com/guillaume5th/cairn/compare/v1.3.0...v1.4.0) (2026-11-12)
 
 
