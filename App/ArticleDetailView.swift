@@ -18,6 +18,7 @@ struct ArticleDetailView: View {
     /// True while part of the summary is below its scroll view: macOS hides scroll bars until one scrolls.
     @State private var summaryHasMore = false
     @State private var summaryScroll = ScrollPosition()
+    @AppStorage(KeptEditor.shownKey) private var inspectorShown = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -50,11 +51,10 @@ struct ArticleDetailView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-
-            if article.isKept {
-                Divider()
-                KeptEditor(article: article).padding()
-            }
+        }
+        .inspector(isPresented: $inspectorShown) {
+            KeptEditor(article: article, articlesToUnkeep: $articlesToUnkeep)
+                .inspectorColumnWidth(min: 220, ideal: 260, max: 360)
         }
         .toolbar {
             ReaderToolbar(articles: [article], articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen) {
@@ -449,6 +449,8 @@ struct ReaderToolbar<Reading: View>: ToolbarContent {
     let articles: [Article]
     @Binding var articlesToUnkeep: [Article]
     @Binding var articlesToOpen: [Article]
+    /// False for a selection or an empty pane: there is no inspector then.
+    var isInspectable = true
     /// Full article and summary, which only make sense for one article.
     @ViewBuilder let reading: Reading
     @Environment(\.openURL) private var openURL
@@ -479,13 +481,27 @@ struct ReaderToolbar<Reading: View>: ToolbarContent {
             .disabled(!articles.contains { OpenInBrowser.url(of: $0) != nil })
             .help("Ouvrir dans le navigateur")
         }
+        ToolbarSpacer(.fixed)
+        ToolbarItem {
+            InspectorButton().disabled(!isInspectable)
+        }
+    }
+}
+
+/// Shows or hides the inspector of the article being read.
+struct InspectorButton: View {
+    @AppStorage(KeptEditor.shownKey) private var isShown = true
+
+    var body: some View {
+        Toggle("Inspecteur", systemImage: "sidebar.trailing", isOn: $isShown)
+            .help(isShown ? "Masquer l'inspecteur" : "Afficher l'inspecteur")
     }
 }
 
 extension ReaderToolbar where Reading == DisabledReadingButtons {
     /// For several articles or none: the reading buttons greyed out.
     init(articles: [Article], articlesToUnkeep: Binding<[Article]>, articlesToOpen: Binding<[Article]>) {
-        self.init(articles: articles, articlesToUnkeep: articlesToUnkeep, articlesToOpen: articlesToOpen) {
+        self.init(articles: articles, articlesToUnkeep: articlesToUnkeep, articlesToOpen: articlesToOpen, isInspectable: false) {
             DisabledReadingButtons()
         }
     }
@@ -504,56 +520,85 @@ struct DisabledReadingButtons: View {
     }
 }
 
+/// The inspector of the article being read: its cairn, notes and tags once kept, an invitation to keep it otherwise.
 struct KeptEditor: View {
+    static let shownKey = "inspectorShown"
     @Bindable var article: Article
+    @Binding var articlesToUnkeep: [Article]
     @Environment(\.modelContext) private var context
     @Query(sort: \CairnCore.Tag.name) private var allTags: [CairnCore.Tag]
+    @Query(sort: \Cairn.name) private var cairns: [Cairn]
     @State private var newTag = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Note").font(.headline)
-            TextEditor(text: $article.note)
-                .font(.body)
-                .frame(minHeight: 60, maxHeight: 120)
-                .scrollContentBackground(.hidden)
-                .padding(4)
-                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
-                .accessibilityLabel("Note personnelle")
-
-            Text("Tags").font(.headline)
-            TagFlowLayout {
-                // The relationship is unordered: sort so tags keep their place between redraws.
-                ForEach((article.tags ?? []).sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { tag in
-                    HStack(spacing: 4) {
-                        Text(tag.name)
-                        Button { Library.removeTag(tag, from: article) } label: {
-                            Image(systemName: "xmark").font(.caption2.weight(.semibold))
+        if article.isKept {
+            Form {
+                Section("Informations") {
+                    if cairns.count > 1 {
+                        // Moving keeps the notes and tags (Library.keep).
+                        Picker("Cairn", selection: Binding { article.cairn?.persistentModelID } set: { id in
+                            if let cairn = cairns.first(where: { $0.persistentModelID == id }) { Library.keep(article, in: cairn) }
+                        }) {
+                            ForEach(cairns) { Text($0.name).tag(Optional($0.persistentModelID)) }
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.secondary)
-                        .help("Retirer le tag « \(tag.name) »")
-                        .accessibilityLabel("Retirer le tag « \(tag.name) »")
+                    } else {
+                        LabeledContent("Cairn", value: article.cairn?.name ?? "")
                     }
-                    .tagCapsule()
+                    if let keptAt = article.keptAt {
+                        LabeledContent("Gardé le", value: keptAt.formatted(date: .abbreviated, time: .shortened))
+                    }
                 }
-                TextField("Ajouter un tag", text: $newTag)
-                    .textFieldStyle(.plain)
-                    .frame(minWidth: 120)
-                    .onSubmit { add(newTag) }
-            }
-            .padding(6)
-            .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 6))
-            if !suggestions.isEmpty {
-                HStack {
-                    Text("Suggestions :").foregroundStyle(.secondary)
-                    ForEach(suggestions) { tag in
-                        Button(tag.name) { add(tag.name) }
-                            .buttonStyle(.plain)
+                Section("Notes") {
+                    TextEditor(text: $article.note)
+                        .font(.body)
+                        .frame(minHeight: 80)
+                        .scrollContentBackground(.hidden)
+                        .accessibilityLabel("Notes personnelles")
+                }
+                Section("Tags") {
+                    TagFlowLayout {
+                        // The relationship is unordered: sort so tags keep their place between redraws.
+                        ForEach((article.tags ?? []).sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }) { tag in
+                            HStack(spacing: 4) {
+                                Text(tag.name)
+                                Button { Library.removeTag(tag, from: article) } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(.secondary)
+                                .help("Retirer le tag « \(tag.name) »")
+                                .accessibilityLabel("Retirer le tag « \(tag.name) »")
+                            }
                             .tagCapsule()
+                        }
+                        TextField("Ajouter un tag", text: $newTag, prompt: Text("Ajouter un tag"))
+                            .labelsHidden() // a Form would put the title beside a narrow field
+                            .textFieldStyle(.roundedBorder)
+                            .frame(minWidth: 100)
+                            .onSubmit { add(newTag) }
+                    }
+                    if !suggestions.isEmpty {
+                        TagFlowLayout {
+                            ForEach(suggestions) { tag in
+                                Button(tag.name) { add(tag.name) }
+                                    .buttonStyle(.plain)
+                                    .tagCapsule()
+                            }
+                            Color.clear.frame(width: 0, height: 0) // the layout stretches its last subview
+                        }
+                        .font(.caption)
                     }
                 }
-                .font(.caption)
+            }
+            .formStyle(.grouped)
+        } else {
+            ContentUnavailableView {
+                Label("Article non gardé", image: "cairn")
+            } description: {
+                Text("Garde-le pour lui ajouter des notes et des tags.")
+            } actions: {
+                KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
+                    .labelStyle(.titleOnly)
             }
         }
     }
@@ -574,7 +619,7 @@ struct KeptEditor: View {
 
 private extension View {
     func tagCapsule() -> some View {
-        padding(.horizontal, 8).padding(.vertical, 3).background(.tint.opacity(0.2), in: Capsule())
+        padding(.horizontal, 8).padding(.vertical, 3).background(.fill.tertiary, in: Capsule())
     }
 }
 

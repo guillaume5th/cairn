@@ -50,6 +50,7 @@ struct CairnCommands: Commands {
     let state: AppState
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
+    @AppStorage(KeptEditor.shownKey) private var inspectorShown = true
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -77,6 +78,9 @@ struct CairnCommands: Commands {
                 .disabled(textScale == 1)
             Divider()
             Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
+            // Not InspectorCommands: its title is only half translated ("Inspecteur Show"). Same shortcut.
+            Button(inspectorShown ? "Masquer l'inspecteur" : "Afficher l'inspecteur") { inspectorShown.toggle() }
+                .keyboardShortcut("i", modifiers: [.control, .command])
             Divider()
         }
         CommandMenu("Article") { ArticleCommands(context: state.context) }
