@@ -30,13 +30,18 @@ xcodegen
 xcodebuild -scheme Cairn -destination 'platform=macOS' -derivedDataPath build build
 
 # Lancer l'app
-open build/Build/Products/Debug/Cairn.app
+open "build/Build/Products/Debug/Cairn Dev.app"
 ```
 
 Pour développer dans Xcode : `xcodegen && open Cairn.xcodeproj`.
 
+La version Debug s'appelle « Cairn Dev » (icône orange) : c'est une app distincte de la version installée, avec sa
+propre bibliothèque et ses propres réglages, et les deux peuvent tourner en même temps. Pour y retrouver tes abonnements,
+exporte-les en OPML depuis Cairn et importe-les dans Cairn Dev.
+
 Les données sont stockées localement dans
-`~/Library/Containers/dev.cairn.Cairn/Data/Library/Application Support/default.store`.
+`~/Library/Containers/dev.cairn.Cairn/Data/Library/Application Support/default.store`
+(`dev.cairn.Cairn.debug` pour Cairn Dev).
 
 ## Installation
 
