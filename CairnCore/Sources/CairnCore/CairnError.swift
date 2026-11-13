@@ -16,6 +16,8 @@ public enum CairnError: LocalizedError, Equatable {
     case ollamaUnreachable
     case ollamaModelNotFound(String)
     case summarizerUnavailable(String)
+    case invalidBackup
+    case unsupportedBackup
 
     public var errorDescription: String? {
         switch self {
@@ -34,6 +36,8 @@ public enum CairnError: LocalizedError, Equatable {
         case .ollamaUnreachable: "Le serveur Ollama est injoignable. Vérifie qu'il tourne et son adresse dans les Réglages."
         case let .ollamaModelNotFound(model): "Le modèle Ollama « \(model) » est introuvable. Installe-le avec « ollama pull \(model) »."
         case let .summarizerUnavailable(reason): reason
+        case .invalidBackup: "Ce fichier n'est pas une sauvegarde de Cairn lisible."
+        case .unsupportedBackup: "Cette sauvegarde vient d'une version plus récente de Cairn. Mets Cairn à jour pour la restaurer."
         }
     }
 }

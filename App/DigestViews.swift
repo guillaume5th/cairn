@@ -195,6 +195,8 @@ struct SettingsView: View {
                 }
                 .foregroundStyle(.secondary)
             }
+
+            BackupSection()
         }
         .formStyle(.grouped)
         .scrollIndicators(.never) // the window fits its content; no scroller

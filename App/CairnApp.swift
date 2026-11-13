@@ -26,7 +26,10 @@ struct CairnApp: App {
     }
 
     private var content: some View {
-        ContentView()
+        Group {
+            // Torn down during a restore: its views would read models the restore deletes. Rebuilt fresh after.
+            if state.isRestoring { ProgressView() } else { ContentView() }
+        }
             .environment(state)
             .modelContainer(state.container)
             .task { await state.launch() }

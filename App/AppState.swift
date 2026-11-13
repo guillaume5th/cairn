@@ -11,6 +11,7 @@ final class AppState {
     let container: ModelContainer
     let fetcher = FeedFetcher()
     var isRefreshing = false
+    var isRestoring = false
     var isDigesting = false
     var isAddingFeed = false
     /// Feeds offered when the address given declares several; empty otherwise.
@@ -70,10 +71,11 @@ final class AppState {
             Task { _ = await DigestNotifications.requestAuthorization(); updateBadge() }
         }
         await refresh()
-        // Catch-up at launch, then a check every minute while the app is open (survives sleep and setting changes).
+        // Catch-up at launch (digest and backup), then a check every minute while the app is open (survives sleep and setting changes).
         Task {
             while !Task.isCancelled {
                 if DigestSettings.isDue { await makeDigest() }
+                if BackupSettings.isDue { backUp() }
                 try? await Task.sleep(for: .seconds(60))
             }
         }
