@@ -15,7 +15,7 @@ Le système SHALL, quand plusieurs articles sont sélectionnés ou en mode séle
 - **THEN** cet article est affiché comme d'habitude
 
 ### Requirement: Barre d'outils du volet sans article
-Le système SHALL, quand le volet de lecture n'affiche pas un article (aucun article sélectionné, sélection multiple ou mode sélection), y garder les boutons de lecture à leur place, comme Mail, pour que la barre d'outils ne change pas de disposition : Article complet, Résumer, Garder, Marquer comme lu ou non lu, Partager et Ouvrir dans le navigateur. Avec au moins un article sélectionné, Garder, Marquer et Ouvrir dans le navigateur MUST être actifs et porter sur la sélection ; les autres boutons sont grisés.
+Le système SHALL, quand le volet de lecture n'affiche pas un article (aucun article sélectionné, sélection multiple ou mode sélection), y garder les boutons de lecture à leur place, comme Mail, pour que la barre d'outils ne change pas de disposition. Avec au moins un article sélectionné, Garder, Marquer et Ouvrir dans le navigateur MUST être actifs et porter sur la sélection ; les autres boutons sont grisés.
 
 #### Scenario: Entrer en mode sélection
 - **GIVEN** un article est affiché dans le volet de lecture
@@ -24,7 +24,7 @@ Le système SHALL, quand le volet de lecture n'affiche pas un article (aucun art
 
 #### Scenario: Aucun article sélectionné
 - **WHEN** le volet de lecture indique « Aucun article sélectionné »
-- **THEN** tous les boutons de lecture sont grisés
+- **THEN** les boutons Article complet, Résumer, Garder, Marquer, Partager et Ouvrir dans le navigateur sont à leur place, tous grisés
 
 #### Scenario: Actions d'une sélection
 - **GIVEN** trois articles sont sélectionnés
@@ -32,7 +32,7 @@ Le système SHALL, quand le volet de lecture n'affiche pas un article (aucun art
 - **THEN** Garder, Marquer comme lu et Ouvrir dans le navigateur sont actifs, et Article complet, Résumer et Partager sont grisés
 
 ### Requirement: Titre et actions d'une sélection
-Le système SHALL, en mode sélection, remplacer le titre de la liste par le nombre d'articles sélectionnés (« Aucune sélection », « 1 sélectionné », « N sélectionnés ») et proposer dans la barre d'outils du volet de lecture les actions qui s'appliquent à la sélection : garder dans un cairn, marquer comme lu ou non lu, ouvrir dans le navigateur. La suppression, quand tous les articles sélectionnés n'ont plus d'abonnement, MUST rester disponible par le menu contextuel et la touche Supprimer. Sans article sélectionné, ces actions MUST être inactives.
+Le système SHALL, en mode sélection, remplacer le titre de la liste par le nombre d'articles sélectionnés (« Aucune sélection », « 1 sélectionné », « N sélectionnés ») et proposer les actions sur la sélection dans la barre d'outils du volet de lecture. La suppression d'articles qui n'ont plus d'abonnement MUST rester disponible par le menu contextuel et la touche Supprimer. Sans article sélectionné, ces actions MUST être inactives.
 
 #### Scenario: Trois articles cochés
 - **WHEN** l'utilisateur coche trois articles en mode sélection
