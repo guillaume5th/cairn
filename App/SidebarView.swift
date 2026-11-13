@@ -161,19 +161,24 @@ struct SidebarView: View {
     private var selectedFeeds: [Feed] { feeds.filter { selection.contains(.feed($0.persistentModelID)) } }
 
     /// Menu of the clicked entry or of the selection holding it: a cairn or a folder alone, or one or more feeds.
-    @ViewBuilder
     private func menu(for items: Set<SidebarItem>) -> some View {
+        // Menus show only titles by default on macOS; icons as in Apple's apps since macOS 26.
+        menuItems(for: items).labelStyle(.titleAndIcon)
+    }
+
+    @ViewBuilder
+    private func menuItems(for items: Set<SidebarItem>) -> some View {
         let lot = feeds.filter { items.contains(.feed($0.persistentModelID)) }
         if let cairn = single(items, cairns, as: SidebarItem.cairn) {
-            Button("Renommer…") { startNaming(.cairn(cairn)) }
-            Button("Supprimer le cairn…", role: .destructive) { cairnToDelete = cairn }
+            Button("Renommer…", systemImage: "pencil") { startNaming(.cairn(cairn)) }
+            Button("Supprimer le cairn…", systemImage: "trash", role: .destructive) { cairnToDelete = cairn }
                 .disabled(cairns.count == 1)
         } else if let folder = single(items, folders, as: SidebarItem.folder) {
-            Button("Marquer tout comme lu") { markRead(folder.feeds ?? []) }
+            Button("Marquer tout comme lu", systemImage: "checkmark.circle") { markRead(folder.feeds ?? []) }
                 .disabled(folder.unreadCount == 0)
             Divider()
-            Button("Renommer…") { startNaming(.folder(folder)) }
-            Button("Supprimer le dossier", role: .destructive) {
+            Button("Renommer…", systemImage: "pencil") { startNaming(.folder(folder)) }
+            Button("Supprimer le dossier", systemImage: "trash", role: .destructive) {
                 let wasSelected = selection.contains(.folder(folder.persistentModelID))
                 Library.delete(folder, context: context)
                 // After the List has moved its selection to a neighbouring row, which it does
@@ -181,10 +186,10 @@ struct SidebarView: View {
                 if wasSelected { Task { selection = [.all] } }
             }
         } else if !lot.isEmpty, lot.count == items.count {
-            Button("Marquer tout comme lu") { markRead(lot) }
+            Button("Marquer tout comme lu", systemImage: "checkmark.circle") { markRead(lot) }
                 .disabled(lot.allSatisfy { $0.unreadCount == 0 })
             Divider()
-            Menu("Déplacer vers") {
+            Menu("Déplacer vers", systemImage: "folder") {
                 ForEach(folders) { folder in
                     Button(folder.name) { for feed in lot { Library.move(feed, to: folder) } }
                         .disabled(lot.allSatisfy { $0.folder?.persistentModelID == folder.persistentModelID })
@@ -194,13 +199,13 @@ struct SidebarView: View {
                     .disabled(lot.allSatisfy { $0.folder == nil })
             }
             // Articles published from now on get their full text after each refresh; those already listed do not.
-            Toggle("Toujours charger les articles complets", isOn: Binding {
+            Toggle("Toujours charger les articles complets", systemImage: "doc.text.magnifyingglass", isOn: Binding {
                 lot.allSatisfy { $0.loadsFullContentSince != nil }
             } set: { isOn in
                 for feed in lot { feed.loadsFullContentSince = isOn ? (feed.loadsFullContentSince ?? .now) : nil }
             })
             Divider()
-            Button(lot.count == 1 ? "Supprimer l'abonnement…" : "Supprimer \(lot.count) abonnements…", role: .destructive) {
+            Button(lot.count == 1 ? "Supprimer l'abonnement…" : "Supprimer \(lot.count) abonnements…", systemImage: "trash", role: .destructive) {
                 feedsToDelete = lot
             }
         }

@@ -345,16 +345,17 @@ struct ArticleMenuItems: View {
             // ⇧⌘L and ⇧⌘U as Mail's Flag and Mark as Unread.
             KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
                 .keyboardShortcut("l", modifiers: [.command, .shift])
-            Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu") { for article in articles { article.isRead = anyUnread } }
+            // Same symbols as the reader toolbar.
+            Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                   systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") { for article in articles { article.isRead = anyUnread } }
                 .keyboardShortcut("u", modifiers: [.command, .shift])
             if articles.count == 1 {
-                // Text only, like the other items: the menu bar would otherwise show its icon alone.
-                ShareButton(article: articles[0]).labelStyle(.titleOnly)
+                ShareButton(article: articles[0])
             }
-            Button("Ouvrir dans le navigateur") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
+            Button("Ouvrir dans le navigateur", systemImage: "safari") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(links.isEmpty)
-            Button(links.count > 1 ? "Copier les liens" : "Copier le lien") {
+            Button(links.count > 1 ? "Copier les liens" : "Copier le lien", systemImage: "link") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(links.map(\.absoluteString).joined(separator: "\n"), forType: .string)
             }
@@ -362,11 +363,13 @@ struct ArticleMenuItems: View {
             // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
             if !articles.isEmpty, articles.allSatisfy({ $0.feed == nil }) {
                 Divider()
-                Button(articles.count == 1 ? "Supprimer l'article…" : "Supprimer \(articles.count) articles…", role: .destructive) {
+                Button(articles.count == 1 ? "Supprimer l'article…" : "Supprimer \(articles.count) articles…", systemImage: "trash", role: .destructive) {
                     articlesToDelete = articles
                 }
             }
         }
+        // Menus show only titles by default on macOS; icons as in Apple's apps since macOS 26.
+        .labelStyle(.titleAndIcon)
         .disabled(articles.isEmpty)
     }
 }
