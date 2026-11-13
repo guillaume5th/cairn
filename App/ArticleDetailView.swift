@@ -11,6 +11,7 @@ struct ArticleDetailView: View {
     @Environment(\.openURL) private var openURL
     @Environment(AppState.self) private var state
     @State private var articlesToUnkeep: [Article] = []
+    @State private var articlesToOpen: [Article] = []
     @AppStorage(TextScale.key) private var textScale = 1.0
     /// Hidden summaries stay hidden from one article to the next, like a collapsed section.
     @AppStorage("articleSummaryHidden") private var summaryHidden = false
@@ -56,8 +57,7 @@ struct ArticleDetailView: View {
             }
         }
         .toolbar {
-            ToolbarItemGroup {
-                // Reading first, then filing, then leaving the app last.
+            ReaderToolbar(articles: [article], articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen) {
                 // A toggle, like the list's filter: on while the full text is shown; turning it on loads it if needed.
                 Toggle(isOn: Binding { article.fullContent != nil && !article.showsFeedContent } set: { showFullContent($0) }) {
                     Label("Article complet", systemImage: "doc.text.magnifyingglass")
@@ -70,17 +70,10 @@ struct ArticleDetailView: View {
                     .disabled((Library.readableContent(article) ?? "").isEmpty || isSummarizing)
                     .help((Library.readableContent(article) ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
                           : article.summary == nil ? "Résumer cet article avec l'IA" : "Refaire le résumé de cet article")
-                KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
-                // The filled dot the list shows on unread rows.
-                Button("Marquer comme non lu", systemImage: "circle.inset.filled") { article.isRead = false }
-                    .help("Marquer comme non lu")
-                ShareButton(article: article)
-                Button("Ouvrir dans le navigateur", systemImage: "safari") { if let url { openURL(url) } }
-                    .disabled(url == nil)
-                    .help("Ouvrir dans le navigateur")
             }
         }
         .unkeepConfirmation($articlesToUnkeep)
+        .openConfirmation($articlesToOpen)
         .task(id: article.persistentModelID) {
             if marksRead { article.isRead = true }
             // The view is reused across articles: start each summary at its top.
@@ -384,64 +377,81 @@ struct ShareButton: View {
     }
 }
 
-/// Reading pane for several selected articles: their count, and the reader's toolbar with the buttons that act on a
-/// batch enabled, in the same places (as Mail does).
+/// Reading pane for several selected articles: their count, and the reader's toolbar acting on them.
 struct ArticleSelectionView: View {
     let articles: [Article]
     @State private var articlesToUnkeep: [Article] = []
     @State private var articlesToOpen: [Article] = []
-    @Environment(\.openURL) private var openURL
 
     var body: some View {
-        let anyUnread = articles.contains { !$0.isRead }
         ContentUnavailableView(articles.isEmpty ? "Aucun article sélectionné"
                                    : articles.count == 1 ? "1 article sélectionné" : "\(articles.count) articles sélectionnés",
                                systemImage: "doc.on.doc")
-            .toolbar {
-                ToolbarItemGroup {
-                    Group {
-                        Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
-                        Button("Résumer", systemImage: "text.append") {}
-                    }
-                    .disabled(true)
-                    Group {
-                        KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
-                        Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
-                               systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
-                            for article in articles { article.isRead = anyUnread }
-                        }
-                        .help(anyUnread ? "Marquer ces articles comme lus" : "Marquer ces articles comme non lus")
-                    }
-                    .disabled(articles.isEmpty)
-                    Button("Partager", systemImage: "square.and.arrow.up") {}
-                        .disabled(true)
-                    Button("Ouvrir dans le navigateur", systemImage: "safari") {
-                        OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
-                    }
-                    .disabled(articles.isEmpty)
-                    .help("Ouvrir ces articles dans le navigateur")
-                }
-            }
+            .toolbar { ReaderToolbar(articles: articles, articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen) }
             .unkeepConfirmation($articlesToUnkeep)
             .openConfirmation($articlesToOpen)
     }
 }
 
-/// The reader's buttons, greyed out, for a pane without a single article (as Mail does): the toolbar keeps its
-/// layout instead of the list's buttons sliding to the window's trailing edge.
-struct DisabledReaderToolbar: ToolbarContent {
+/// The reader's toolbar, the same in every state of the pane so that it never changes layout (as Mail does): one
+/// article, several (filing and leaving act on all of them, reading and sharing are greyed out) or none (all greyed
+/// out). Without it, an empty pane would let the list's buttons slide to the window's trailing edge.
+struct ReaderToolbar<Reading: View>: ToolbarContent {
+    let articles: [Article]
+    @Binding var articlesToUnkeep: [Article]
+    @Binding var articlesToOpen: [Article]
+    /// Full article and summary, which only make sense for one article.
+    @ViewBuilder let reading: Reading
+    @Environment(\.openURL) private var openURL
+
     var body: some ToolbarContent {
+        let anyUnread = articles.contains { !$0.isRead }
         ToolbarItemGroup {
+            // Reading first, then filing, then leaving the app last.
+            reading
             Group {
-                Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
-                Button("Résumer", systemImage: "text.append") {}
-                Button("Conserver", image: ImageResource(name: "cairn", bundle: .main)) {}
-                Button("Marquer comme non lu", systemImage: "circle.inset.filled") {}
-                Button("Partager", systemImage: "square.and.arrow.up") {}
-                Button("Ouvrir dans le navigateur", systemImage: "safari") {}
+                KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
+                // The filled dot the list shows on unread rows.
+                Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                       systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
+                    for article in articles { article.isRead = anyUnread }
+                }
+                .help(anyUnread ? "Marquer comme lu" : "Marquer comme non lu")
             }
-            .disabled(true)
+            .disabled(articles.isEmpty)
+            if articles.count == 1 {
+                ShareButton(article: articles[0])
+            } else {
+                Button("Partager", systemImage: "square.and.arrow.up") {}.disabled(true)
+            }
+            Button("Ouvrir dans le navigateur", systemImage: "safari") {
+                OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
+            }
+            .disabled(!articles.contains { OpenInBrowser.url(of: $0) != nil })
+            .help("Ouvrir dans le navigateur")
         }
+    }
+}
+
+extension ReaderToolbar where Reading == DisabledReadingButtons {
+    /// For several articles or none: the reading buttons greyed out.
+    init(articles: [Article], articlesToUnkeep: Binding<[Article]>, articlesToOpen: Binding<[Article]>) {
+        self.init(articles: articles, articlesToUnkeep: articlesToUnkeep, articlesToOpen: articlesToOpen) {
+            DisabledReadingButtons()
+        }
+    }
+
+    /// For a pane without an article.
+    static var empty: Self { Self(articles: [], articlesToUnkeep: .constant([]), articlesToOpen: .constant([])) }
+}
+
+struct DisabledReadingButtons: View {
+    var body: some View {
+        Group {
+            Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
+            Button("Résumer", systemImage: "text.append") {}
+        }
+        .disabled(true)
     }
 }
 

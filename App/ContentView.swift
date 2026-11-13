@@ -79,7 +79,7 @@ struct ContentView: View {
                 ArticleDetailView(article: article, marksRead: article.persistentModelID == pickedID, query: searchText)
             } else {
                 ContentUnavailableView("Aucun article sélectionné", systemImage: "doc.text")
-                    .toolbar { DisabledReaderToolbar() }
+                    .toolbar { ReaderToolbar.empty }
             }
         }
         .onAppear {
@@ -369,9 +369,6 @@ struct ArticleListView: View {
             }
             .padding(.vertical, 2)
             .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([article.persistentModelID]) })
-            .modifier(TickedRow(isTicked: isSelectionModeOn && selection.contains(article.persistentModelID),
-                                joinsAbove: isSelectionModeOn && isTicked(article, offset: -1),
-                                joinsBelow: isSelectionModeOn && isTicked(article, offset: 1)))
         }
         // It gets the selection when the clicked row is part of it, else that row alone.
         .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
@@ -401,9 +398,6 @@ struct ArticleListView: View {
         }
         .unkeepConfirmation($articlesToUnkeep)
         .openConfirmation($articlesToOpen)
-        // shortcut: macOS List keeps a stale (clipped) height for rows inserted while it is on screen,
-        // so it is rebuilt when articles arrive. Costs a scroll reset on refresh; drop once SwiftUI fixes it.
-        .id(articles.count)
         .overlay {
             if articles.isEmpty { ContentUnavailableView("Aucun article", systemImage: "tray") }
         }
@@ -433,16 +427,14 @@ struct ArticleListView: View {
         isSelectionModeOn || selection.count > 1
     }
 
-        /// Whether the row `offset` rows away from `article` is ticked.
-    private func isTicked(_ article: Article, offset: Int) -> Bool {
-        guard selection.contains(article.persistentModelID),
-              let index = articles.firstIndex(where: { $0.persistentModelID == article.persistentModelID }),
-              articles.indices.contains(index + offset) else { return false }
-        return selection.contains(articles[index + offset].persistentModelID)
-    }
-
     /// Only what is still listed.
     private var selectedArticles: [Article] { articles.filter { selection.contains($0.persistentModelID) } }
+
+    /// In the Mac's selection mode the rows' own click ticks them (see `TickOnClick`): the table shows the ticked
+    /// rows as its selection but its own changes are ignored, a plain click replacing the whole selection there.
+    private var listSelection: Binding<Set<PersistentIdentifier>> {
+        isSelectionModeOn ? Binding { selection } set: { _ in } : $selection
+    }
 
     private func enterSelection() {
         isSelectionModeOn = true
@@ -452,12 +444,6 @@ struct ArticleListView: View {
     private func leaveSelection() {
         isSelectionModeOn = false
         selection = []
-    }
-
-    /// In the Mac's selection mode the rows' own click ticks them (see `TickOnClick`), so the table selects
-    /// nothing: its native selection waits before dropping a row of a multiple selection, in case of a drag.
-    private var listSelection: Binding<Set<PersistentIdentifier>> {
-        isSelectionModeOn ? .constant([]) : $selection
     }
 
     /// In selection mode, the count replaces the list's name, as in Mail.
@@ -498,30 +484,6 @@ private struct TickOnClick: ViewModifier {
     }
 }
 
-/// A ticked row in the Mac's selection mode, drawn like the table's own selection (as after a ⌘-click): the table
-/// selects nothing in that mode, its native selection being slow to drop a row. Ticked neighbours make one block,
-/// rounded only at its ends.
-private struct TickedRow: ViewModifier {
-    let isTicked: Bool
-    let joinsAbove: Bool
-    let joinsBelow: Bool
-
-    func body(content: Content) -> some View {
-        if isTicked {
-            let top: CGFloat = joinsAbove ? 0 : 8, bottom: CGFloat = joinsBelow ? 0 : 8
-            content
-                .foregroundStyle(.white)
-                .environment(\.backgroundProminence, .increased) // white checkbox and unread dot, as on a selected row
-                .listRowSeparator(.hidden)
-                .listRowBackground(UnevenRoundedRectangle(topLeadingRadius: top, bottomLeadingRadius: bottom,
-                                                          bottomTrailingRadius: bottom, topTrailingRadius: top)
-                    .fill(Color(nsColor: .selectedContentBackgroundColor)).padding(.horizontal, 10))
-        } else {
-            content
-        }
-    }
-}
-
 /// The Mac's selection-mode checkbox: white on a highlighted (selected) row, where the tint would vanish.
 private struct SelectionMark: View {
     let isTicked: Bool
@@ -545,11 +507,11 @@ private struct KeptMark: View {
     }
 }
 
-/// Blue like Mail, white on a selected row where blue would vanish into the accent-colored highlight.
+/// The accent color, like Mail, white on a selected row where it would vanish into the highlight.
 private struct UnreadDot: View {
     @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
-        Circle().fill(prominence == .increased ? Color.white : Color.blue).frame(width: 8, height: 8)
+        Circle().fill(prominence == .increased ? Color.white : Color.accentColor).frame(width: 8, height: 8)
     }
 }

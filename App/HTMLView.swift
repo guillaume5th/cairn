@@ -96,6 +96,9 @@ struct HTMLView: View {
         body { font: -apple-system-body; font-size: \(15 * scale)px; line-height: 1.55; max-width: 42em; margin: 16px auto; padding: 0 20px; }
         img, video { max-width: 100%; height: auto; }
         pre { overflow-x: auto; }
+        /* The system's monospaced font and accent color, instead of WebKit's Courier and fixed blue. */
+        pre, code, kbd, samp { font-family: ui-monospace; }
+        a { color: AccentColor; }
         mark { background: rgba(255, 204, 0, 0.45); color: inherit; border-radius: 2px; }
         </style></head><body>\(body)</body></html>
         """
