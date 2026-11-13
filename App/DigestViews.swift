@@ -82,10 +82,13 @@ struct SettingsView: View {
                                 onIncrement: textScale < TextScale.range.upperBound ? { textScale = TextScale.stepped(textScale, by: 0.1) } : nil,
                                 onDecrement: textScale > TextScale.range.lowerBound ? { textScale = TextScale.stepped(textScale, by: -0.1) } : nil)
                             .labelsHidden()
+                        Button("Taille normale", systemImage: "arrow.counterclockwise") { textScale = 1 }
+                            .labelStyle(.iconOnly)
+                            .buttonStyle(.borderless)
+                            .help("Taille normale")
+                            .disabled(textScale == 1)
                     }
                 }
-                Button("Taille normale") { textScale = 1 }
-                    .disabled(textScale == 1)
                 Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
             }
             Section {
