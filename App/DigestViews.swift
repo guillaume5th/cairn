@@ -11,6 +11,7 @@ enum DigestSettings {
     static let retentionKey = "digestRetentionDays"
     static let lastAttemptKey = "digestLastAttempt"
     static let notifyKey = "digestNotify"
+    static let enabledKey = "digestEnabled"
 
     /// Minutes after midnight.
     static let defaultTime = 8 * 60
@@ -24,8 +25,11 @@ enum DigestSettings {
     static var retention: Int { defaults.object(forKey: retentionKey) as? Int ?? defaultRetention }
     static var lastAttempt: Date? { defaults.object(forKey: lastAttemptKey) as? Date }
     static var notifies: Bool { defaults.bool(forKey: notifyKey) }
+    /// The automatic digest; on until turned off. The digest made on demand does not depend on it.
+    static var isEnabled: Bool { defaults.object(forKey: enabledKey) as? Bool ?? true }
 
-    static var isDue: Bool { Digest.isDue(now: .now, minutes: time, lastAttempt: lastAttempt) }
+    /// The only gate of the automatic digest: the scheduled one and the launch catch-up both go through it.
+    static var isDue: Bool { isEnabled && Digest.isDue(now: .now, minutes: time, lastAttempt: lastAttempt) }
 
     /// The chosen engine and its display name.
     static func summarizer() throws -> (any Summarizer, String) {
@@ -56,9 +60,11 @@ struct SettingsView: View {
     @State private var modelsError: String?
     @State private var reloadCount = 0
     @AppStorage(DigestSettings.notifyKey) private var notifies = false
+    @AppStorage(DigestSettings.enabledKey) private var isEnabled = true
     @State private var notificationsDenied = false
 
     private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
+    private static let disabledNote = "Aucun résumé n'est produit automatiquement. Tu peux en générer un depuis la liste des résumés."
     private static let ollamaPlace = "Ollama doit tourner sur ce Mac ou sur ton réseau."
     private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
     @AppStorage(TextScale.key) private var textScale = 1.0
@@ -83,7 +89,10 @@ struct SettingsView: View {
                 Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
             }
             Section {
+                Toggle("Résumé automatique", isOn: $isEnabled)
+                // Greyed out rather than hidden: the window fits its content and would change height.
                 DatePicker("Heure du résumé", selection: timeBinding, displayedComponents: .hourAndMinute)
+                    .disabled(!isEnabled)
                 LabeledContent("Conserver les résumés") {
                     // Field + stepper: the standard macOS pairing for a bounded number.
                     HStack(spacing: 4) {
@@ -110,11 +119,12 @@ struct SettingsView: View {
                         notificationsDenied = !granted
                     }
                 })
+                .disabled(!isEnabled)
             } header: {
                 Text("Résumé quotidien")
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(Self.scheduleNote)
+                    Text(isEnabled ? Self.scheduleNote : Self.disabledNote)
                     if notificationsDenied { Text(Self.notificationsDeniedNote) }
                 }
                 .foregroundStyle(.secondary)
@@ -287,6 +297,7 @@ struct DigestDetail: View {
     /// Whether any digest exists, searched or not.
     let hasDigests: Bool
     @AppStorage(DigestSettings.timeKey) private var digestTime = DigestSettings.defaultTime
+    @AppStorage(DigestSettings.enabledKey) private var isEnabled = true
     @State private var digestsToDelete: [Digest] = []
 
     var body: some View {
@@ -299,7 +310,8 @@ struct DigestDetail: View {
                 ContentUnavailableView.search(text: query)
             } else {
                 ContentUnavailableView("Aucun résumé", systemImage: "text.append",
-                                       description: Text("Prochain résumé à \(DigestSettings.timeText(digestTime))."))
+                                       description: Text(isEnabled ? "Prochain résumé à \(DigestSettings.timeText(digestTime))."
+                                                                   : "Résumé automatique désactivé."))
             }
         }
         .toolbar {
