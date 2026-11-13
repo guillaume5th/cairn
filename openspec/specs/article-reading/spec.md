@@ -18,7 +18,7 @@ Le système SHALL afficher les articles de l'abonnement sélectionné, ou de tou
 - **THEN** seuls les articles de cet abonnement sont listés
 
 ### Requirement: Vue d'un dossier
-Le système SHALL afficher, quand l'utilisateur sélectionne un dossier dans la barre latérale, les articles de tous les abonnements de ce dossier, du plus récent au plus ancien. Cette vue MUST offrir, comme celle d'un abonnement, la recherche, le filtre « Non lus », la sélection par défaut et sa propre sélection mémorisée.
+Le système SHALL afficher, quand l'utilisateur sélectionne un dossier dans la barre latérale, les articles de tous les abonnements de ce dossier, du plus récent au plus ancien. Cette vue MUST offrir, comme celle d'un abonnement, la recherche, le filtre « Non lus » et sa propre sélection mémorisée.
 
 #### Scenario: Sélection d'un dossier
 - **WHEN** l'utilisateur sélectionne un dossier contenant deux abonnements
@@ -161,15 +161,15 @@ Le système SHALL permettre d'agrandir, de réduire et de rétablir la taille du
 - **THEN** le nouvel article s'affiche avec la taille choisie
 
 ### Requirement: Sélection d'article par défaut
-Quand une entrée de la barre latérale (« Tous les articles », « Cairn », un tag ou un abonnement) est affichée sans article mémorisé visible dans sa liste, le système SHALL sélectionner et afficher le premier article de la liste. Si la liste est vide, aucun article n'est sélectionné.
+Quand une entrée de la barre latérale (« Tous les articles », « Cairn », un tag, un dossier ou un abonnement) est affichée sans article mémorisé visible dans sa liste, le système SHALL n'afficher aucun article : aucune ligne n'est sélectionnée et le volet de lecture indique qu'aucun article n'est sélectionné, avec ses boutons grisés.
 
 #### Scenario: Premier lancement
 - **WHEN** l'utilisateur lance l'app pour la première fois et que « Tous les articles » contient des articles
-- **THEN** le premier article de la liste est sélectionné et affiché dans le panneau de lecture
+- **THEN** aucun article n'est sélectionné et le volet de lecture indique « Aucun article sélectionné »
 
 #### Scenario: Entrée jamais ouverte
 - **WHEN** l'utilisateur sélectionne un abonnement dont aucun article n'a encore été sélectionné
-- **THEN** le premier article de cet abonnement est sélectionné et affiché
+- **THEN** ses articles sont listés sans qu'aucun soit sélectionné ni affiché
 
 #### Scenario: Liste vide
 - **WHEN** l'utilisateur sélectionne une entrée dont la liste ne contient aucun article
@@ -191,7 +191,7 @@ Le système SHALL retenir, pour chaque entrée de la barre latérale, le dernier
 #### Scenario: Article mémorisé absent de la liste
 - **GIVEN** l'article mémorisé d'une entrée n'est plus dans sa liste (filtre « Non lus », recherche, purge, suppression ou désabonnement)
 - **WHEN** l'utilisateur revient sur cette entrée
-- **THEN** le premier article de la liste est sélectionné
+- **THEN** aucun article n'est sélectionné et le volet de lecture indique « Aucun article sélectionné »
 
 ### Requirement: Sélection conservée entre les lancements
 Le système SHALL conserver d'un lancement à l'autre l'entrée de la barre latérale affichée et l'article mémorisé de chaque entrée. Cette mémoire est propre à l'appareil.
@@ -207,18 +207,18 @@ Le système SHALL conserver d'un lancement à l'autre l'entrée de la barre lat�
 - **THEN** « Tous les articles » est affiché
 
 ### Requirement: État lu / non lu
-Le système SHALL marquer un article comme lu quand l'utilisateur le sélectionne lui-même (clic ou clavier) et qu'il est le seul article sélectionné, et MUST permettre de le remettre manuellement en non lu ou de marquer tous les articles de la liste courante comme lus. Un article sélectionné automatiquement (sélection par défaut ou mémorisée) ou faisant partie d'une sélection de plusieurs articles MUST être affiché ou sélectionné sans que son état lu change.
+Le système SHALL marquer un article comme lu quand l'utilisateur le sélectionne lui-même (clic ou clavier) et qu'il est le seul article sélectionné, et MUST permettre de le remettre manuellement en non lu ou de marquer tous les articles de la liste courante comme lus. Un article sélectionné automatiquement (sélection mémorisée) ou faisant partie d'une sélection de plusieurs articles MUST être affiché ou sélectionné sans que son état lu change.
 
 #### Scenario: Lecture d'un article
 - **WHEN** l'utilisateur sélectionne lui-même un article non lu
 - **THEN** l'article est marqué lu et le compteur de non lus de son abonnement diminue
 
 #### Scenario: Sélection automatique
-- **WHEN** un article non lu est sélectionné automatiquement à l'ouverture d'une entrée ou au lancement
+- **WHEN** un article non lu mémorisé est sélectionné de nouveau à l'ouverture d'une entrée ou au lancement
 - **THEN** il est affiché et reste non lu
 
 #### Scenario: Filtre « Non lus » et sélection automatique
-- **WHEN** le filtre « Non lus » est actif et que le premier article est sélectionné automatiquement
+- **WHEN** le filtre « Non lus » est actif et que l'article non lu mémorisé est sélectionné de nouveau à l'ouverture de l'entrée
 - **THEN** il reste non lu et visible dans la liste, et aucun autre article n'est marqué lu
 
 #### Scenario: Tout marquer comme lu
