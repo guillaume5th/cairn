@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.2.0](https://github.com/guillaume5th/cairn/compare/v2.1.0...v2.2.0) (2026-11-13)
+
+
+### Features
+
+* daily backup to a chosen folder, and restore ([b4c4080](https://github.com/guillaume5th/cairn/commit/b4c4080651196b3e81023e9b2923ff59a5a5948e))
+* icons in context menus and the Article menu ([56f293b](https://github.com/guillaume5th/cairn/commit/56f293b2ced350d288cc55184b70b3ef63a218d6))
+* notes and tags of a kept article in an inspector ([a3b5f87](https://github.com/guillaume5th/cairn/commit/a3b5f8720ff75f8b6a6175796d439d0ddf5370e4))
+
+
+### Bug Fixes
+
+* keep the Add menu and the search field when the sidebar is hidden ([5d7cba4](https://github.com/guillaume5th/cairn/commit/5d7cba41bc848b590181c07ce1c9a605fb6fc4ae))
+
 ## [2.1.0](https://github.com/guillaume5th/cairn/compare/v2.0.0...v2.1.0) (2026-11-13)
 
 
