@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.1.0](https://github.com/guillaume5th/cairn/compare/v2.0.0...v2.1.0) (2026-11-13)
+
+
+### Features
+
+* add an Article menu, Copy Link and Mark All as Read on feeds and folders ([2f786a2](https://github.com/guillaume5th/cairn/commit/2f786a2cabf2c292a7fa3b00d9e189eaa2eb18f3))
+* add default notification style to Info.plist and project.yml ([a7055f6](https://github.com/guillaume5th/cairn/commit/a7055f6ffd18fed39aa4a2e2c6bfd92d77f84267))
+* inline reset icon for text size in settings ([c210a2c](https://github.com/guillaume5th/cairn/commit/c210a2caf314eb52925fc3bd28de378eec70b382))
+* put the selection's actions in the reader toolbar ([8a37b5c](https://github.com/guillaume5th/cairn/commit/8a37b5c852ac74693edbcb4c13316879751f57e8))
+* refresh feeds automatically and show the unread count on the Dock icon ([d4640ff](https://github.com/guillaume5th/cairn/commit/d4640ff0cb7233ceedfcba6a5310d0f4cb9459fc))
+* share one ticked article and toggle read state from the reader toolbar ([76cdc0c](https://github.com/guillaume5th/cairn/commit/76cdc0c8925f4cd83859f65f2f7bf13aaacd0133))
+* stop selecting the first article by default ([3cd3915](https://github.com/guillaume5th/cairn/commit/3cd3915cfa4fff46514a433632d0315de4a297b1))
+* turn the automatic daily digest on or off ([124958b](https://github.com/guillaume5th/cairn/commit/124958b3d722d921fdec2e692d3393b3db75bf8f))
+
 ## [2.0.0](https://github.com/guillaume5th/cairn/compare/v1.4.0...v2.0.0) (2026-11-13)
 
 
