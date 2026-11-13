@@ -1,2 +1,0 @@
-// iOS signing team, kept out of the repo: put `DEVELOPMENT_TEAM = <your team ID>` in Config/Local.xcconfig.
-#include? "Local.xcconfig"
