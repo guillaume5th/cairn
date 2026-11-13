@@ -234,11 +234,11 @@ struct ContentView: View {
         }
     }
 
-    /// Remembered article of the entry while it still exists, else the first one listed.
+    /// Remembered article of the entry while it still exists, else none: the pane shows its greyed reader buttons.
     private var displayedArticleID: PersistentIdentifier? {
         let remembered = isMultiFeed ? multiFeedArticle : memory.articles[entry]
         if let id = remembered, articles.contains(where: { $0.persistentModelID == id }) { return id }
-        return visibleArticles.first?.persistentModelID
+        return nil
     }
 
     private var digestSelection: Binding<Set<PersistentIdentifier>> {
@@ -264,12 +264,12 @@ struct ContentView: View {
         memory.articles[.digests] = id
     }
 
-    /// On entering an entry, a remembered article no longer listed gives way to the first one. Not done while
-    /// reading, or the unread filter would hide the article just read and auto-show the next one.
+    /// On entering an entry, a remembered article no longer listed is forgotten. Not done while reading, or the
+    /// unread filter would hide the article just read.
     private func settleArticle() {
         guard entry != .digests else { return }
         if let id = memory.articles[entry], visibleArticles.contains(where: { $0.persistentModelID == id }) { return }
-        memory.articles[entry] = visibleArticles.first?.persistentModelID
+        memory.articles[entry] = nil
     }
 
     private var visibleDigests: [Digest] { Library.search(searchText, in: digests) }
