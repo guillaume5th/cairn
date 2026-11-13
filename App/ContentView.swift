@@ -382,22 +382,6 @@ struct ArticleListView: View {
             }
         }
         .onExitCommand { if isSelecting { leaveSelection() } }
-        .safeAreaInset(edge: .bottom) {
-            // The selection's actions under the list.
-            if isSelecting {
-                HStack(spacing: 22) {
-                    SelectionActions(articles: selectedArticles, articlesToUnkeep: $articlesToUnkeep,
-                                     articlesToOpen: $articlesToOpen, articlesToDelete: $articlesToDelete)
-                }
-                .labelStyle(.iconOnly)
-                .buttonStyle(.borderless)
-                .font(.title2)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
-                .glassEffect(.regular, in: .capsule)
-                .padding(.bottom, 10)
-            }
-        }
         .onDeleteCommand {
             let lot = articles.filter { selection.contains($0.persistentModelID) }
             if !lot.isEmpty, lot.allSatisfy({ $0.feed == nil }) { articlesToDelete = lot }
@@ -483,37 +467,6 @@ struct ArticleListView: View {
         return count == 0 ? "Aucune sélection" : count == 1 ? "1 sélectionné" : "\(count) sélectionnés"
     }
 
-}
-
-/// Actions on the ticked articles, under the list.
-private struct SelectionActions: View {
-    let articles: [Article]
-    @Binding var articlesToUnkeep: [Article]
-    @Binding var articlesToOpen: [Article]
-    @Binding var articlesToDelete: [Article]
-    @Environment(\.openURL) private var openURL
-
-    var body: some View {
-        let anyUnread = articles.contains { !$0.isRead }
-        Group {
-            KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
-            Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
-                   systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
-                for article in articles { article.isRead = anyUnread }
-            }
-            .help(anyUnread ? "Marquer ces articles comme lus" : "Marquer ces articles comme non lus")
-            Button("Ouvrir dans le navigateur", systemImage: "safari") {
-                OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
-            }
-            .help("Ouvrir ces articles dans le navigateur")
-            // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
-            if !articles.isEmpty, articles.allSatisfy({ $0.feed == nil }) {
-                Button("Supprimer", systemImage: "trash", role: .destructive) { articlesToDelete = articles }
-                    .help("Supprimer ces articles")
-            }
-        }
-        .disabled(articles.isEmpty)
-    }
 }
 
 extension AttributedString {

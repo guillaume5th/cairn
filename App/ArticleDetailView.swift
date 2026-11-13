@@ -384,15 +384,46 @@ struct ShareButton: View {
     }
 }
 
-/// Reading pane for several selected articles: their count. Their actions are under the list.
+/// Reading pane for several selected articles: their count, and the reader's toolbar with the buttons that act on a
+/// batch enabled, in the same places (as Mail does).
 struct ArticleSelectionView: View {
     let articles: [Article]
+    @State private var articlesToUnkeep: [Article] = []
+    @State private var articlesToOpen: [Article] = []
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
+        let anyUnread = articles.contains { !$0.isRead }
         ContentUnavailableView(articles.isEmpty ? "Aucun article sélectionné"
                                    : articles.count == 1 ? "1 article sélectionné" : "\(articles.count) articles sélectionnés",
                                systemImage: "doc.on.doc")
-            .toolbar { DisabledReaderToolbar() }
+            .toolbar {
+                ToolbarItemGroup {
+                    Group {
+                        Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
+                        Button("Résumer", systemImage: "text.append") {}
+                    }
+                    .disabled(true)
+                    Group {
+                        KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
+                        Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                               systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
+                            for article in articles { article.isRead = anyUnread }
+                        }
+                        .help(anyUnread ? "Marquer ces articles comme lus" : "Marquer ces articles comme non lus")
+                    }
+                    .disabled(articles.isEmpty)
+                    Button("Partager", systemImage: "square.and.arrow.up") {}
+                        .disabled(true)
+                    Button("Ouvrir dans le navigateur", systemImage: "safari") {
+                        OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
+                    }
+                    .disabled(articles.isEmpty)
+                    .help("Ouvrir ces articles dans le navigateur")
+                }
+            }
+            .unkeepConfirmation($articlesToUnkeep)
+            .openConfirmation($articlesToOpen)
     }
 }
 
