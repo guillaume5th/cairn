@@ -25,6 +25,8 @@ targets:
       properties:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Default notification style: alerts stay on screen until clicked (the user can still pick banners).
+        NSUserNotificationAlertStyle: alert
         # Declares .opml files to the system, so the file picker offers them (an undeclared extension can be greyed out).
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: org.opml.opml
