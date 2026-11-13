@@ -73,7 +73,7 @@ cherche les flux que la page déclare, puis les emplacements usuels (`/feed`, `/
 Quand un flux ne donne qu'un extrait, le bouton « Article complet » de la barre de l'article télécharge sa page et en garde
 le texte principal (sans menus, publicités ni commentaires), avec l'extracteur du mode Lecture de Firefox
 ([Readability.js](https://github.com/mozilla/readability), Apache 2.0). Le texte est gardé avec l'article ; le même bouton
-revient au contenu du flux. Dans le menu d'un abonnement, « Toujours charger l'article complet » le fait pour chaque nouvel
+revient au contenu du flux. Dans le menu d'un abonnement, « Toujours charger les articles complets » le fait pour chaque nouvel
 article. Le site de l'article est contacté comme par un navigateur, mais sans cookies, et aucun de ses scripts n'est exécuté.
 Les résumés IA portent sur l'article complet quand il est chargé.
 

@@ -192,7 +192,7 @@ struct SidebarView: View {
                     .disabled(lot.allSatisfy { $0.folder == nil })
             }
             // Articles published from now on get their full text after each refresh; those already listed do not.
-            Toggle("Toujours charger l'article complet", isOn: Binding {
+            Toggle("Toujours charger les articles complets", isOn: Binding {
                 lot.allSatisfy { $0.loadsFullContentSince != nil }
             } set: { isOn in
                 for feed in lot { feed.loadsFullContentSince = isOn ? (feed.loadsFullContentSince ?? .now) : nil }

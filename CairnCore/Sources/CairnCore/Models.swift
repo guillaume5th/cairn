@@ -20,7 +20,7 @@ public final class Feed {
     @Relationship(deleteRule: .nullify, inverse: \Article.feed)
     public var articles: [Article]? = []
     public var folder: Folder?
-    /// When "Toujours charger l'article complet" was turned on; nil when off. Articles published since then get
+    /// When "Toujours charger les articles complets" was turned on; nil when off. Articles published since then get
     /// their full text loaded after each refresh.
     public var loadsFullContentSince: Date?
 

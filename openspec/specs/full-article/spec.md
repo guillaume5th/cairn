@@ -43,7 +43,7 @@ Le système SHALL conserver le texte intégral chargé avec l'article, l'affiche
 - **THEN** le contenu fourni par le flux s'affiche, et « Afficher l'article complet » le réaffiche sans téléchargement
 
 ### Requirement: Article complet automatique par abonnement
-Le système SHALL proposer dans le menu contextuel d'un abonnement une option « Toujours charger l'article complet », désactivée par défaut. Quand elle est activée, le texte intégral des nouveaux articles de cet abonnement MUST être récupéré après chaque rafraîchissement, sans bloquer le rafraîchissement des autres abonnements ; un échec laisse le contenu du flux.
+Le système SHALL proposer dans le menu contextuel d'un abonnement une option « Toujours charger les articles complets », désactivée par défaut. Quand elle est activée, le texte intégral des nouveaux articles de cet abonnement MUST être récupéré après chaque rafraîchissement, sans bloquer le rafraîchissement des autres abonnements ; un échec laisse le contenu du flux.
 
 #### Scenario: Nouvel article d'un abonnement en mode complet
 - **GIVEN** l'option est activée pour un abonnement

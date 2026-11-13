@@ -212,7 +212,7 @@ public enum Library {
         article.fullContent ?? article.content
     }
 
-    /// Articles of feeds set to "Toujours charger l'article complet", published since it was turned on, whose full
+    /// Articles of feeds set to "Toujours charger les articles complets", published since it was turned on, whose full
     /// text was never attempted. Newest first.
     public static func articlesAwaitingFullContent(context: ModelContext) throws -> [Article] {
         try context.fetch(FetchDescriptor<Feed>()).flatMap { feed -> [Article] in
