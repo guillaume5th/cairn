@@ -46,6 +46,8 @@ struct SidebarView: View {
             Label("Tous les articles", systemImage: "tray.full")
                 .badge(unreadArticles.count)
                 .tag(SidebarItem.all)
+                // Reading and marking change it while the window is open; refresh() covers the closed window.
+                .onChange(of: unreadArticles.count) { state.updateBadge(unread: unreadArticles.count) }
             Label("Résumés quotidiens", systemImage: "text.append")
                 .tag(SidebarItem.digests)
 

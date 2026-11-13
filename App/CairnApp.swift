@@ -22,7 +22,7 @@ struct CairnApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in state.save() }
         }
         .commands { CairnCommands(state: state) }
-        Settings { SettingsView() }
+        Settings { SettingsView().environment(state) }
     }
 
     private var content: some View {

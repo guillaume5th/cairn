@@ -33,6 +33,13 @@ final class AppState {
     @ObservationIgnored private let notificationHandler = DigestNotifications.Handler()
     /// The window's `.task` runs again each time the window is reopened; the launch work must happen once.
     @ObservationIgnored private var launched = false
+    /// End of the last refresh, whatever started it; the automatic refresh counts its interval from it.
+    @ObservationIgnored private var lastRefresh = Date.distantPast
+
+    /// Minutes between automatic refreshes; 0 turns them off.
+    static let refreshIntervalKey = "refreshInterval"
+    static let defaultRefreshInterval = 30
+    static let dockBadgeKey = "showsDockBadge"
 
     var context: ModelContext { container.mainContext }
 
@@ -58,6 +65,10 @@ final class AppState {
         } catch {
             message = "La purge des anciens articles a échoué : \(error.localizedDescription)"
         }
+        // The badge is on by default: macOS asks for its authorization once, at the first launch.
+        if UserDefaults.standard.object(forKey: Self.dockBadgeKey) as? Bool ?? true {
+            Task { _ = await DigestNotifications.requestAuthorization(); updateBadge() }
+        }
         await refresh()
         // Catch-up at launch, then a check every minute while the app is open (survives sleep and setting changes).
         Task {
@@ -66,6 +77,22 @@ final class AppState {
                 try? await Task.sleep(for: .seconds(60))
             }
         }
+        // Checked every minute rather than sleeping the whole interval: follows setting changes and wake from sleep.
+        Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(60))
+                let minutes = UserDefaults.standard.object(forKey: Self.refreshIntervalKey) as? Int ?? Self.defaultRefreshInterval
+                if minutes > 0, Date.now >= lastRefresh.addingTimeInterval(Double(minutes * 60)) { await refresh() }
+            }
+        }
+    }
+
+    /// The Dock icon shows the unread count of "Tous les articles", none at zero or when the setting is off.
+    /// `unread` comes from the sidebar's query: a store count misses changes not saved yet.
+    func updateBadge(unread: Int? = nil) {
+        let shows = UserDefaults.standard.object(forKey: Self.dockBadgeKey) as? Bool ?? true
+        let unread = shows ? unread ?? (try? context.fetchCount(FetchDescriptor<Article>(predicate: #Predicate { !$0.isRead }))) ?? 0 : 0
+        NSApp.dockTile.badgeLabel = unread > 0 ? String(unread) : nil
     }
 
     /// Refreshes, then has the chosen engine summarize the articles of the last 24 hours. Counts as the day's attempt
@@ -175,6 +202,8 @@ final class AppState {
         } catch {
             message = error.localizedDescription
         }
+        lastRefresh = .now
+        updateBadge()
         // Not awaited: the refresh ends without waiting for the pages.
         Task { await loadNewFullContent() }
         await refreshIcons()

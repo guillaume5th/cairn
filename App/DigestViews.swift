@@ -62,18 +62,32 @@ struct SettingsView: View {
     @AppStorage(DigestSettings.notifyKey) private var notifies = false
     @AppStorage(DigestSettings.enabledKey) private var isEnabled = true
     @State private var notificationsDenied = false
+    @State private var badgesDenied = false
 
     private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
     private static let disabledNote = "Aucun résumé n'est produit automatiquement. Tu peux en générer un depuis la liste des résumés."
     private static let ollamaPlace = "Ollama doit tourner sur ce Mac ou sur ton réseau."
+    private static let badgesDeniedNote = "Les pastilles de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
     private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
+    @AppStorage(AppState.refreshIntervalKey) private var refreshInterval = AppState.defaultRefreshInterval
+    @AppStorage(AppState.dockBadgeKey) private var showsDockBadge = true
+    @Environment(AppState.self) private var state
 
     var body: some View {
         Form {
+            Section("Abonnements") {
+                Picker("Rafraîchir les abonnements", selection: $refreshInterval) {
+                    Text("Jamais").tag(0)
+                    Text("Toutes les 15 minutes").tag(15)
+                    Text("Toutes les 30 minutes").tag(30)
+                    Text("Toutes les heures").tag(60)
+                    Text("Toutes les 2 heures").tag(120)
+                }
+            }
             // Also in the Mac's View menu.
-            Section("Affichage") {
+            Section {
                 // Value then arrows on the right, like "Conserver les résumés".
                 LabeledContent("Taille du texte") {
                     HStack {
@@ -90,7 +104,17 @@ struct SettingsView: View {
                     }
                 }
                 Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
+                Toggle("Badge sur l'icône", isOn: $showsDockBadge)
+                    .onChange(of: showsDockBadge) {
+                        state.updateBadge()
+                        if showsDockBadge { Task { _ = await DigestNotifications.requestAuthorization(); badgesDenied = await DigestNotifications.badgesDenied() } }
+                    }
+            } header: {
+                Text("Affichage")
+            } footer: {
+                if showsDockBadge && badgesDenied { Text(Self.badgesDeniedNote).foregroundStyle(.secondary) }
             }
+            .task { badgesDenied = await DigestNotifications.badgesDenied() }
             Section {
                 Toggle("Résumé automatique", isOn: $isEnabled)
                 // Greyed out rather than hidden: the window fits its content and would change height.

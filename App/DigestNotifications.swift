@@ -7,8 +7,15 @@ import UserNotifications
 enum DigestNotifications {
     static let digestKey = "digest"
 
+    /// One request for everything Cairn may use: the system asks only once, so options added later would never be shown.
+    /// The Dock badge needs `.badge`: without it macOS hides `dockTile.badgeLabel`.
     static func requestAuthorization() async -> Bool {
-        (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])) ?? false
+        (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+    }
+
+    /// The user turned off Cairn's badges (or all its notifications) in System Settings.
+    static func badgesDenied() async -> Bool {
+        await UNUserNotificationCenter.current().notificationSettings().badgeSetting == .disabled
     }
 
     /// Posted for an automatic digest when the setting is on; the digest's identifier rides along to open it.
