@@ -51,10 +51,8 @@ enum DigestNotifications {
 
         private func open(_ id: PersistentIdentifier) {
             state?.digestToOpen = id
-            #if os(macOS)
             // A closed window comes back like after a click on the Dock icon.
             NSWorkspace.shared.open(Bundle.main.bundleURL)
-            #endif
         }
     }
 }

@@ -58,19 +58,9 @@ struct SettingsView: View {
     @AppStorage(DigestSettings.notifyKey) private var notifies = false
     @State private var notificationsDenied = false
 
-    #if os(macOS)
     private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
     private static let ollamaPlace = "Ollama doit tourner sur ce Mac ou sur ton réseau."
-    #else
-    // iOS grants background time when it sees fit: the digest is made then, or on the user's return at the latest.
-    private static let scheduleNote = "Les articles des dernières 24 heures sont résumés vers cette heure-là, en arrière-plan quand iOS le permet, sinon à ton retour dans l'app."
-    private static let ollamaPlace = "Ollama doit tourner sur un ordinateur de ton réseau local : indique son adresse, par exemple http://192.168.1.10:11434."
-    #endif
-    #if os(macOS)
     private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
-    #else
-    private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages > Notifications > Cairn."
-    #endif
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
 
@@ -78,7 +68,6 @@ struct SettingsView: View {
         Form {
             // Also in the Mac's View menu.
             Section("Affichage") {
-                // A Stepper, not two Buttons: buttons sharing a Form row on iOS all fire on a single tap.
                 // Value then arrows on the right, like "Conserver les résumés".
                 LabeledContent("Taille du texte") {
                     HStack {
@@ -171,11 +160,9 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        #if os(macOS)
         .scrollIndicators(.never) // the window fits its content; no scroller
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
-        #endif
         .task(id: "\(engine.rawValue)|\(ollamaURL)|\(reloadCount)") { await loadModels() }
     }
 
@@ -248,9 +235,7 @@ struct DigestListView: View {
                 }
             }
         }
-        #if os(macOS)
         .onDeleteCommand { digestsToDelete = digests.filter { selection.contains($0.persistentModelID) } }
-        #endif
         .toolbar {
             // Trailing edge of the list column, like the article list's buttons.
             ToolbarItem {

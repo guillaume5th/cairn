@@ -103,7 +103,7 @@ struct SidebarView: View {
         }
     }
 
-    /// What can be created, in one "+" (a header button would sit on iOS's collapse chevron).
+    /// What can be created, in one "+".
     @ToolbarContentBuilder private var sidebarCommands: some ToolbarContent {
         ToolbarItemGroup {
             Menu("Ajouter", systemImage: "plus") {
@@ -112,19 +112,10 @@ struct SidebarView: View {
                 Button("Nouveau cairn…", image: ImageResource(name: "cairn", bundle: .main)) { startNaming(.newCairn) }
             }
             .help("Ajouter un abonnement (⌘N), un dossier ou un cairn")
-            #if os(iOS)
-            // No menu bar on iOS: the commands the Mac keeps in its File menu and Settings window.
-            Menu("Plus", systemImage: "ellipsis.circle") {
-                Button("Importer OPML…", systemImage: "square.and.arrow.down") { state.isImporting = true }
-                Button("Exporter OPML…", systemImage: "square.and.arrow.up") { state.prepareExport() }
-                Divider()
-                Button("Réglages…", systemImage: "gear") { state.isShowingSettings = true }
-            }
-            #endif
         }
     }
 
-    /// Folders and feeds, split out of `body`, which is otherwise too big for the type checker on iOS.
+    /// Folders and feeds, split out of `body`, which is otherwise too big for the type checker.
     private var subscriptionsSection: some View {
         Section {
             ForEach(folders) { folder in

@@ -1,8 +1,4 @@
-#if os(macOS)
 import AppKit
-#else
-import UIKit
-#endif
 import CairnCore
 import SwiftUI
 
@@ -55,14 +51,9 @@ struct SourceIcon: View {
 
     /// Height of an article row whose title takes its two allowed lines: body ×2 + caption + the row's 2 pt spacing.
     static let articleRowSide: CGFloat = {
-        #if os(macOS)
         let layout = NSLayoutManager()
         let body = layout.defaultLineHeight(for: .preferredFont(forTextStyle: .body))
         let caption = layout.defaultLineHeight(for: .preferredFont(forTextStyle: .caption1))
-        #else
-        let body = UIFont.preferredFont(forTextStyle: .body).lineHeight
-        let caption = UIFont.preferredFont(forTextStyle: .caption1).lineHeight
-        #endif
         return (2 * body + caption + 2).rounded(.up)
     }()
 }

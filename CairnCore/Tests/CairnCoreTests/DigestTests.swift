@@ -142,15 +142,3 @@ struct DigestTests {
         #expect(try context.fetch(FetchDescriptor<Digest>()).map(\.text) == ["récent"])
     }
 }
-
-struct DigestAttemptTests {
-    @Test func aFailedBackgroundRunLeavesTheDigestDue() {
-        #expect(Digest.countsAsAttempt(succeeded: true, inBackground: true))
-        #expect(!Digest.countsAsAttempt(succeeded: false, inBackground: true))
-        #expect(Digest.countsAsAttempt(succeeded: false, inBackground: false))
-        #expect(Digest.countsAsAttempt(succeeded: true, inBackground: false))
-        // The day's run stays due when the background attempt is not recorded.
-        let now = fixtureNow
-        #expect(Digest.isDue(now: now, minutes: 8 * 60, lastAttempt: nil))
-    }
-}
