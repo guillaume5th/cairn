@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.3.0](https://github.com/guillaume5th/cairn/compare/v2.2.0...v2.3.0) (2026-11-14)
+
+
+### Features
+
+* app updates with Sparkle ([0c1f950](https://github.com/guillaume5th/cairn/commit/0c1f95076e23fb1a850fceffe2d1783d29859549))
+* Aujourd'hui view in the sidebar ([79a520e](https://github.com/guillaume5th/cairn/commit/79a520edb0d93a371b5328294eb93d7170d7067b))
+* configurable retention and article order ([6741b5b](https://github.com/guillaume5th/cairn/commit/6741b5b71ff957a82e6dfdb0697e9740d6fe4eef))
+* export a cairn as Markdown ([44523fa](https://github.com/guillaume5th/cairn/commit/44523fa99640548392ceecd296b30b3a39ca7390))
+* feeds protected by a login ([2874001](https://github.com/guillaume5th/cairn/commit/28740019d9d908bf93461d4582e8a049aa9c1e94))
+* kept articles in Spotlight ([4fba62f](https://github.com/guillaume5th/cairn/commit/4fba62f694123d018966b77ad14dcb0c0ae197d1))
+* listen to podcast episodes ([1e5a9f4](https://github.com/guillaume5th/cairn/commit/1e5a9f43173ec70d78afdfbd29c95918b7cc7cf8))
+* notify new articles per subscription ([ea5d654](https://github.com/guillaume5th/cairn/commit/ea5d654b9a2044618e6f9da7b1ba61b7299ee8eb))
+* open feed: links ([89ef389](https://github.com/guillaume5th/cairn/commit/89ef3899dcf864b4b1f366854dd80201d3d979f6))
+* rename a subscription, rename merge or delete a tag ([8ba4c31](https://github.com/guillaume5th/cairn/commit/8ba4c31d0267b72abcd7e281cec70d0d5b613dff))
+* Space or N opens the next unread article ([451aa7c](https://github.com/guillaume5th/cairn/commit/451aa7cea8d09f9dda9956e446ee9e7613923d67))
+
 ## [2.2.0](https://github.com/guillaume5th/cairn/compare/v2.1.0...v2.2.0) (2026-11-13)
 
 
