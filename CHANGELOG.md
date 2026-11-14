@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.3](https://github.com/guillaume5th/cairn/compare/v2.3.2...v2.3.3) (2026-11-14)
+
+
+### Bug Fixes
+
+* feeds with a structured &lt;author&gt; were rejected as "not a feed" (Google Cloud blog) ([6f6a644](https://github.com/guillaume5th/cairn/commit/6f6a6447502a5845ebc19f86a6ff8672782b6278))
+
 ## [2.3.2](https://github.com/guillaume5th/cairn/compare/v2.3.1...v2.3.2) (2026-11-14)
 
 
