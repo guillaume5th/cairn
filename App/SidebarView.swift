@@ -21,6 +21,8 @@ struct SidebarView: View {
     @State private var name = ""
     @State private var cairnToDelete: Cairn?
     @State private var tagToDelete: CairnCore.Tag?
+    /// Markdown of the cairn being exported, and its name for the file.
+    @State private var cairnExport: (document: ExportDocument, name: String)?
 
     private enum Naming {
         case newFolder, folder(Folder), newCairn, cairn(Cairn), feed(Feed), tag(CairnCore.Tag)
@@ -99,6 +101,11 @@ struct SidebarView: View {
             Button(naming.isNew ? "Créer" : "Renommer") { save(naming) }
         } message: { naming in
             if case .tag = naming { Text("Le tag est renommé dans tous les cairns. Un nom déjà utilisé par un autre tag les fusionne.") }
+        }
+        .fileExporter(isPresented: Binding(get: { cairnExport != nil }, set: { if !$0 { cairnExport = nil } }),
+                      document: cairnExport?.document, contentType: .markdown,
+                      defaultFilename: "\(cairnExport?.name ?? "Cairn").md") { result in
+            if case let .failure(error) = result { state.message = error.localizedDescription }
         }
         .confirmationDialog("Supprimer le tag « \(tagToDelete?.name ?? "") » ?",
                             isPresented: Binding(get: { tagToDelete != nil }, set: { if !$0 { tagToDelete = nil } }),
@@ -189,6 +196,10 @@ struct SidebarView: View {
             Button("Renommer…", systemImage: "pencil") { startNaming(.tag(tag)) }
             Button("Supprimer le tag…", systemImage: "trash", role: .destructive) { tagToDelete = tag }
         } else if let cairn = single(items, cairns, as: SidebarItem.cairn) {
+            Button("Exporter en Markdown…", systemImage: "square.and.arrow.up") {
+                cairnExport = (ExportDocument(data: Data(Library.markdown(for: cairn).utf8)), cairn.name)
+            }
+            Divider()
             Button("Renommer…", systemImage: "pencil") { startNaming(.cairn(cairn)) }
             Button("Supprimer le cairn…", systemImage: "trash", role: .destructive) { cairnToDelete = cairn }
                 .disabled(cairns.count == 1)

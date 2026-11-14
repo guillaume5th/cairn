@@ -19,7 +19,7 @@ final class AppState {
     var isImporting = false
     var isExporting = false
     var isSearchRequested = false
-    var exportDocument: OPMLDocument?
+    var exportDocument: ExportDocument?
     var message: String?
     /// Articles being summarized, and the last failure per article; neither is stored.
     var summarizing: Set<PersistentIdentifier> = []
@@ -267,7 +267,7 @@ final class AppState {
 
     func prepareExport() {
         do {
-            exportDocument = OPMLDocument(data: try Library.exportOPML(context: context))
+            exportDocument = ExportDocument(data: try Library.exportOPML(context: context))
             isExporting = true
         } catch {
             message = error.localizedDescription
@@ -280,8 +280,8 @@ extension UTType {
     static let opml = UTType(importedAs: "org.opml.opml", conformingTo: .xml)
 }
 
-struct OPMLDocument: FileDocument {
-    static let readableContentTypes: [UTType] = [.opml]
+struct ExportDocument: FileDocument {
+    static let readableContentTypes: [UTType] = [.opml, .markdown]
     var data: Data
 
     init(data: Data) {
