@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.3.1](https://github.com/guillaume5th/cairn/compare/v2.3.0...v2.3.1) (2026-11-14)
+
+
+### Bug Fixes
+
+* launch crash of the DMG build: dyld rejected the ad-hoc signed Sparkle.framework ([cb5a6fa](https://github.com/guillaume5th/cairn/commit/cb5a6fa0025dba09c4df77cd02dc52713bce94ed))
+* update originHash and add sparkle dependency in Package.resolved ([06a0e39](https://github.com/guillaume5th/cairn/commit/06a0e393f85b7d2e52257522d9017125a44838b1))
+
 ## [2.3.0](https://github.com/guillaume5th/cairn/compare/v2.2.0...v2.3.0) (2026-11-14)
 
 
