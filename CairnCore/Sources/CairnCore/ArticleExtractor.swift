@@ -28,9 +28,12 @@ public enum ArticleExtractor {
     }()
 
     @MainActor
-    public static func extract(from url: URL, session: URLSession = session) async throws -> ExtractedArticle {
+    public static func extract(from url: URL, login: (user: String, password: String)? = nil,
+                               session: URLSession = session) async throws -> ExtractedArticle {
         guard ["http", "https"].contains(url.scheme?.lowercased()) else { throw CairnError.invalidURL }
-        let (bytes, response) = try await session.bytes(for: URLRequest(url: url, timeoutInterval: 20))
+        var request = URLRequest(url: url, timeoutInterval: 20)
+        let delegate = FeedFetcher.authorize(&request, login: login)
+        let (bytes, response) = try await session.bytes(for: request, delegate: delegate)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw CairnError.httpStatus(http.statusCode)
         }

@@ -32,6 +32,10 @@ final class StubProtocol: URLProtocol {
             case "rss.test": (200, (try? fixture("rss.xml")) ?? Data())
             case "atom.test": (200, (try? fixture("atom.xml")) ?? Data())
             case "html.test": (200, Data("<html><body>Pas un flux</body></html>".utf8))
+            // user:pass
+            case "auth.test" where request.value(forHTTPHeaderField: "Authorization") == "Basic dXNlcjpwYXNz":
+                (200, (try? fixture("rss.xml")) ?? Data())
+            case "auth.test": (401, Data())
             case "fresh.test" where request.cachePolicy == .reloadIgnoringLocalCacheData: (200, (try? fixture("rss.xml")) ?? Data())
             default: (500, Data())
             }

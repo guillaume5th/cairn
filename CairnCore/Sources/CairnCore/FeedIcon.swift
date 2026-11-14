@@ -105,7 +105,9 @@ extension FeedFetcher {
     private func download(_ url: URL, limit: Int, truncate: Bool) async -> (Data, URL)? {
         guard ["http", "https"].contains(url.scheme?.lowercased()) else { return nil }
         do {
-            let (bytes, response) = try await session.bytes(for: URLRequest(url: url, timeoutInterval: 20))
+            var request = URLRequest(url: url, timeoutInterval: 20)
+            let delegate = Self.authorize(&request, login: url.host().flatMap(credentials))
+            let (bytes, response) = try await session.bytes(for: request, delegate: delegate)
             guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else { return nil }
             var data = Data()
             for try await byte in bytes {

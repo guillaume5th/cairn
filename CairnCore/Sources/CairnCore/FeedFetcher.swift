@@ -1,10 +1,15 @@
 import Foundation
 
 public struct FeedFetcher: Sendable {
-    let session: URLSession
+    public typealias Credentials = @Sendable (_ host: String) -> (user: String, password: String)?
 
-    public init(session: URLSession = .shared) {
+    let session: URLSession
+    /// Identifier and password of a site, sent as HTTP Basic to every request to it.
+    let credentials: Credentials
+
+    public init(session: URLSession = .shared, credentials: @escaping Credentials = { _ in nil }) {
         self.session = session
+        self.credentials = credentials
     }
 
     public func fetch(_ url: URL, timeout: TimeInterval = 20) async throws -> ParsedFeed {
@@ -14,12 +19,34 @@ public struct FeedFetcher: Sendable {
     /// The body and the final URL (after redirects); an HTTP error status throws.
     func download(_ url: URL, timeout: TimeInterval = 20) async throws -> (data: Data, url: URL) {
         // A refresh must reach the server: heuristic HTTP caching would otherwise hide new items.
-        let request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
-        let (data, response) = try await session.data(for: request)
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
+        let delegate = Self.authorize(&request, login: url.host().flatMap(credentials))
+        let (data, response) = try await session.data(for: request, delegate: delegate)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw CairnError.httpStatus(http.statusCode)
         }
         return (data, response.url ?? url)
+    }
+
+    /// Adds the site's login as HTTP Basic; the returned delegate, to pass with the request, drops it on a
+    /// redirection to another site.
+    static func authorize(_ request: inout URLRequest, login: (user: String, password: String)?) -> (any URLSessionTaskDelegate)? {
+        guard let login else { return nil }
+        let token = Data("\(login.user):\(login.password)".utf8).base64EncodedString()
+        request.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
+        return KeepsLoginOnHost()
+    }
+
+    /// Drops the login when a redirection leaves the site it belongs to.
+    private final class KeepsLoginOnHost: NSObject, URLSessionTaskDelegate {
+        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest) async -> URLRequest? {
+            var request = request
+            if request.url?.host() != task.originalRequest?.url?.host() {
+                request.setValue(nil, forHTTPHeaderField: "Authorization")
+            }
+            return request
+        }
     }
 
     /// Fetches every URL, at most `maxConcurrent` at a time. One failing feed never affects the others.

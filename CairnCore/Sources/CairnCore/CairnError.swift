@@ -24,6 +24,7 @@ public enum CairnError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .invalidURL: "L'adresse saisie n'est pas une URL http(s) valide."
+        case .httpStatus(401): "Ce site demande un identifiant et un mot de passe."
         case let .httpStatus(code): "Le serveur a répondu avec l'erreur HTTP \(code)."
         case .notAFeed: "Cette adresse ne renvoie pas un flux RSS, Atom ou JSON Feed lisible."
         case .noFeedFound: "Aucun flux RSS, Atom ou JSON Feed n'a été trouvé sur ce site. Essaie l'adresse exacte de son flux."

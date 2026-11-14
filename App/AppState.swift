@@ -9,13 +9,16 @@ import UserNotifications
 final class AppState {
     /// Held here for the app's lifetime: a ModelContext does not retain its container.
     let container: ModelContainer
-    let fetcher = FeedFetcher()
+    let fetcher = FeedFetcher(credentials: Credentials.login(for:))
     var isRefreshing = false
     var isRestoring = false
     var isDigesting = false
     var isAddingFeed = false
     /// Feeds offered when the address given declares several; empty otherwise.
     var feedChoices: [DiscoveredFeed] = []
+    /// A site asked for a login: its host, and the address to add again once the login is saved (nil for a feed
+    /// already subscribed, refreshed instead).
+    var loginRequest: (host: String, retry: String?)?
     var isImporting = false
     var isExporting = false
     var isSearchRequested = false
@@ -169,7 +172,7 @@ final class AppState {
         guard let url = URL(string: article.link), loadingFullContent.insert(id).inserted else { return }
         defer { loadingFullContent.remove(id) }
         fullContentErrors[id] = nil
-        let result = await Result { try await ArticleExtractor.extract(from: url) }
+        let result = await Result { try await ArticleExtractor.extract(from: url, login: url.host().flatMap(Credentials.login)) }
         Library.recordFullContent(result, for: article)
         if case let .failure(error) = result {
             fullContentErrors[id] = "L'article complet n'a pas pu être chargé : \(error.localizedDescription)"
@@ -199,7 +202,7 @@ final class AppState {
                 Library.recordFullContent(.failure(CairnError.invalidURL), for: article)
                 continue
             }
-            let result = await Result { try await ArticleExtractor.extract(from: url) }
+            let result = await Result { try await ArticleExtractor.extract(from: url, login: url.host().flatMap(Credentials.login)) }
             Library.recordFullContent(result, for: article)
         }
     }
@@ -229,7 +232,12 @@ final class AppState {
     /// Finds the feed at the address (a feed, or a site declaring one): subscribes to a single one, offers a choice
     /// (`feedChoices`) when there are several.
     func addFeed(_ address: String) async throws {
-        let feeds = try await Library.discoverFeeds(urlString: address, fetcher: fetcher)
+        let feeds: [DiscoveredFeed]
+        do {
+            feeds = try await Library.discoverFeeds(urlString: address, fetcher: fetcher)
+        } catch CairnError.httpStatus(401) {
+            return askLogin(for: address)
+        }
         if feeds.count == 1 {
             try await subscribe(to: feeds[0].url)
         } else {
@@ -239,9 +247,19 @@ final class AppState {
 
     /// Checks the URL is a readable feed, then subscribes; the icon follows without being waited for.
     func subscribe(to url: String) async throws {
-        _ = try await Library.addFeed(urlString: url, context: context, fetcher: fetcher)
+        do {
+            _ = try await Library.addFeed(urlString: url, context: context, fetcher: fetcher)
+        } catch CairnError.httpStatus(401) {
+            return askLogin(for: url)
+        }
         save()
         Task { await refreshIcons() }
+    }
+
+    /// Asks for the login of the address's site, then adds the address again.
+    private func askLogin(for address: String) {
+        guard let host = try? Library.normalizedURL(address).host() else { return }
+        loginRequest = (host, address)
     }
 
     func isSubscribed(_ url: String) -> Bool { (try? Library.isSubscribed(url, context: context)) ?? false }

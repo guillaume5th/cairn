@@ -219,7 +219,12 @@ struct SidebarView: View {
             Button("Marquer tout comme lu", systemImage: "checkmark.circle") { markRead(lot) }
                 .disabled(lot.allSatisfy { $0.unreadCount == 0 })
             Divider()
-            if lot.count == 1 { Button("Renommer…", systemImage: "pencil") { startNaming(.feed(lot[0])) } }
+            if lot.count == 1 {
+                Button("Renommer…", systemImage: "pencil") { startNaming(.feed(lot[0])) }
+                Button("Identifiants…", systemImage: "key") {
+                    if let host = URL(string: lot[0].url)?.host() { state.loginRequest = (host, nil) }
+                }
+            }
             Menu("Déplacer vers", systemImage: "folder") {
                 ForEach(folders) { folder in
                     Button(folder.name) { for feed in lot { Library.move(feed, to: folder) } }

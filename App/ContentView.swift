@@ -53,6 +53,8 @@ struct ContentView: View {
     @State private var unreadOnly = false
     /// The add-feed alert's field.
     @State private var newFeedURL = ""
+    @State private var loginUser = ""
+    @State private var loginPassword = ""
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
 
@@ -124,6 +126,20 @@ struct ContentView: View {
             guard state.isSearchRequested else { return }
             state.isSearchRequested = false
             isSearchFocused = true
+        }
+        .alert("Identifiants", isPresented: Binding(get: { state.loginRequest != nil }, set: { if !$0 { state.loginRequest = nil } }),
+               presenting: state.loginRequest) { request in
+            TextField("Identifiant", text: $loginUser)
+                .autocorrectionDisabled()
+            SecureField("Mot de passe", text: $loginPassword)
+            Button("Annuler", role: .cancel) {}
+            Button("Enregistrer") { saveLogin(host: request.host, retry: request.retry) }
+        } message: { request in
+            Text("Pour \(request.host). Rangés dans le trousseau de ce Mac et envoyés à ce site à chaque rafraîchissement. Un identifiant vide les retire.")
+        }
+        .onChange(of: state.loginRequest?.host) {
+            loginUser = state.loginRequest.flatMap { Credentials.login(for: $0.host)?.user } ?? ""
+            loginPassword = ""
         }
         .onOpenURL { url in
             guard let address = Library.address(fromFeedLink: url) else { return }
@@ -263,6 +279,24 @@ struct ContentView: View {
             } else {
                 multiDigests = []
                 memory.articles[.digests] = ids.first
+            }
+        }
+    }
+
+    /// Saves (or, with no identifier, removes) the site's login, then adds the address again or refreshes.
+    private func saveLogin(host: String, retry: String?) {
+        let user = loginUser.trimmingCharacters(in: .whitespaces)
+        do {
+            if user.isEmpty { Credentials.remove(for: host) } else { try Credentials.save(user: user, password: loginPassword, for: host) }
+        } catch {
+            return state.message = "Le trousseau a refusé les identifiants : \(error.localizedDescription)"
+        }
+        loginPassword = ""
+        Task {
+            if let retry {
+                do { try await state.addFeed(retry) } catch { state.message = error.localizedDescription }
+            } else {
+                await state.refresh()
             }
         }
     }
