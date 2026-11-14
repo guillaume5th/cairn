@@ -56,7 +56,7 @@ struct SidebarView: View {
             Label("Aujourd'hui", systemImage: "sun.max")
                 .badge(unreadArticles.count { $0.publishedAt >= Calendar.current.startOfDay(for: .now) })
                 .tag(SidebarItem.today)
-            Label("Lire plus tard", systemImage: "eyeglasses")
+            Label("Lire plus tard", systemImage: "clock")
                 .badge(unreadArticles.count { $0.readLaterAt != nil })
                 .tag(SidebarItem.readLater)
             Label("Résumés quotidiens", systemImage: "text.append")

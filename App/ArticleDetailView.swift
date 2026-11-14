@@ -293,7 +293,7 @@ struct ReadLaterButton: View {
     var body: some View {
         let allQueued = !articles.isEmpty && articles.allSatisfy(\.isQueued)
         Button(allQueued ? "Retirer de Lire plus tard" : "Lire plus tard",
-               systemImage: "eyeglasses") {
+               systemImage: "clock") {
             for article in articles {
                 if allQueued { Library.removeFromReadLater(article) } else { Library.readLater(article) }
             }
