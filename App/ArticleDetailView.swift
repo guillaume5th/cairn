@@ -134,14 +134,54 @@ struct ArticleDetailView: View {
         let error = state.summaryErrors[article.persistentModelID]
         if article.summary != nil || isSummarizing || error != nil {
             GroupBox {
-                VStack(alignment: .leading, spacing: 6) {
+                DisclosureGroup(isExpanded: Binding { !summaryHidden } set: { summaryHidden = !$0 }) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let summary = article.summary {
+                            let text = VStack(alignment: .leading, spacing: 4) {
+                                ForEach(Array(summary.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
+                                    MarkdownLine(line: line)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            // As tall as the text up to a limit, then scrolls, so the article stays in view.
+                            ScrollView { text }
+                                .scrollBounceBehavior(.basedOnSize)
+                                .scrollPosition($summaryScroll)
+                                .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.maxY < $0.contentSize.height - 1 } action: { _, hasMore in
+                                    summaryHasMore = hasMore
+                                }
+                                .frame(maxHeight: 220)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .mask {
+                                    VStack(spacing: 0) {
+                                        Rectangle()
+                                        LinearGradient(colors: [.black, .black.opacity(summaryHasMore ? 0 : 1)], startPoint: .top, endPoint: .bottom)
+                                            .frame(height: 32)
+                                    }
+                                }
+                                .overlay(alignment: .bottom) {
+                                    if summaryHasMore {
+                                        Button("Lire la suite du résumé", systemImage: "chevron.down") {
+                                            withAnimation { summaryScroll.scrollTo(edge: .bottom) }
+                                        }
+                                        .labelStyle(.iconOnly)
+                                        .buttonStyle(.borderless)
+                                        .help("Lire la suite du résumé")
+                                    }
+                                }
+                                .animation(.default, value: summaryHasMore)
+                        }
+                        if let error {
+                            Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled)
+                        }
+                        if Library.isExcerpt(article) {
+                            Text("Résumé de l'extrait fourni par le flux").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.top, 6)
+                } label: {
                     HStack {
-                        Button(summaryHidden ? "Afficher le résumé" : "Masquer le résumé",
-                               systemImage: summaryHidden ? "chevron.right" : "chevron.down") { summaryHidden.toggle() }
-                            .labelStyle(.iconOnly)
-                            .buttonStyle(.borderless)
-                            .help(summaryHidden ? "Afficher le résumé" : "Masquer le résumé")
-                            .accessibilityLabel(summaryHidden ? "Afficher le résumé" : "Masquer le résumé")
                         Text(summaryHeader).font(.caption).foregroundStyle(.secondary)
                         Spacer()
                         if isSummarizing {
@@ -160,50 +200,6 @@ struct ArticleDetailView: View {
                                     .accessibilityLabel("Supprimer le résumé")
                             }
                         }
-                    }
-                    if !summaryHidden {
-                    if let summary = article.summary {
-                        let text = VStack(alignment: .leading, spacing: 4) {
-                            ForEach(Array(summary.components(separatedBy: .newlines).enumerated()), id: \.offset) { _, line in
-                                MarkdownLine(line: line)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        // As tall as the text up to a limit, then scrolls, so the article stays in view.
-                        ScrollView { text }
-                            .scrollBounceBehavior(.basedOnSize)
-                            .scrollPosition($summaryScroll)
-                            .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.maxY < $0.contentSize.height - 1 } action: { _, hasMore in
-                                summaryHasMore = hasMore
-                            }
-                            .frame(maxHeight: 220)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .mask {
-                                VStack(spacing: 0) {
-                                    Rectangle()
-                                    LinearGradient(colors: [.black, .black.opacity(summaryHasMore ? 0 : 1)], startPoint: .top, endPoint: .bottom)
-                                        .frame(height: 32)
-                                }
-                            }
-                            .overlay(alignment: .bottom) {
-                                if summaryHasMore {
-                                    Button("Lire la suite du résumé", systemImage: "chevron.down") {
-                                        withAnimation { summaryScroll.scrollTo(edge: .bottom) }
-                                    }
-                                    .labelStyle(.iconOnly)
-                                    .buttonStyle(.borderless)
-                                    .help("Lire la suite du résumé")
-                                }
-                            }
-                            .animation(.default, value: summaryHasMore)
-                    }
-                    if let error {
-                        Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled)
-                    }
-                    if Library.isExcerpt(article) {
-                        Text("Résumé de l'extrait fourni par le flux").font(.caption).foregroundStyle(.secondary)
-                    }
                     }
                 }
                 .padding(4)
