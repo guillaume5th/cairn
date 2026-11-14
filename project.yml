@@ -7,6 +7,9 @@ options:
 packages:
   CairnCore:
     path: CairnCore
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.10.1
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -20,6 +23,7 @@ targets:
     sources: [App]
     dependencies:
       - package: CairnCore
+      - package: Sparkle
     info:
       path: Mac/Info.plist
       properties:
@@ -27,6 +31,12 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Default notification style: alerts stay on screen until clicked (the user can still pick banners).
         NSUserNotificationAlertStyle: alert
+        # Sparkle: the appcast is a file of the latest GitHub release; daily checks without asking first.
+        SUFeedURL: https://github.com/guillaume5th/cairn/releases/latest/download/appcast.xml
+        SUPublicEDKey: C5D91R2KSp/CwIli2HzinI/qFww79gbU+BWbbXYyBsw=
+        SUEnableAutomaticChecks: true
+        # Required by Sparkle in a sandboxed app (the download goes through network.client).
+        SUEnableInstallerLauncherService: true
         # feed: links from sites and browsers open "Ajouter un abonnement" with the address.
         CFBundleURLTypes:
           - CFBundleURLName: Feed
@@ -47,6 +57,10 @@ targets:
         com.apple.security.files.user-selected.read-write: true
         # Keeps access to the backup folder chosen once in Settings.
         com.apple.security.files.bookmarks.app-scope: true
+        # Sparkle's installer talks to the app through these services.
+        com.apple.security.temporary-exception.mach-lookup.global-name:
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
+          - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.cairn.Cairn

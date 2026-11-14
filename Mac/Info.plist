@@ -31,6 +31,14 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>NSUserNotificationAlertStyle</key>
 	<string>alert</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://github.com/guillaume5th/cairn/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>C5D91R2KSp/CwIli2HzinI/qFww79gbU+BWbbXYyBsw=</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>

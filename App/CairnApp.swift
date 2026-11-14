@@ -7,6 +7,7 @@ import SwiftUI
 struct CairnApp: App {
     @NSApplicationDelegateAdaptor private var delegate: AppDelegate
     @State private var state: AppState
+    @State private var updates = Updates()
 
     init() {
         do {
@@ -22,7 +23,7 @@ struct CairnApp: App {
                 // Autosave can lag behind the last edit: without this, a change made just before quitting is lost.
                 .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in state.save() }
         }
-        .commands { CairnCommands(state: state) }
+        .commands { CairnCommands(state: state, updates: updates) }
         Settings { SettingsView().environment(state) }
     }
 
@@ -49,12 +50,19 @@ enum TextScale {
 
 struct CairnCommands: Commands {
     let state: AppState
+    let updates: Updates
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
     @AppStorage(KeptEditor.shownKey) private var inspectorShown = true
     @AppStorage(ContentView.oldestFirstKey) private var oldestFirst = false
 
     var body: some Commands {
+        CommandGroup(after: .appInfo) {
+            if updates.isAvailable {
+                Button("Rechercher les mises à jour…") { updates.check() }
+                    .disabled(!updates.canCheck)
+            }
+        }
         CommandGroup(replacing: .newItem) {
             Button("Ajouter un abonnement…") { state.isAddingFeed = true }
                 .keyboardShortcut("n")
