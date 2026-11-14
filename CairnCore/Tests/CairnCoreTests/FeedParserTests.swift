@@ -44,6 +44,17 @@ struct FeedParserTests {
                                           content: "<p>Contenu JSON</p>")])
     }
 
+    @Test func rssWithStructuredAuthor() throws {
+        let xml = """
+        <rss version="2.0"><channel><title>Cloud</title><item><title>A</title><link>https://c.example/a</link>
+        <author xmlns:author="http://www.w3.org/2005/Atom"><name>X</name><title>PM</title></author>
+        <author xmlns:author="http://www.w3.org/2005/Atom"><name>Y</name></author></item></channel></rss>
+        """
+        let feed = try FeedParser.parse(Data(xml.utf8))
+        #expect(feed.title == "Cloud")
+        #expect(feed.items.map(\.title) == ["A"], "the item keeps its own title, not the author's")
+    }
+
     @Test func notAFeed() {
         #expect(throws: CairnError.notAFeed) { try FeedParser.parse(Data("<html></html>".utf8)) }
     }

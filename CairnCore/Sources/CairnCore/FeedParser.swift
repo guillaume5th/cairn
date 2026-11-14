@@ -27,7 +27,12 @@ public enum FeedParser {
         do {
             feed = try FeedKit.Feed(data: data)
         } catch {
-            throw CairnError.notAFeed
+            // FeedKit decodes RSS <author> as text and rejects the whole feed when a site nests elements in it
+            // (Google Cloud blog); Cairn never reads authors, so retry without them.
+            guard let stripped = withoutAuthors(data), let retried = try? FeedKit.Feed(data: stripped) else {
+                throw CairnError.notAFeed
+            }
+            feed = retried
         }
 
         let title: String?
@@ -92,6 +97,13 @@ public enum FeedParser {
         if let type = clean(type) { return type.lowercased().hasPrefix("audio/") }
         guard let url = clean(url).flatMap(URL.init(string:)) else { return false }
         return ["mp3", "m4a", "aac", "ogg", "opus", "wav"].contains(url.pathExtension.lowercased())
+    }
+
+    /// The UTF-8 feed without its `<author>` elements; nil when there are none or the data is not UTF-8.
+    static func withoutAuthors(_ data: Data) -> Data? {
+        guard let xml = String(data: data, encoding: .utf8) else { return nil }
+        let stripped = xml.replacing(/(?s)<author\b[^>]*>.*?<\/author>/, with: "")
+        return stripped == xml ? nil : Data(stripped.utf8)
     }
 
     private static func clean(_ s: String?) -> String? {
