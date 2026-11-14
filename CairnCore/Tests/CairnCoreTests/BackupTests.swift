@@ -40,6 +40,7 @@ struct BackupTests {
                              content: "<p>Neuf</p>", sourceTitle: "Blog RSS")
         context.insert(unread)
         unread.feed = feed
+        Library.readLater(unread, now: fixtureNow)
         let orphan = Article(externalID: "o1", link: "https://gone.test/o1", title: "Orphelin", publishedAt: fixtureNow,
                              content: nil, sourceTitle: "Disparu")
         context.insert(orphan)
@@ -82,6 +83,15 @@ struct BackupTests {
         #expect(read.isRead && !read.isKept && read.cairn == nil && read.feed === feed)
         let unread = try #require(articles.first { $0.externalID == "a3" })
         #expect(!unread.isRead && !unread.isKept && unread.content == "<p>Neuf</p>")
+        #expect(unread.isQueued && unread.readLaterAt == fixtureNow && !read.isQueued)
+    }
+
+    @Test func backupWithoutReadLaterDecodes() throws {
+        let data = try Library.makeBackup(context: try populated(), settings: [:]).encoded()
+        var json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        json["articles"] = (json["articles"] as? [[String: Any]])?.map { $0.filter { $0.key != "readLaterAt" } }
+        let backup = try Backup.decode(try JSONSerialization.data(withJSONObject: json))
+        #expect(backup.articles.allSatisfy { $0.readLaterAt == nil })
     }
 
     @Test func restoreReplacesExistingData() throws {

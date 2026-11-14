@@ -6,6 +6,8 @@ enum SidebarItem: Hashable, Codable {
     case all
     /// Articles published since local midnight.
     case today
+    /// The read-later queue.
+    case readLater
     case digests
     case cairn(PersistentIdentifier)
     /// A tag shown under a cairn: the cairn, then the tag key.
@@ -354,6 +356,7 @@ struct ContentView: View {
         return switch memory.item {
         case .all, nil: "Tous les articles"
         case .today: "Aujourd'hui"
+        case .readLater: "Lire plus tard"
         case .digests: "Résumés quotidiens"
         case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
         case let .tag(_, key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
@@ -375,6 +378,9 @@ struct ContentView: View {
         case .all, nil: Library.withoutDuplicates(articles)
         // shortcut: not recomputed at midnight by itself, only on the next change; add a day timer if that matters.
         case .today: Library.withoutDuplicates(articles.filter { $0.publishedAt >= Calendar.current.startOfDay(for: .now) })
+        // The article being read stays listed until another one is picked or the entry left.
+        case .readLater: articles.filter { $0.isQueued || $0.persistentModelID == pickedID || multiArticles.contains($0.persistentModelID) }
+            .sorted { ($0.readLaterAt ?? .distantPast) > ($1.readLaterAt ?? .distantPast) }
         case .digests: []
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
         case let .folder(id): Library.withoutDuplicates(articles.filter { $0.feed?.folder?.persistentModelID == id })

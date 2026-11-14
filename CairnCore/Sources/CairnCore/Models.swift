@@ -68,6 +68,11 @@ public final class Article {
     public var showsFeedContent: Bool = false
     /// Audio file of a podcast episode.
     public var audioURL: String?
+    /// When the article was put in the « Lire plus tard » queue; left set once read (see `isQueued`).
+    public var readLaterAt: Date?
+
+    /// In the queue: added and still unread, so reading it from anywhere takes it out.
+    public var isQueued: Bool { readLaterAt != nil && !isRead }
 
     public init(externalID: String, link: String, title: String, publishedAt: Date, content: String?, sourceTitle: String) {
         self.externalID = externalID

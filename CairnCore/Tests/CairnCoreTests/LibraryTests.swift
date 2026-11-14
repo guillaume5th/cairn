@@ -344,6 +344,37 @@ struct CairnTests {
         #expect(ids == ["oldKept", "recent"])
     }
 
+    @Test func purgeSparesUnreadQueuedArticles() throws {
+        let context = try makeContext()
+        Library.readLater(article("queued", daysAgo: 31, context: context))
+        let read = article("queuedRead", daysAgo: 31, context: context)
+        Library.readLater(read)
+        read.isRead = true
+
+        try Library.purge(context: context, now: fixtureNow)
+
+        #expect(try context.fetch(FetchDescriptor<Article>()).map(\.externalID) == ["queued"])
+    }
+
+    @Test func readLaterQueueFollowsReadState() throws {
+        let context = try makeContext()
+        let a = article("a", daysAgo: 1, context: context)
+        a.isRead = true
+        Library.readLater(a, now: fixtureNow)
+        #expect(a.isQueued && !a.isRead && a.readLaterAt == fixtureNow && !a.isKept)
+
+        Library.readLater(a, now: fixtureNow.addingTimeInterval(60)) // already queued: keeps its place
+        #expect(a.readLaterAt == fixtureNow)
+
+        a.isRead = true
+        #expect(!a.isQueued)
+        a.isRead = false
+        #expect(a.isQueued && a.readLaterAt == fixtureNow)
+
+        Library.removeFromReadLater(a)
+        #expect(!a.isQueued && !a.isRead)
+    }
+
     @Test func unkeepClearsNoteAndTags() throws {
         let context = try makeContext()
         let a = article("a", daysAgo: 1, context: context)

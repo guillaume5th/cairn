@@ -50,6 +50,8 @@ public struct Backup: Codable, Equatable, Sendable {
         public var fullContentFetchedAt: Date?
         public var showsFeedContent: Bool
         public var audioURL: String?
+        /// Absent from backups made before the read-later queue.
+        public var readLaterAt: Date?
     }
 
     public enum SettingValue: Codable, Equatable, Sendable {
@@ -111,7 +113,8 @@ extension Library {
                       tags: (article.tags ?? []).map(\.name).sorted(), summary: article.summary,
                       summaryDate: article.summaryDate, summaryEngine: article.summaryEngine,
                       fullContent: article.fullContent, fullContentFetchedAt: article.fullContentFetchedAt,
-                      showsFeedContent: article.showsFeedContent, audioURL: article.audioURL)
+                      showsFeedContent: article.showsFeedContent, audioURL: article.audioURL,
+                      readLaterAt: article.readLaterAt)
             },
             settings: settings)
     }
@@ -184,6 +187,7 @@ extension Library {
             article.fullContentFetchedAt = entry.fullContentFetchedAt
             article.showsFeedContent = entry.showsFeedContent
             article.audioURL = entry.audioURL
+            article.readLaterAt = entry.readLaterAt
         }
         try ensureCairn(context: context)
     }

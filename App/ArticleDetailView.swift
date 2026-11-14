@@ -278,6 +278,22 @@ struct KeepButton: View {
     }
 }
 
+/// Adds to or removes from the read-later queue: removes when every article is queued, else queues the others.
+struct ReadLaterButton: View {
+    let articles: [Article]
+
+    var body: some View {
+        let allQueued = !articles.isEmpty && articles.allSatisfy(\.isQueued)
+        Button(allQueued ? "Retirer de Lire plus tard" : "Lire plus tard",
+               systemImage: "eyeglasses") {
+            for article in articles {
+                if allQueued { Library.removeFromReadLater(article) } else { Library.readLater(article) }
+            }
+        }
+        .help(allQueued ? "Retirer de Lire plus tard" : "Lire plus tard")
+    }
+}
+
 extension View {
     /// Confirms unkeeping articles of which at least one has a note or tags, which are lost.
     func unkeepConfirmation(_ articles: Binding<[Article]>) -> some View {
@@ -347,6 +363,9 @@ struct ArticleMenuItems: View {
             // ⇧⌘L and ⇧⌘U as Mail's Flag and Mark as Unread.
             KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
                 .keyboardShortcut("l", modifiers: [.command, .shift])
+            // ⇧⌘D as Safari's Add to Reading List.
+            ReadLaterButton(articles: articles)
+                .keyboardShortcut("d", modifiers: [.command, .shift])
             // Same symbols as the reader toolbar.
             Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
                    systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") { for article in articles { article.isRead = anyUnread } }
@@ -464,6 +483,7 @@ struct ReaderToolbar<Reading: View>: ToolbarContent {
             reading
             Group {
                 KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
+                ReadLaterButton(articles: articles)
                 // The filled dot the list shows on unread rows.
                 Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
                        systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {

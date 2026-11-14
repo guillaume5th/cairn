@@ -195,11 +195,11 @@ public enum Library {
         return (articles[start...] + articles[..<start]).first { !$0.isRead && $0.persistentModelID != current }
     }
 
-    /// Deletes non-kept articles published before the retention window.
+    /// Deletes non-kept articles published before the retention window, except unread ones in the read-later queue.
     public static func purge(context: ModelContext, now: Date = .now) throws {
         let cutoff = Retention.cutoff(now: now)
         let old = try context.fetch(FetchDescriptor<Article>(predicate: #Predicate { !$0.isKept && $0.publishedAt < cutoff }))
-        for article in old {
+        for article in old where !article.isQueued {
             context.delete(article)
         }
     }
@@ -372,6 +372,16 @@ public enum Library {
             article.keptAt = now
         }
         article.cairn = cairn
+    }
+
+    /// Puts the article in the read-later queue, unread; one already queued keeps its place.
+    public static func readLater(_ article: Article, now: Date = .now) {
+        if !article.isQueued { article.readLaterAt = now }
+        article.isRead = false
+    }
+
+    public static func removeFromReadLater(_ article: Article) {
+        article.readLaterAt = nil
     }
 
     /// Drops the note and tags (the UI confirms first when there are some).
