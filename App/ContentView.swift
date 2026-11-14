@@ -118,6 +118,7 @@ struct ContentView: View {
         .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil; isSelectionModeOn = false }
         .onChange(of: memory) { memory.save() }
         .onChange(of: state.digestToOpen, initial: true) { openNotifiedDigest() }
+        .onChange(of: state.keptArticleToOpen, initial: true) { openSpotlightResult() }
         .onChange(of: state.isSearchRequested) {
             guard state.isSearchRequested else { return }
             state.isSearchRequested = false
@@ -263,6 +264,16 @@ struct ContentView: View {
                 memory.articles[.digests] = ids.first
             }
         }
+    }
+
+    /// Shows a kept article chosen in Spotlight, in its cairn.
+    private func openSpotlightResult() {
+        guard let link = state.keptArticleToOpen else { return }
+        state.keptArticleToOpen = nil
+        guard let article = articles.first(where: { $0.isKept && $0.link == link }), let cairn = article.cairn else { return }
+        multiFeeds = []
+        memory.item = .cairn(cairn.persistentModelID)
+        memory.articles[.cairn(cairn.persistentModelID)] = article.persistentModelID
     }
 
     /// Shows the digest of a tapped notification: the "Résumés quotidiens" entry, that digest selected.

@@ -1,3 +1,4 @@
+import CoreSpotlight
 import CairnCore
 import SwiftData
 import SwiftUI
@@ -32,7 +33,7 @@ struct CairnApp: App {
         }
             .environment(state)
             .modelContainer(state.container)
-            .task { await state.launch() }
+            .task { delegate.state = state; await state.launch() }
     }
 }
 
@@ -98,5 +99,16 @@ struct CairnCommands: Commands {
 
 /// Closing the window keeps the app (and its daily digest) running, like Mail; the Dock icon reopens it.
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    weak var state: AppState?
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
+
+    /// A kept article chosen in Spotlight (SwiftUI's onContinueUserActivity is not called for a Window scene).
+    func application(_ application: NSApplication, continue userActivity: NSUserActivity,
+                     restorationHandler: @escaping ([any NSUserActivityRestoring]) -> Void) -> Bool {
+        guard userActivity.activityType == CSSearchableItemActionType,
+              let link = userActivity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return false }
+        state?.keptArticleToOpen = link
+        return true
+    }
 }

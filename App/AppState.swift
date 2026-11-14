@@ -31,6 +31,8 @@ final class AppState {
     @ObservationIgnored private var fullContentQueue: [PersistentIdentifier] = []
     /// Set by a tap on a "digest ready" notification; the window opens that digest, then clears it.
     var digestToOpen: PersistentIdentifier?
+    /// Link of the kept article chosen in Spotlight, to show in its cairn.
+    var keptArticleToOpen: String?
     @ObservationIgnored private let notificationHandler = DigestNotifications.Handler()
     /// The window's `.task` runs again each time the window is reopened; the launch work must happen once.
     @ObservationIgnored private var launched = false
@@ -65,6 +67,13 @@ final class AppState {
             try Library.purgeDigests(context: context, olderThan: DigestSettings.retention)
         } catch {
             message = "La purge des anciens articles a échoué : \(error.localizedDescription)"
+        }
+        // Spotlight follows every save; the first update fills the index.
+        Task {
+            await Spotlight.update(context: context)
+            for await _ in NotificationCenter.default.notifications(named: ModelContext.didSave, object: context) {
+                Spotlight.scheduleUpdate(context: context)
+            }
         }
         // The badge is on by default: macOS asks for its authorization once, at the first launch.
         if UserDefaults.standard.object(forKey: Self.dockBadgeKey) as? Bool ?? true {
