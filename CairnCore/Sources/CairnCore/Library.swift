@@ -91,10 +91,11 @@ public enum Library {
         let feeds = try context.fetch(FetchDescriptor<Feed>())
         let results = await fetcher.fetchAll(feeds.map(\.url))
         var added: [Feed: Int] = [:]
+        var links = try knownLinks(context: context)
         for feed in feeds where !feed.isDeleted {
             switch results[feed.url] {
             case let .success(parsed):
-                let count = ingest(parsed, into: feed, context: context, now: now)
+                let count = ingest(parsed, into: feed, knownLinks: &links, context: context, now: now)
                 if count > 0 { added[feed] = count }
             case let .failure(error): feed.lastError = error.localizedDescription
             case nil: break
@@ -107,6 +108,14 @@ public enum Library {
     /// so read/kept/note/tags survive. Items older than the retention window are skipped.
     @discardableResult
     public static func ingest(_ parsed: ParsedFeed, into feed: Feed, context: ModelContext, now: Date = .now) -> Int {
+        var links = (try? knownLinks(context: context)) ?? []
+        return ingest(parsed, into: feed, knownLinks: &links, context: context, now: now)
+    }
+
+    /// `knownLinks` holds the `linkKey` of every stored article; an item whose link is already in it is a duplicate
+    /// from another feed and is inserted read. Inserted links are added to it.
+    @discardableResult
+    static func ingest(_ parsed: ParsedFeed, into feed: Feed, knownLinks: inout Set<String>, context: ModelContext, now: Date) -> Int {
         let cutoff = Retention.cutoff(now: now)
         var known = Set((feed.articles ?? []).map(\.externalID))
         var added = 0
@@ -118,12 +127,44 @@ public enum Library {
             context.insert(article)
             article.feed = feed
             article.audioURL = item.audioURL
+            if let key = linkKey(item.link), !knownLinks.insert(key).inserted { article.isRead = true }
             added += 1
         }
         feed.lastError = nil
         feed.siteURLHint = parsed.siteURL
         feed.iconURLHint = parsed.iconURL
         return added
+    }
+
+    static func knownLinks(context: ModelContext) throws -> Set<String> {
+        Set(try context.fetch(FetchDescriptor<Article>()).compactMap { linkKey($0.link) })
+    }
+
+    // MARK: Duplicates
+
+    /// Identity of an article's link across feeds: scheme, `www.`, host case, trailing `/`, fragment and `utm_*`
+    /// parameters ignored. Nil for an empty or host-less link, which is never a duplicate.
+    public static func linkKey(_ link: String) -> String? {
+        guard let parts = URLComponents(string: link.trimmingCharacters(in: .whitespacesAndNewlines)),
+              var host = parts.host?.lowercased(), !host.isEmpty else { return nil }
+        if host.hasPrefix("www.") { host.removeFirst(4) }
+        var path = parts.percentEncodedPath
+        while path.hasSuffix("/") { path.removeLast() }
+        let query = (parts.percentEncodedQuery ?? "").split(separator: "&").filter { !$0.lowercased().hasPrefix("utm_") }
+        return host + (parts.port.map { ":\($0)" } ?? "") + path + (query.isEmpty ? "" : "?" + query.joined(separator: "&"))
+    }
+
+    /// One article per `linkKey`, in the given order: the kept copy, else an unread one, else the first.
+    public static func withoutDuplicates(_ articles: [Article]) -> [Article] {
+        func rank(_ article: Article) -> Int { article.isKept ? 0 : article.isRead ? 2 : 1 }
+        let keys = articles.map { linkKey($0.link) }
+        var best: [String: Article] = [:]
+        for (article, key) in zip(articles, keys) {
+            guard let key else { continue }
+            if let current = best[key], rank(current) <= rank(article) { continue }
+            best[key] = article
+        }
+        return zip(articles, keys).filter { article, key in key.map { best[$0] === article } ?? true }.map(\.0)
     }
 
     // MARK: Icons
@@ -175,8 +216,9 @@ public enum Library {
     /// Articles published in the 24 hours before `now`, newest first.
     public static func digestArticles(context: ModelContext, now: Date = .now) throws -> [Article] {
         let start = now.addingTimeInterval(-86_400)
-        return try context.fetch(FetchDescriptor<Article>(predicate: #Predicate { $0.publishedAt > start && $0.publishedAt <= now },
-                                                          sortBy: [SortDescriptor(\.publishedAt, order: .reverse)]))
+        return withoutDuplicates(try context.fetch(FetchDescriptor<Article>(
+            predicate: #Predicate { $0.publishedAt > start && $0.publishedAt <= now },
+            sortBy: [SortDescriptor(\.publishedAt, order: .reverse)])))
     }
 
     public static func digestItems(for articles: [Article]) -> [DigestItem] {

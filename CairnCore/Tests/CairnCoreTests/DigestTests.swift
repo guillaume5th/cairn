@@ -57,6 +57,16 @@ struct DigestTests {
         #expect(titles == ["une", "vingt-trois"])
     }
 
+    @Test func digestListsALinkOnce() throws {
+        let context = try makeContext()
+        let first = article("une", hoursAgo: 1, context: context)
+        let copy = article("copie", hoursAgo: 2, context: context)
+        copy.link = "http://www.a.test/une/"
+        copy.isRead = true
+        let titles = try Library.digestArticles(context: context, now: fixtureNow).map(\.title)
+        #expect(titles == [first.title])
+    }
+
     @Test func promptWithinBudget() throws {
         let context = try makeContext()
         let short = article("Court", hoursAgo: 1, content: "<p>Un texte bref.</p>", context: context)

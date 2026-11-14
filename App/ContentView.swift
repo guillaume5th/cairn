@@ -369,15 +369,15 @@ struct ContentView: View {
 
     private var visibleArticles: [Article] {
         var list: [Article] = if isMultiFeed {
-            articles.filter { $0.feed.map { multiFeeds.contains($0.persistentModelID) } ?? false }
+            Library.withoutDuplicates(articles.filter { $0.feed.map { multiFeeds.contains($0.persistentModelID) } ?? false })
         } else {
             switch memory.item {
-        case .all, nil: articles
+        case .all, nil: Library.withoutDuplicates(articles)
         // shortcut: not recomputed at midnight by itself, only on the next change; add a day timer if that matters.
-        case .today: articles.filter { $0.publishedAt >= Calendar.current.startOfDay(for: .now) }
+        case .today: Library.withoutDuplicates(articles.filter { $0.publishedAt >= Calendar.current.startOfDay(for: .now) })
         case .digests: []
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
-        case let .folder(id): articles.filter { $0.feed?.folder?.persistentModelID == id }
+        case let .folder(id): Library.withoutDuplicates(articles.filter { $0.feed?.folder?.persistentModelID == id })
         case let .cairn(id): kept(in: id)
         case let .tag(id, key): kept(in: id).filter { $0.tags?.contains { $0.key == key } ?? false }
             }
