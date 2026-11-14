@@ -51,6 +51,9 @@ struct SidebarView: View {
                 .tag(SidebarItem.all)
                 // Reading and marking change it while the window is open; refresh() covers the closed window.
                 .onChange(of: unreadArticles.count) { state.updateBadge(unread: unreadArticles.count) }
+            Label("Aujourd'hui", systemImage: "sun.max")
+                .badge(unreadArticles.count { $0.publishedAt >= Calendar.current.startOfDay(for: .now) })
+                .tag(SidebarItem.today)
             Label("Résumés quotidiens", systemImage: "text.append")
                 .tag(SidebarItem.digests)
 

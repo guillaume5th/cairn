@@ -4,6 +4,8 @@ import SwiftUI
 
 enum SidebarItem: Hashable, Codable {
     case all
+    /// Articles published since local midnight.
+    case today
     case digests
     case cairn(PersistentIdentifier)
     /// A tag shown under a cairn: the cairn, then the tag key.
@@ -291,6 +293,7 @@ struct ContentView: View {
         if isMultiFeed { return "\(multiFeeds.count) abonnements" }
         return switch memory.item {
         case .all, nil: "Tous les articles"
+        case .today: "Aujourd'hui"
         case .digests: "Résumés quotidiens"
         case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
         case let .tag(_, key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
@@ -310,6 +313,8 @@ struct ContentView: View {
         } else {
             switch memory.item {
         case .all, nil: articles
+        // shortcut: not recomputed at midnight by itself, only on the next change; add a day timer if that matters.
+        case .today: articles.filter { $0.publishedAt >= Calendar.current.startOfDay(for: .now) }
         case .digests: []
         case let .feed(id): articles.filter { $0.feed?.persistentModelID == id }
         case let .folder(id): articles.filter { $0.feed?.folder?.persistentModelID == id }
