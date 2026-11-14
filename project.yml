@@ -53,6 +53,8 @@ targets:
       path: App/Cairn.entitlements
       properties:
         com.apple.security.app-sandbox: true
+        # Ad-hoc signing + hardened runtime: without this, dyld refuses the embedded Sparkle.framework (no Team ID to match).
+        com.apple.security.cs.disable-library-validation: true
         com.apple.security.network.client: true
         com.apple.security.files.user-selected.read-write: true
         # Keeps access to the backup folder chosen once in Settings.
