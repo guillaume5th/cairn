@@ -16,6 +16,7 @@ struct BackupTests {
         feed.loadsFullContentSince = fixtureNow
         feed.iconData = Data([1, 2, 3])
         feed.iconCheckedAt = fixtureNow
+        feed.notifiesNewArticles = true
         let reading = try Library.createCairn(named: "Lectures", context: context)
         let kept = Article(externalID: "a1", link: "https://rss.test/a1", title: "Gardé", publishedAt: fixtureNow,
                            content: "<p>Texte</p>", sourceTitle: "Blog RSS")
@@ -65,6 +66,7 @@ struct BackupTests {
         #expect(feed.folder?.name == "Tech")
         #expect(feed.loadsFullContentSince == fixtureNow)
         #expect(feed.iconData == Data([1, 2, 3]) && feed.iconCheckedAt == fixtureNow)
+        #expect(feed.notifiesNewArticles)
         #expect(Set(try target.fetch(FetchDescriptor<Cairn>()).map(\.name)) == ["Lectures"])
         let articles = try target.fetch(FetchDescriptor<Article>())
         let kept = try #require(articles.first { $0.externalID == "a1" })

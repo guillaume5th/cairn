@@ -119,6 +119,7 @@ struct ContentView: View {
         .onChange(of: memory) { memory.save() }
         .onChange(of: state.digestToOpen, initial: true) { openNotifiedDigest() }
         .onChange(of: state.keptArticleToOpen, initial: true) { openSpotlightResult() }
+        .onChange(of: state.feedToOpen, initial: true) { openNotifiedFeed() }
         .onChange(of: state.isSearchRequested) {
             guard state.isSearchRequested else { return }
             state.isSearchRequested = false
@@ -264,6 +265,15 @@ struct ContentView: View {
                 memory.articles[.digests] = ids.first
             }
         }
+    }
+
+    /// Shows the feed of a tapped "new articles" notification, when it still exists.
+    private func openNotifiedFeed() {
+        guard let id = state.feedToOpen else { return }
+        state.feedToOpen = nil
+        guard let feed = feeds.first(where: { $0.persistentModelID == id }) else { return }
+        multiFeeds = []
+        memory.item = .feed(feed.persistentModelID)
     }
 
     /// Shows a kept article chosen in Spotlight, in its cairn.

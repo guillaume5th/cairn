@@ -127,11 +127,13 @@ struct IngestionTests {
         context.insert(bad)
         good.lastError = "ancienne erreur"
 
-        try await Library.refreshAll(context: context, fetcher: stubFetcher, now: fixtureNow)
+        let added = try await Library.refreshAll(context: context, fetcher: stubFetcher, now: fixtureNow)
 
         #expect(good.lastError == nil)
         #expect(good.articles?.count == 2)
         #expect(bad.lastError != nil)
+        #expect(added == [good: 2])
+        #expect(try await Library.refreshAll(context: context, fetcher: stubFetcher, now: fixtureNow).isEmpty)
     }
 
     @Test func fetchBypassesLocalCache() async throws {

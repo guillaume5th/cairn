@@ -23,6 +23,8 @@ public final class Feed {
     /// When "Toujours charger les articles complets" was turned on; nil when off. Articles published since then get
     /// their full text loaded after each refresh.
     public var loadsFullContentSince: Date?
+    /// "Notifier les nouveaux articles": a notification after each refresh that adds articles.
+    public var notifiesNewArticles: Bool = false
 
     public init(url: String, title: String) {
         self.url = url

@@ -85,16 +85,22 @@ public enum Library {
     // MARK: Fetching
 
     @MainActor
-    public static func refreshAll(context: ModelContext, fetcher: FeedFetcher, now: Date = .now) async throws {
+    /// Returns the number of articles added to each feed that got some.
+    @discardableResult
+    public static func refreshAll(context: ModelContext, fetcher: FeedFetcher, now: Date = .now) async throws -> [Feed: Int] {
         let feeds = try context.fetch(FetchDescriptor<Feed>())
         let results = await fetcher.fetchAll(feeds.map(\.url))
+        var added: [Feed: Int] = [:]
         for feed in feeds where !feed.isDeleted {
             switch results[feed.url] {
-            case let .success(parsed): ingest(parsed, into: feed, context: context, now: now)
+            case let .success(parsed):
+                let count = ingest(parsed, into: feed, context: context, now: now)
+                if count > 0 { added[feed] = count }
             case let .failure(error): feed.lastError = error.localizedDescription
             case nil: break
             }
         }
+        return added
     }
 
     /// Inserts the items not yet known for this feed. Existing articles are never touched,

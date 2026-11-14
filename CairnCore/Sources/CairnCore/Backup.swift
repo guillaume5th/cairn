@@ -23,6 +23,8 @@ public struct Backup: Codable, Equatable, Sendable {
         public var loadsFullContentSince: Date?
         public var iconData: Data?
         public var iconCheckedAt: Date?
+        /// Absent from backups made before the option existed.
+        public var notifiesNewArticles: Bool?
     }
 
     /// An article, linked to its feed by URL (nil when the feed was deleted) and, when kept, to its cairn by name.
@@ -96,7 +98,7 @@ extension Library {
             createdAt: now,
             feeds: feeds.map { .init(url: $0.url, title: $0.title, folder: $0.folder?.name, addedAt: $0.addedAt,
                                      loadsFullContentSince: $0.loadsFullContentSince, iconData: $0.iconData,
-                                     iconCheckedAt: $0.iconCheckedAt) },
+                                     iconCheckedAt: $0.iconCheckedAt, notifiesNewArticles: $0.notifiesNewArticles) },
             folders: try context.fetch(FetchDescriptor<Folder>(sortBy: [SortDescriptor(\.name)])).map(\.name),
             cairns: try context.fetch(FetchDescriptor<Cairn>(sortBy: [SortDescriptor(\.name)])).map(\.name),
             articles: articles.map { article in
@@ -150,6 +152,7 @@ extension Library {
             feed.loadsFullContentSince = entry.loadsFullContentSince
             feed.iconData = entry.iconData
             feed.iconCheckedAt = entry.iconCheckedAt
+            feed.notifiesNewArticles = entry.notifiesNewArticles ?? false
             feed.folder = entry.folder.map(folder(named:))
             feeds[entry.url] = feed
         }

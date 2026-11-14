@@ -3,9 +3,10 @@ import SwiftData
 import SwiftUI
 import UserNotifications
 
-/// The "digest ready" notification and the way back from it to the digest.
+/// The "digest ready" and "new articles" notifications, and the way back from them to the digest or the feed.
 enum DigestNotifications {
     static let digestKey = "digest"
+    static let feedKey = "feed"
 
     /// One request for everything Cairn may use: the system asks only once, so options added later would never be shown.
     /// The Dock badge needs `.badge`: without it macOS hides `dockTile.badgeLabel`.
@@ -32,6 +33,20 @@ enum DigestNotifications {
         try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }
 
+    /// Posted after a refresh that added articles to a feed set to notify; the feed's identifier rides along to open it.
+    @MainActor
+    static func post(newArticles count: Int, in feed: Feed) async {
+        let content = UNMutableNotificationContent()
+        content.title = feed.title
+        let newest = feed.articles?.max { $0.publishedAt < $1.publishedAt }?.title ?? ""
+        content.body = count == 1 ? newest : "\(count) nouveaux articles · \(newest)"
+        content.sound = .default
+        if let id = try? JSONEncoder().encode(feed.persistentModelID) {
+            content.userInfo = [feedKey: id.base64EncodedString()]
+        }
+        try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+    }
+
     /// First line with words, without Markdown marks: the gist for the notification's body.
     static func headline(of text: String) -> String {
         let line = text.split(whereSeparator: \.isNewline).lazy
@@ -40,24 +55,33 @@ enum DigestNotifications {
         return line.replacingOccurrences(of: "**", with: "")
     }
 
-    /// Receives the tap on a notification and hands its digest to the app state.
+    /// Receives the tap on a notification and hands its digest or feed to the app state.
     @MainActor
     final class Handler: NSObject, UNUserNotificationCenterDelegate {
         weak var state: AppState?
 
         nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
-            guard let encoded = response.notification.request.content.userInfo[DigestNotifications.digestKey] as? String,
-                  let data = Data(base64Encoded: encoded),
-                  let id = try? JSONDecoder().decode(PersistentIdentifier.self, from: data) else { return }
-            await open(id)
+            let info = response.notification.request.content.userInfo
+            func id(_ key: String) -> PersistentIdentifier? {
+                (info[key] as? String).flatMap { Data(base64Encoded: $0) }
+                    .flatMap { try? JSONDecoder().decode(PersistentIdentifier.self, from: $0) }
+            }
+            if let digest = id(DigestNotifications.digestKey) { await open(digest: digest) }
+            else if let feed = id(DigestNotifications.feedKey) { await open(feed: feed) }
         }
 
         /// Not posted while the app is in front; should one arrive then, the list shows the digest already.
         nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification) async
             -> UNNotificationPresentationOptions { [] }
 
-        private func open(_ id: PersistentIdentifier) {
+        private func open(digest id: PersistentIdentifier) {
             state?.digestToOpen = id
+            // A closed window comes back like after a click on the Dock icon.
+            NSWorkspace.shared.open(Bundle.main.bundleURL)
+        }
+
+        private func open(feed id: PersistentIdentifier) {
+            state?.feedToOpen = id
             // A closed window comes back like after a click on the Dock icon.
             NSWorkspace.shared.open(Bundle.main.bundleURL)
         }

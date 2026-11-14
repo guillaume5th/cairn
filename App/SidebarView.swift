@@ -235,6 +235,12 @@ struct SidebarView: View {
             } set: { isOn in
                 for feed in lot { feed.loadsFullContentSince = isOn ? (feed.loadsFullContentSince ?? .now) : nil }
             })
+            Toggle("Notifier les nouveaux articles", systemImage: "bell", isOn: Binding {
+                lot.allSatisfy(\.notifiesNewArticles)
+            } set: { isOn in
+                for feed in lot { feed.notifiesNewArticles = isOn }
+                if isOn { Task { _ = await DigestNotifications.requestAuthorization() } }
+            })
             Divider()
             Button(lot.count == 1 ? "Supprimer l'abonnement…" : "Supprimer \(lot.count) abonnements…", systemImage: "trash", role: .destructive) {
                 feedsToDelete = lot

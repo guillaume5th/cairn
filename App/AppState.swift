@@ -31,6 +31,8 @@ final class AppState {
     @ObservationIgnored private var fullContentQueue: [PersistentIdentifier] = []
     /// Set by a tap on a "digest ready" notification; the window opens that digest, then clears it.
     var digestToOpen: PersistentIdentifier?
+    /// Feed of a tapped "new articles" notification.
+    var feedToOpen: PersistentIdentifier?
     /// Link of the kept article chosen in Spotlight, to show in its cairn.
     var keptArticleToOpen: String?
     @ObservationIgnored private let notificationHandler = DigestNotifications.Handler()
@@ -208,8 +210,11 @@ final class AppState {
         isRefreshing = true
         defer { isRefreshing = false }
         do {
-            try await Library.refreshAll(context: context, fetcher: fetcher)
+            let added = try await Library.refreshAll(context: context, fetcher: fetcher)
             try context.save()
+            for (feed, count) in added where feed.notifiesNewArticles {
+                await DigestNotifications.post(newArticles: count, in: feed)
+            }
         } catch {
             message = error.localizedDescription
         }
