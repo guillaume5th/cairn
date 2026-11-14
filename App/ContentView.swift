@@ -338,6 +338,23 @@ struct ArticleListView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
+        ScrollViewReader { proxy in list.onKeyPress(keys: [.space, "n"]) { _ in openNextUnread(proxy) } }
+    }
+
+    /// Space or N, while the list has the focus (the article and text fields keep their own Space).
+    private func openNextUnread(_ proxy: ScrollViewProxy) -> KeyPress.Result {
+        guard !isSelecting else { return .ignored }
+        let current = selection.count == 1 ? selection.first : nil
+        guard let next = Library.nextUnread(after: current, in: articles) else {
+            NSSound.beep()
+            return .handled
+        }
+        selection = [next.persistentModelID] // as a click: remembered and marked read
+        proxy.scrollTo(next.persistentModelID)
+        return .handled
+    }
+
+    private var list: some View {
         List(articles, selection: listSelection) { article in
             HStack(spacing: 10) {
                 if isSelecting { SelectionMark(isTicked: selection.contains(article.persistentModelID)) }

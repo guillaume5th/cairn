@@ -417,3 +417,31 @@ struct CairnTests {
         #expect(Library.matchRanges(of: "MOT1", in: "mot1 Mot10 mot2").count == 2)
     }
 }
+
+@MainActor
+struct NextUnreadTests {
+    private func articles(_ read: [Bool]) throws -> [Article] {
+        let context = try makeContext()
+        let list = read.enumerated().map { index, isRead in
+            let article = Article(externalID: "\(index)", link: "", title: "\(index)", publishedAt: fixtureNow, content: nil, sourceTitle: "")
+            article.isRead = isRead
+            context.insert(article)
+            return article
+        }
+        try context.save()
+        return list
+    }
+
+    @Test func afterCurrentThenWrapping() throws {
+        let list = try articles([false, true, true, false, true])
+        #expect(Library.nextUnread(after: list[1].persistentModelID, in: list) === list[3])
+        #expect(Library.nextUnread(after: list[3].persistentModelID, in: list) === list[0])
+        #expect(Library.nextUnread(after: nil, in: list) === list[0])
+    }
+
+    @Test func noneLeft() throws {
+        let list = try articles([true, false, true])
+        #expect(Library.nextUnread(after: list[1].persistentModelID, in: list) == nil)
+        #expect(Library.nextUnread(after: nil, in: try articles([true, true])) == nil)
+    }
+}

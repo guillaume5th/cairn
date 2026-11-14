@@ -135,6 +135,12 @@ public enum Library {
 
     // MARK: Reading
 
+    /// The first unread article after `current` in `articles`, wrapping to the top; nil when none but `current` is unread.
+    public static func nextUnread(after current: PersistentIdentifier?, in articles: [Article]) -> Article? {
+        let start = articles.firstIndex { $0.persistentModelID == current }.map { $0 + 1 } ?? 0
+        return (articles[start...] + articles[..<start]).first { !$0.isRead && $0.persistentModelID != current }
+    }
+
     /// Deletes non-kept articles published before the retention window.
     public static func purge(context: ModelContext, now: Date = .now) throws {
         let cutoff = Retention.cutoff(now: now)
