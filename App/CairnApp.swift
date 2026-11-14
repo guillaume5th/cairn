@@ -101,7 +101,19 @@ struct CairnCommands: Commands {
         CommandGroup(after: .textEditing) {
             Button("Rechercher") { state.isSearchRequested = true }
                 .keyboardShortcut("f")
+            QuoteCommand(context: state.context)
         }
+    }
+}
+
+/// « Surligner » in the Edit menu, for the article in the reader.
+struct QuoteCommand: View {
+    let context: ModelContext
+    @FocusedValue(\.quoteAction) private var action
+
+    var body: some View {
+        QuoteButtons(action: action)
+            .modelContext(context) // for the cairns: menus are outside the window's container
     }
 }
 

@@ -1,6 +1,7 @@
 import CairnCore
 import SwiftData
 import SwiftUI
+import WebKit
 
 struct ArticleDetailView: View {
     @Bindable var article: Article
@@ -19,6 +20,12 @@ struct ArticleDetailView: View {
     @State private var summaryHasMore = false
     @State private var summaryScroll = ScrollPosition()
     @AppStorage(KeptEditor.shownKey) private var inspectorShown = true
+    @State private var page: WebPage?
+
+    private var quoteAction: QuoteAction? {
+        // The page outlives an article without content, whose reader shows no page to select in.
+        Library.displayedContent(article) == nil ? nil : page.map { QuoteAction(article: article, page: $0) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -46,7 +53,7 @@ struct ArticleDetailView: View {
             summaryBox
 
             if let html = Library.displayedContent(article) {
-                HTMLView(html: html, baseURL: url, query: query)
+                HTMLView(html: html, baseURL: url, query: query, page: $page)
             } else {
                 ContentUnavailableView {
                     Label("Aucun contenu", systemImage: "doc")
@@ -58,6 +65,7 @@ struct ArticleDetailView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .focusedSceneValue(\.quoteAction, quoteAction)
         .inspector(isPresented: $inspectorShown) {
             KeptEditor(article: article, articlesToUnkeep: $articlesToUnkeep)
                 .inspectorColumnWidth(min: 220, ideal: 260, max: 360)
@@ -395,6 +403,40 @@ struct ArticleMenuItems: View {
     }
 }
 
+/// Appends the text selected in the reader to the article's note, keeping the article in `cairn` first if needed.
+@MainActor struct QuoteAction {
+    let article: Article
+    let page: WebPage
+
+    func callAsFunction(keepingIn cairn: Cairn?) async {
+        let passage = await HTMLView.selection(in: page)
+        guard !passage.allSatisfy(\.isWhitespace), article.isKept || cairn != nil else { return NSSound.beep() }
+        if let cairn, !article.isKept { Library.keep(article, in: cairn) }
+        article.note = Library.appendQuote(passage, to: article.note)
+    }
+}
+
+/// « Surligner », or « Surligner dans » and the cairns for an article not yet kept when there are several cairns:
+/// then ⇧⌘H does nothing rather than pick a cairn. Greyed out without an article in the reader.
+struct QuoteButtons: View {
+    let action: QuoteAction?
+    @Query(sort: \Cairn.name) private var cairns: [Cairn]
+
+    var body: some View {
+        if let action, !action.article.isKept, cairns.count > 1 {
+            Menu("Surligner dans") {
+                ForEach(cairns) { cairn in
+                    Button(cairn.name) { Task { await action(keepingIn: cairn) } }
+                }
+            }
+        } else {
+            Button("Surligner") { Task { await action?(keepingIn: cairns.first) } }
+                .keyboardShortcut("h", modifiers: [.command, .shift])
+                .disabled(action == nil)
+        }
+    }
+}
+
 /// The article list's selection and its confirmations, for the Article menu.
 struct ArticleSelection {
     let articles: [Article]
@@ -405,6 +447,7 @@ struct ArticleSelection {
 
 extension FocusedValues {
     @Entry var articleSelection: ArticleSelection?
+    @Entry var quoteAction: QuoteAction?
 }
 
 /// The Article menu: the actions of the selected or displayed articles, greyed out without an article list.

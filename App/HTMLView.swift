@@ -8,7 +8,8 @@ struct HTMLView: View {
     let baseURL: URL?
     /// Search term to highlight in the content; empty removes the highlights.
     var query = ""
-    @State private var page: WebPage?
+    /// Owned by the caller, which reads the text selection from it.
+    @Binding var page: WebPage?
     @AppStorage(TextScale.key) private var textScale = 1.0
 
     private struct Load: Equatable { let html: String, scale: Double }
@@ -37,6 +38,11 @@ struct HTMLView: View {
 
     /// Wraps every occurrence of the query (ignoring case and accents, like the search) in `<mark>` and scrolls to
     /// the first. It is the app's own script, run in its own world: the feed's scripts stay disabled.
+    /// The text selected in the page, read by the app's own script like the highlight.
+    static func selection(in page: WebPage) async -> String {
+        (try? await page.callJavaScript("return window.getSelection().toString()", contentWorld: .defaultClient)) as? String ?? ""
+    }
+
     private static func highlight(_ query: String, in page: WebPage) async {
         _ = try? await page.callJavaScript(highlightScript, arguments: ["query": query], contentWorld: .defaultClient)
     }

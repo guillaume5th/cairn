@@ -374,6 +374,16 @@ public enum Library {
         article.cairn = cairn
     }
 
+    /// The note with `passage` appended as a Markdown quote, after a blank line; a blank passage leaves it unchanged.
+    public static func appendQuote(_ passage: String, to note: String) -> String {
+        let trimmed = passage.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return note }
+        let quote = trimmed.split(separator: "\n", omittingEmptySubsequences: false)
+            .map { "> " + $0.trimmingCharacters(in: .whitespaces) }.joined(separator: "\n")
+        let head = note.replacing(/\s+\z/, with: "") // trailing blank lines only: the start of the note is the user's
+        return head.isEmpty ? quote : head + "\n\n" + quote
+    }
+
     /// Puts the article in the read-later queue, unread; one already queued keeps its place.
     public static func readLater(_ article: Article, now: Date = .now) {
         if !article.isQueued { article.readLaterAt = now }
