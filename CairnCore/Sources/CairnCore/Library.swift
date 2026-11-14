@@ -117,6 +117,7 @@ public enum Library {
                                   publishedAt: date, content: item.content, sourceTitle: feed.title)
             context.insert(article)
             article.feed = feed
+            article.audioURL = item.audioURL
             added += 1
         }
         feed.lastError = nil

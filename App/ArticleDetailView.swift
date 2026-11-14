@@ -35,6 +35,12 @@ struct ArticleDetailView: View {
                 .foregroundStyle(.secondary)
             }
             .padding()
+            if let audio = article.audioURL.flatMap(URL.init(string:)) {
+                EpisodePlayer(url: audio)
+                    .frame(height: 40)
+                    .padding(.horizontal)
+                    .padding(.bottom, 12)
+            }
             Divider()
             fullContentStatus
             summaryBox

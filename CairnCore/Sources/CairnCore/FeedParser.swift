@@ -7,6 +7,8 @@ public struct ParsedItem: Sendable, Equatable {
     public var title: String
     public var publishedAt: Date?
     public var content: String?
+    /// The episode of a podcast: the first audio file attached to the item.
+    public var audioURL: String? = nil
 }
 
 public struct ParsedFeed: Sendable, Equatable {
@@ -38,7 +40,8 @@ public enum FeedParser {
             siteURL = rss.channel?.link
             items = (rss.channel?.items ?? []).map { item in
                 make(id: item.guid?.text, link: item.link, title: item.title,
-                     date: item.pubDate, content: item.content?.encoded ?? item.description)
+                     date: item.pubDate, content: item.content?.encoded ?? item.description,
+                     audio: [item.enclosure?.attributes].compactMap { $0 }.map { ($0.url, $0.type) })
             }
         case let .rdf(rdf):
             title = rdf.channel?.title
@@ -55,7 +58,9 @@ public enum FeedParser {
                 let alternate = entry.links?.first { ($0.attributes?.rel ?? "alternate") == "alternate" }
                 return make(id: entry.id, link: alternate?.attributes?.href, title: entry.title,
                             date: entry.published ?? entry.updated,
-                            content: entry.content?.text ?? entry.summary?.text)
+                            content: entry.content?.text ?? entry.summary?.text,
+                            audio: (entry.links ?? []).compactMap(\.attributes).filter { $0.rel == "enclosure" }
+                                .map { ($0.href, $0.type) })
             }
         case let .json(json):
             title = json.title
@@ -65,18 +70,28 @@ public enum FeedParser {
             items = (json.items ?? []).map { item in
                 make(id: item.id, link: item.url ?? item.externalURL, title: item.title,
                      date: item.datePublished ?? item.dateModified,
-                     content: item.contentHtml ?? item.contentText ?? item.summary)
+                     content: item.contentHtml ?? item.contentText ?? item.summary,
+                     audio: (item.attachments ?? []).map { ($0.url, $0.mimeType) })
             }
         }
         return ParsedFeed(title: clean(title) ?? "", items: items.compactMap { $0 },
                           siteURL: clean(siteURL), iconURL: clean(iconURL))
     }
 
-    private static func make(id: String?, link: String?, title: String?, date: Date?, content: String?) -> ParsedItem? {
+    private static func make(id: String?, link: String?, title: String?, date: Date?, content: String?,
+                             audio: [(url: String?, type: String?)] = []) -> ParsedItem? {
         let link = clean(link)
-        guard let externalID = clean(id) ?? link else { return nil }
+        let audioURL = audio.first { isAudio($0.url, type: $0.type) }.flatMap { clean($0.url) }
+        guard let externalID = clean(id) ?? link ?? audioURL else { return nil }
         return ParsedItem(externalID: externalID, link: link ?? "", title: clean(title) ?? "",
-                          publishedAt: date, content: clean(content))
+                          publishedAt: date, content: clean(content), audioURL: audioURL)
+    }
+
+    /// Audio by its declared type, or by its extension when the feed gives none.
+    private static func isAudio(_ url: String?, type: String?) -> Bool {
+        if let type = clean(type) { return type.lowercased().hasPrefix("audio/") }
+        guard let url = clean(url).flatMap(URL.init(string:)) else { return false }
+        return ["mp3", "m4a", "aac", "ogg", "opus", "wav"].contains(url.pathExtension.lowercased())
     }
 
     private static func clean(_ s: String?) -> String? {

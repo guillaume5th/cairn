@@ -66,6 +66,8 @@ public final class Article {
     public var fullContentFetchedAt: Date?
     /// The user chose the feed's content over the full text for this article.
     public var showsFeedContent: Bool = false
+    /// Audio file of a podcast episode.
+    public var audioURL: String?
 
     public init(externalID: String, link: String, title: String, publishedAt: Date, content: String?, sourceTitle: String) {
         self.externalID = externalID
