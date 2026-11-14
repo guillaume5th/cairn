@@ -123,6 +123,11 @@ struct ContentView: View {
             state.isSearchRequested = false
             isSearchFocused = true
         }
+        .onOpenURL { url in
+            guard let address = Library.address(fromFeedLink: url) else { return }
+            newFeedURL = address
+            state.isAddingFeed = true
+        }
         // Same alert as "Nouveau dossier"; a failure (unreadable feed) comes back in the app's message alert.
         .alert("Ajouter un abonnement", isPresented: $state.isAddingFeed) {
             TextField("Adresse d'un site ou d'un flux", text: $newFeedURL, prompt: Text("exemple.com"))

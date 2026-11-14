@@ -76,3 +76,14 @@ extension FeedFetcher {
         }.first
     }
 }
+
+extension Library {
+    /// The address a `feed:` link points to: what follows `feed:` (`feed:https://x/rss`), or after `feed://` the
+    /// address without its scheme (`feed://x/rss` gives `x/rss`, completed in https like a typed address).
+    public static func address(fromFeedLink url: URL) -> String? {
+        guard url.scheme?.lowercased() == "feed" else { return nil }
+        var rest = url.absoluteString.dropFirst("feed:".count)
+        if rest.hasPrefix("//") { rest = rest.dropFirst(2) }
+        return rest.isEmpty ? nil : String(rest)
+    }
+}

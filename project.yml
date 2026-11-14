@@ -27,6 +27,10 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         # Default notification style: alerts stay on screen until clicked (the user can still pick banners).
         NSUserNotificationAlertStyle: alert
+        # feed: links from sites and browsers open "Ajouter un abonnement" with the address.
+        CFBundleURLTypes:
+          - CFBundleURLName: Feed
+            CFBundleURLSchemes: [feed]
         # Declares .opml files to the system, so the file picker offers them (an undeclared extension can be greyed out).
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: org.opml.opml
