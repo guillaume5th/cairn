@@ -73,11 +73,12 @@ struct SettingsView: View {
     @AppStorage("showListIcons") private var showListIcons = true
     @AppStorage(AppState.refreshIntervalKey) private var refreshInterval = AppState.defaultRefreshInterval
     @AppStorage(AppState.dockBadgeKey) private var showsDockBadge = true
+    @AppStorage(Retention.key) private var retentionDays = Retention.defaultDays
     @Environment(AppState.self) private var state
 
     var body: some View {
         Form {
-            Section("Abonnements") {
+            Section {
                 Picker("Rafraîchir les abonnements", selection: $refreshInterval) {
                     Text("Jamais").tag(0)
                     Text("Toutes les 15 minutes").tag(15)
@@ -85,6 +86,20 @@ struct SettingsView: View {
                     Text("Toutes les heures").tag(60)
                     Text("Toutes les 2 heures").tag(120)
                 }
+                Picker("Conserver les articles non gardés", selection: $retentionDays) {
+                    Text("7 jours").tag(7)
+                    Text("14 jours").tag(14)
+                    Text("30 jours").tag(30)
+                    Text("2 mois").tag(60)
+                    Text("3 mois").tag(90)
+                    Text("6 mois").tag(180)
+                    Text("1 an").tag(365)
+                }
+            } header: {
+                Text("Abonnements")
+            } footer: {
+                Text("Les plus anciens sont supprimés au lancement de Cairn. Les articles gardés dans un cairn ne le sont jamais.")
+                    .foregroundStyle(.secondary)
             }
             // Also in the Mac's View menu.
             Section {

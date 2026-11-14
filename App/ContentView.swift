@@ -25,7 +25,9 @@ struct SelectionMemory: Codable, Equatable {
 }
 
 struct ContentView: View {
+    static let oldestFirstKey = "oldestFirst"
     @Environment(AppState.self) private var state
+    @AppStorage(oldestFirstKey) private var oldestFirst = false
     @Query(sort: \Article.publishedAt, order: .reverse) private var articles: [Article]
     @Query private var feeds: [Feed]
     @Query private var folders: [Folder]
@@ -317,7 +319,7 @@ struct ContentView: View {
         }
         list = Library.search(searchText, in: list)
         if unreadOnly { list = list.filter { !$0.isRead } }
-        return list
+        return oldestFirst ? list.reversed() : list
     }
 }
 

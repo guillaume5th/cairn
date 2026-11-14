@@ -1,11 +1,17 @@
 import Foundation
 import SwiftData
 
+/// How long unkept articles stay: purged after, and not imported when older. Set in Settings, on this Mac.
 public enum Retention {
-    public static let days = 30
+    public static let key = "articleRetentionDays"
+    public static let defaultDays = 30
+
+    public static func days(in defaults: UserDefaults = .standard) -> Int {
+        defaults.object(forKey: key) as? Int ?? defaultDays
+    }
 
     public static func cutoff(now: Date = .now) -> Date {
-        now.addingTimeInterval(-Double(days) * 86_400)
+        now.addingTimeInterval(-Double(days()) * 86_400)
     }
 }
 

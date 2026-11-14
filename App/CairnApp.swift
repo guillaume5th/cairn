@@ -51,6 +51,7 @@ struct CairnCommands: Commands {
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
     @AppStorage(KeptEditor.shownKey) private var inspectorShown = true
+    @AppStorage(ContentView.oldestFirstKey) private var oldestFirst = false
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
@@ -77,6 +78,10 @@ struct CairnCommands: Commands {
                 .keyboardShortcut("0")
                 .disabled(textScale == 1)
             Divider()
+            Picker("Ordre des articles", selection: $oldestFirst) {
+                Text("Plus récents d'abord").tag(false)
+                Text("Plus anciens d'abord").tag(true)
+            }
             Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
             // Not InspectorCommands: its title is only half translated ("Inspecteur Show"). Same shortcut.
             Button(inspectorShown ? "Masquer l'inspecteur" : "Afficher l'inspecteur") { inspectorShown.toggle() }

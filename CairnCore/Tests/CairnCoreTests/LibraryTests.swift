@@ -500,3 +500,15 @@ struct RenameTests {
         #expect(a.tags?.map(\.name) == ["swift"])
     }
 }
+
+struct RetentionTests {
+    // A suite of its own: the shared defaults would change the cutoff of tests running in parallel.
+    @Test func daysFollowTheSetting() throws {
+        let defaults = try #require(UserDefaults(suiteName: "RetentionTests"))
+        defaults.removePersistentDomain(forName: "RetentionTests")
+        #expect(Retention.days(in: defaults) == 30)
+        defaults.set(90, forKey: Retention.key)
+        #expect(Retention.days(in: defaults) == 90)
+        defaults.removePersistentDomain(forName: "RetentionTests")
+    }
+}
