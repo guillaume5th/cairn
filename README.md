@@ -45,7 +45,7 @@ Les données sont stockées localement dans
 
 ## Installation
 
-Télécharge le `.dmg` depuis la [page des versions](https://github.com/guillaume5th/cairn/releases) et glisse Cairn dans Applications.
+Télécharge le `.dmg` depuis les [Releases](https://github.com/guillaume5th/cairn/releases) et glisse Cairn dans Applications.
 L'app n'est pas notarisée par Apple : au premier lancement, macOS la bloque. Débloque-la avec
 
 ```sh
@@ -58,14 +58,14 @@ Ensuite, Cairn se met à jour tout seul : il vérifie chaque jour si une nouvell
 ## Publier une version
 
 Les commits suivent les [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `feat!:`).
-À chaque envoi sur `main`, release-please ouvre ou met à jour une demande de fusion de version (numéro de version +
-`CHANGELOG.md`). La fusionner crée l'étiquette `vX.Y.Z` et publie la version sur GitHub. Ensuite, en local :
+À chaque push sur `main`, release-please ouvre ou met à jour une PR de release (version + `CHANGELOG.md`).
+La merger crée le tag `vX.Y.Z` et la GitHub Release. Ensuite, en local :
 
 ```sh
-git pull && git checkout vX.Y.Z && scripts/release.sh   # compile en Release, crée le DMG et l'attache à la version
+git pull && git checkout vX.Y.Z && scripts/release.sh   # build Release, DMG, attaché à la release
 ```
 
-Le script joint aussi `appcast.xml`, le fichier que lit Sparkle pour proposer la mise à jour. Le DMG y est signé avec la
+Le script attache aussi `appcast.xml` à la release : c'est le fichier que lit Sparkle pour proposer la mise à jour. Le DMG y est signé avec la
 clé EdDSA rangée dans le trousseau du Mac qui publie : sans cette clé, les apps installées refusent toute mise à jour.
 Garde-en une copie à l'abri (`generate_keys -x <fichier>`, outil fourni avec Sparkle).
 
@@ -94,8 +94,8 @@ Réglages (⌘,) : heure, durée de conservation (1 à 90 jours) et moteur :
 - **Apple** (par défaut) : le modèle intégré au Mac, qui demande Apple Intelligence activé.
 - **Ollama** : un serveur local (`http://localhost:11434` par défaut). Le modèle se choisit dans la liste des modèles installés sur ce serveur ; installe-en un avec `ollama pull <modèle>`, puis actualise la liste.
 
-Le modèle d'Apple lit environ 4 000 jetons : les jours chargés, seuls les premiers articles ont un extrait, les suivants n'apportent que leur titre.
+Le modèle d'Apple lit environ 4 000 tokens : les jours chargés, seuls les premiers articles ont un extrait, les suivants n'apportent que leur titre.
 
 ## Dépendances
 
-Dependabot (`.github/dependabot.yml`) vérifie chaque semaine les paquets Swift de `CairnCore` et ouvre une demande de fusion à chaque nouvelle version. Avant de fusionner : `cd CairnCore && swift test`, puis construire l'app.
+Dependabot (`.github/dependabot.yml`) vérifie chaque semaine les paquets Swift de `CairnCore` et ouvre une pull request à chaque nouvelle version. Avant de fusionner : `cd CairnCore && swift test`, puis construire l'app.
