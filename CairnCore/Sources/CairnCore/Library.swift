@@ -277,6 +277,14 @@ public enum Library {
         folder.key = tagKey(name)
     }
 
+    /// The user's title replaces the feed's own for good (refreshes never set it), also on articles already received.
+    public static func rename(_ feed: Feed, to name: String) throws {
+        let title = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { throw CairnError.emptyFeedName }
+        feed.title = title
+        for article in feed.articles ?? [] { article.sourceTitle = title }
+    }
+
     /// `nil` moves the feed back to the root.
     public static func move(_ feed: Feed, to folder: Folder?) {
         feed.folder = folder
@@ -378,6 +386,30 @@ public enum Library {
             context.insert(tag)
         }
         article.tags = (article.tags ?? []) + [tag]
+    }
+
+    /// Renames the tag in every cairn. A name another tag already has merges this tag into it.
+    /// Returns the tag that remains.
+    @discardableResult
+    public static func rename(_ tag: Tag, to name: String, context: ModelContext) throws -> Tag {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = tagKey(trimmed)
+        guard !key.isEmpty else { throw CairnError.emptyTagName }
+        guard let other = try context.fetch(FetchDescriptor<Tag>(predicate: #Predicate { $0.key == key })).first(where: { $0 !== tag }) else {
+            tag.name = trimmed
+            tag.key = key
+            return tag
+        }
+        for article in tag.articles ?? [] where !(article.tags ?? []).contains(where: { $0 === other }) {
+            article.tags = (article.tags ?? []) + [other]
+        }
+        context.delete(tag)
+        return other
+    }
+
+    /// Removed from every article (nullify rule).
+    public static func delete(_ tag: Tag, context: ModelContext) {
+        context.delete(tag)
     }
 
     public static func removeTag(_ tag: Tag, from article: Article) {

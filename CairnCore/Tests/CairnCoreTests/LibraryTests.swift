@@ -445,3 +445,58 @@ struct NextUnreadTests {
         #expect(Library.nextUnread(after: nil, in: try articles([true, true])) == nil)
     }
 }
+
+@MainActor
+struct RenameTests {
+    @Test func renameFeedAndItsArticles() throws {
+        let context = try makeContext()
+        let feed = Feed(url: "https://a.test", title: "Simon Willison's Weblog")
+        context.insert(feed)
+        let article = Article(externalID: "1", link: "", title: "A", publishedAt: fixtureNow, content: nil, sourceTitle: feed.title)
+        context.insert(article)
+        article.feed = feed
+        try Library.rename(feed, to: "  Simon ")
+        #expect(feed.title == "Simon" && article.sourceTitle == "Simon")
+        #expect(throws: CairnError.emptyFeedName) { try Library.rename(feed, to: "  ") }
+        #expect(feed.title == "Simon")
+    }
+
+    private func keptArticle(_ id: String, tags: [String], in context: ModelContext) throws -> Article {
+        let article = Article(externalID: id, link: "", title: id, publishedAt: fixtureNow, content: nil, sourceTitle: "")
+        context.insert(article)
+        for name in tags { try Library.addTag(named: name, to: article, context: context) }
+        return article
+    }
+
+    @Test func renameTag() throws {
+        let context = try makeContext()
+        let article = try keptArticle("1", tags: ["swfit"], in: context)
+        let tag = try #require(article.tags?.first)
+        let kept = try Library.rename(tag, to: "swift", context: context)
+        #expect(kept === tag && article.tags?.map(\.name) == ["swift"] && tag.key == "swift")
+        #expect(throws: CairnError.emptyTagName) { try Library.rename(tag, to: " ", context: context) }
+    }
+
+    @Test func renameMergesIntoExistingTag() throws {
+        let context = try makeContext()
+        let a = try keptArticle("a", tags: ["IA"], in: context)
+        let b = try keptArticle("b", tags: ["intelligence artificielle"], in: context)
+        let c = try keptArticle("c", tags: ["IA", "intelligence artificielle"], in: context)
+        try context.save()
+        let long = try #require(b.tags?.first)
+        let kept = try Library.rename(long, to: "ia", context: context)
+        try context.save()
+        #expect(kept.name == "IA")
+        for article in [a, b, c] { #expect(article.tags?.map(\.name) == ["IA"]) }
+        #expect(try context.fetchCount(FetchDescriptor<CairnCore.Tag>()) == 1)
+    }
+
+    @Test func deleteTag() throws {
+        let context = try makeContext()
+        let a = try keptArticle("a", tags: ["brouillon", "swift"], in: context)
+        try context.save()
+        Library.delete(try #require(a.tags?.first { $0.name == "brouillon" }), context: context)
+        try context.save()
+        #expect(a.tags?.map(\.name) == ["swift"])
+    }
+}

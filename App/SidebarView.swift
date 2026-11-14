@@ -20,9 +20,10 @@ struct SidebarView: View {
     @State private var naming: Naming?
     @State private var name = ""
     @State private var cairnToDelete: Cairn?
+    @State private var tagToDelete: CairnCore.Tag?
 
     private enum Naming {
-        case newFolder, folder(Folder), newCairn, cairn(Cairn)
+        case newFolder, folder(Folder), newCairn, cairn(Cairn), feed(Feed), tag(CairnCore.Tag)
 
         var title: String {
             switch self {
@@ -30,13 +31,15 @@ struct SidebarView: View {
             case .folder: "Renommer le dossier"
             case .newCairn: "Nouveau cairn"
             case .cairn: "Renommer le cairn"
+            case .feed: "Renommer l'abonnement"
+            case .tag: "Renommer le tag"
             }
         }
 
         var isNew: Bool {
             switch self {
             case .newFolder, .newCairn: true
-            case .folder, .cairn: false
+            case .folder, .cairn, .feed, .tag: false
             }
         }
     }
@@ -91,6 +94,16 @@ struct SidebarView: View {
             TextField("Nom", text: $name)
             Button("Annuler", role: .cancel) {}
             Button(naming.isNew ? "Créer" : "Renommer") { save(naming) }
+        } message: { naming in
+            if case .tag = naming { Text("Le tag est renommé dans tous les cairns. Un nom déjà utilisé par un autre tag les fusionne.") }
+        }
+        .confirmationDialog("Supprimer le tag « \(tagToDelete?.name ?? "") » ?",
+                            isPresented: Binding(get: { tagToDelete != nil }, set: { if !$0 { tagToDelete = nil } }),
+                            presenting: tagToDelete) { tag in
+            Button("Supprimer", role: .destructive) { delete(tag) }
+        } message: { tag in
+            let count = tag.articles?.count ?? 0
+            Text(count == 1 ? "Il sera retiré de son article, dans tous les cairns." : "Il sera retiré de ses \(count) articles, dans tous les cairns.")
         }
         .confirmationDialog("Supprimer le cairn « \(cairnToDelete?.name ?? "") » ?",
                             isPresented: Binding(get: { cairnToDelete != nil }, set: { if !$0 { cairnToDelete = nil } }),
@@ -169,7 +182,10 @@ struct SidebarView: View {
     @ViewBuilder
     private func menuItems(for items: Set<SidebarItem>) -> some View {
         let lot = feeds.filter { items.contains(.feed($0.persistentModelID)) }
-        if let cairn = single(items, cairns, as: SidebarItem.cairn) {
+        if items.count == 1, case let .tag(_, key) = items.first, let tag = tags.first(where: { $0.key == key }) {
+            Button("Renommer…", systemImage: "pencil") { startNaming(.tag(tag)) }
+            Button("Supprimer le tag…", systemImage: "trash", role: .destructive) { tagToDelete = tag }
+        } else if let cairn = single(items, cairns, as: SidebarItem.cairn) {
             Button("Renommer…", systemImage: "pencil") { startNaming(.cairn(cairn)) }
             Button("Supprimer le cairn…", systemImage: "trash", role: .destructive) { cairnToDelete = cairn }
                 .disabled(cairns.count == 1)
@@ -189,6 +205,7 @@ struct SidebarView: View {
             Button("Marquer tout comme lu", systemImage: "checkmark.circle") { markRead(lot) }
                 .disabled(lot.allSatisfy { $0.unreadCount == 0 })
             Divider()
+            if lot.count == 1 { Button("Renommer…", systemImage: "pencil") { startNaming(.feed(lot[0])) } }
             Menu("Déplacer vers", systemImage: "folder") {
                 ForEach(folders) { folder in
                     Button(folder.name) { for feed in lot { Library.move(feed, to: folder) } }
@@ -248,6 +265,8 @@ struct SidebarView: View {
         switch naming {
         case let .folder(folder): name = folder.name
         case let .cairn(cairn): name = cairn.name
+        case let .feed(feed): name = feed.title
+        case let .tag(tag): name = tag.name
         case .newFolder, .newCairn: name = ""
         }
         self.naming = naming
@@ -269,12 +288,29 @@ struct SidebarView: View {
                 try Library.createCairn(named: name, context: context)
             case let .cairn(cairn):
                 try Library.rename(cairn, to: name, context: context)
+            case let .feed(feed):
+                try Library.rename(feed, to: name)
+            case let .tag(tag):
+                let oldKey = tag.key
+                let kept = try Library.rename(tag, to: name, context: context)
+                // The selection names the tag by key: follow it to its new key or into the merged tag.
+                selection = Set(selection.map { item in
+                    if case let .tag(cairn, key) = item, key == oldKey { .tag(cairn, kept.key) } else { item }
+                })
             }
             // A new model only gets its permanent identifier, which the sidebar selection uses, once saved.
             state.save()
         } catch {
             state.message = error.localizedDescription
         }
+    }
+
+    private func delete(_ tag: CairnCore.Tag) {
+        let key = tag.key
+        let wasSelected = selection.contains { if case .tag(_, key) = $0 { true } else { false } }
+        Library.delete(tag, context: context)
+        state.save()
+        if wasSelected { Task { selection = [.all] } }
     }
 
     private func delete(_ cairn: Cairn) {
