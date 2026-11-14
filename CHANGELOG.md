@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.2](https://github.com/guillaume5th/cairn/compare/v2.3.1...v2.3.2) (2026-11-14)
+
+
+### Code Refactoring
+
+* native DisclosureGroup for the summary box ([abb5bd0](https://github.com/guillaume5th/cairn/commit/abb5bd021cfb75a30deab3af5059d1d08075b7cc))
+
 ## [2.3.1](https://github.com/guillaume5th/cairn/compare/v2.3.0...v2.3.1) (2026-11-14)
 
 
