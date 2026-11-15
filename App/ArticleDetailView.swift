@@ -261,7 +261,7 @@ struct KeepButton: View {
                     Button("Retirer du cairn", role: .destructive, action: unkeep)
                 }
             } label: {
-                Label("Garder dans", image: icon)
+                Label("Garder", image: icon)
             }
             // Without the arrow, the menu looks and sits like the other reader buttons.
             .menuIndicator(.hidden)
@@ -313,8 +313,8 @@ extension View {
                                   presenting: lot) { lot in
             Button("Retirer", role: .destructive) { for article in lot { Library.unkeep(article) } }
         } message: { lot in
-            Text(lot.count == 1 ? "Sa note et ses tags seront perdus."
-                 : losing == 1 ? "1 article perdra sa note ou ses tags." : "\(losing) articles perdront leur note ou leurs tags.")
+            Text(lot.count == 1 ? "Ses notes et ses tags seront perdus."
+                 : losing == 1 ? "1 article perdra ses notes ou ses tags." : "\(losing) articles perdront leurs notes ou leurs tags.")
         }
     }
 
@@ -417,7 +417,7 @@ struct ArticleMenuItems: View {
     }
 }
 
-/// « Surligner », or « Surligner dans » and the cairns for an article not yet kept when there are several cairns:
+/// « Surligner », as a menu of the cairns for an article not yet kept when there are several cairns:
 /// then ⇧⌘H does nothing rather than pick a cairn. Greyed out without an article in the reader. In the Edit menu
 /// and the reader's toolbar; only the menu declares ⇧⌘H.
 struct QuoteButtons: View {
@@ -427,7 +427,7 @@ struct QuoteButtons: View {
 
     var body: some View {
         if let action, !action.article.isKept, cairns.count > 1 {
-            Menu("Surligner dans", systemImage: "highlighter") {
+            Menu("Surligner", systemImage: "highlighter") {
                 ForEach(cairns) { cairn in
                     Button(cairn.name) { Task { await action(keepingIn: cairn) } }
                 }

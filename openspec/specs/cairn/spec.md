@@ -100,7 +100,7 @@ Le système SHALL permettre de garder toute la sélection dans un cairn choisi. 
 
 #### Scenario: Garder une sélection mixte
 - **GIVEN** il existe les cairns « Veille » et « Lire plus tard », et deux articles non gardés et un article gardé dans « Lire plus tard » sont sélectionnés
-- **WHEN** l'utilisateur choisit « Garder dans » puis « Veille »
+- **WHEN** l'utilisateur choisit « Garder » puis « Veille »
 - **THEN** les trois articles sont dans « Veille », et l'article déplacé garde sa note et ses tags
 
 #### Scenario: Un seul cairn
@@ -227,7 +227,7 @@ Le système SHALL permettre, depuis le volet de lecture, d'ajouter le texte sél
 - **THEN** le passage n'est pas surligné dans l'article
 
 ### Requirement: Citer dans un article non gardé
-Le système SHALL garder d'abord un article non gardé avant d'y citer un passage, selon la règle de « Garder un article » : sans choix quand il n'existe qu'un cairn ; sinon l'action devient « Surligner dans » et propose les cairns, et ⇧⌘H MUST être sans effet.
+Le système SHALL garder d'abord un article non gardé avant d'y citer un passage, selon la règle de « Garder un article » : sans choix quand il n'existe qu'un cairn ; sinon l'action « Surligner » propose les cairns, et ⇧⌘H MUST être sans effet.
 
 #### Scenario: Article non gardé, un seul cairn
 - **GIVEN** il n'existe qu'un cairn et l'article affiché n'est pas gardé
@@ -236,7 +236,7 @@ Le système SHALL garder d'abord un article non gardé avant d'y citer un passag
 
 #### Scenario: Article non gardé, plusieurs cairns
 - **GIVEN** il existe les cairns « Perso » et « Pro » et l'article affiché n'est pas gardé
-- **WHEN** l'utilisateur sélectionne un passage et choisit « Surligner dans » puis « Pro »
+- **WHEN** l'utilisateur sélectionne un passage et choisit « Surligner » puis « Pro »
 - **THEN** l'article est gardé dans « Pro » et sa note contient le passage cité
 
 #### Scenario: Raccourci, plusieurs cairns
