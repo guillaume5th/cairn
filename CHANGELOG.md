@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.4.0](https://github.com/guillaume5th/cairn/compare/v2.3.3...v2.4.0) (2026-11-15)
+
+
+### Features
+
+* hide duplicate articles received through several feeds ([d03928a](https://github.com/guillaume5th/cairn/commit/d03928ad9ffb993f5d67947e9ce3e66148750984))
+* keep quoted passages highlighted in the article ([e754e10](https://github.com/guillaume5th/cairn/commit/e754e1020412f304ee02a54da015f38269246b4a))
+* quote the selected reader text into the article's note ([9413406](https://github.com/guillaume5th/cairn/commit/94134065af6802d48b5cf60c1a91c43eef4376e4))
+* read-later queue, separate from keeping ([974cb25](https://github.com/guillaume5th/cairn/commit/974cb2514049df13dee059845b7dbeac955f2714))
+* reading progress line under the article header ([d8ac6d1](https://github.com/guillaume5th/cairn/commit/d8ac6d1eb5fa8922a9ba8ee1dfb8f7c1bacb9ead))
+* swipe actions on article rows ([39ca37c](https://github.com/guillaume5th/cairn/commit/39ca37c8894a4955704b2ee8fe18f68ae4aed93f))
+
+
+### Bug Fixes
+
+* narrower read-later icon, in line with the other sidebar icons ([9188b5a](https://github.com/guillaume5th/cairn/commit/9188b5afb73f851c2933a93fd970b794547d7adc))
+* separate filing from sharing in the article menu ([726ed9b](https://github.com/guillaume5th/cairn/commit/726ed9b0ee94f22e5b5488bbd40beb326f3af3d0))
+* shorter keep and quote menu labels, plural notes in unkeep confirmation ([8655a6a](https://github.com/guillaume5th/cairn/commit/8655a6a7e93bae0b79783f3c15b96e53c090cecb))
+
 ## [2.3.3](https://github.com/guillaume5th/cairn/compare/v2.3.2...v2.3.3) (2026-11-14)
 
 
