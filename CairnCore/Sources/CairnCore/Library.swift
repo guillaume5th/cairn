@@ -384,6 +384,25 @@ public enum Library {
         return head.isEmpty ? quote : head + "\n\n" + quote
     }
 
+    /// The passages quoted in the note: one per block of consecutive lines starting with `>`, its lines joined and
+    /// its spaces collapsed to single spaces. The inverse of `appendQuote`, for highlighting them in the article.
+    public static func quotes(in note: String) -> [String] {
+        var passages: [String] = [], block: [Substring]? = nil
+        func close() {
+            if let lines = block {
+                let passage = lines.joined(separator: " ").split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                if !passage.isEmpty { passages.append(passage) }
+            }
+            block = nil
+        }
+        for line in note.split(separator: "\n", omittingEmptySubsequences: false) {
+            let text = line.drop { $0 == " " || $0 == "\t" }
+            if text.first == ">" { block = (block ?? []) + [text.dropFirst()] } else { close() }
+        }
+        close()
+        return passages
+    }
+
     /// Puts the article in the read-later queue, unread; one already queued keeps its place.
     public static func readLater(_ article: Article, now: Date = .now) {
         if !article.isQueued { article.readLaterAt = now }

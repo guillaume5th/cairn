@@ -53,7 +53,7 @@ struct ArticleDetailView: View {
             summaryBox
 
             if let html = Library.displayedContent(article) {
-                HTMLView(html: html, baseURL: url, query: query, page: $page)
+                HTMLView(html: html, baseURL: url, query: query, quotes: Library.quotes(in: article.note), page: $page)
             } else {
                 ContentUnavailableView {
                     Label("Aucun contenu", systemImage: "doc")
@@ -84,6 +84,7 @@ struct ArticleDetailView: View {
                     .disabled((Library.readableContent(article) ?? "").isEmpty || isSummarizing)
                     .help((Library.readableContent(article) ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
                           : article.summary == nil ? "Résumer cet article avec l'IA" : "Refaire le résumé de cet article")
+                QuoteButtons(action: quoteAction, hasShortcut: false)
             }
         }
         .unkeepConfirmation($articlesToUnkeep)
@@ -417,22 +418,27 @@ struct ArticleMenuItems: View {
 }
 
 /// « Surligner », or « Surligner dans » and the cairns for an article not yet kept when there are several cairns:
-/// then ⇧⌘H does nothing rather than pick a cairn. Greyed out without an article in the reader.
+/// then ⇧⌘H does nothing rather than pick a cairn. Greyed out without an article in the reader. In the Edit menu
+/// and the reader's toolbar; only the menu declares ⇧⌘H.
 struct QuoteButtons: View {
     let action: QuoteAction?
+    var hasShortcut = true
     @Query(sort: \Cairn.name) private var cairns: [Cairn]
 
     var body: some View {
         if let action, !action.article.isKept, cairns.count > 1 {
-            Menu("Surligner dans") {
+            Menu("Surligner dans", systemImage: "highlighter") {
                 ForEach(cairns) { cairn in
                     Button(cairn.name) { Task { await action(keepingIn: cairn) } }
                 }
             }
+            .menuIndicator(.hidden) // like KeepButton: the toolbar keeps its layout whether the article is kept or not
+            .help("Citer le passage sélectionné dans la note, en gardant l'article")
         } else {
-            Button("Surligner") { Task { await action?(keepingIn: cairns.first) } }
-                .keyboardShortcut("h", modifiers: [.command, .shift])
+            Button("Surligner", systemImage: "highlighter") { Task { await action?(keepingIn: cairns.first) } }
+                .keyboardShortcut(hasShortcut ? KeyboardShortcut("h", modifiers: [.command, .shift]) : nil)
                 .disabled(action == nil)
+                .help("Citer le passage sélectionné dans la note (⇧⌘H)")
         }
     }
 }
@@ -580,6 +586,7 @@ struct DisabledReadingButtons: View {
         Group {
             Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
             Button("Résumer", systemImage: "text.append") {}
+            Button("Surligner", systemImage: "highlighter") {}
         }
         .disabled(true)
     }
@@ -619,6 +626,16 @@ struct KeptEditor: View {
                         .frame(minHeight: 80)
                         .scrollContentBackground(.hidden)
                         .accessibilityLabel("Notes personnelles")
+                        .overlay(alignment: .topLeading) {
+                            // TextEditor has no prompt; this one shows the quote gesture where its result lands.
+                            if article.note.isEmpty {
+                                Text("Sélectionnez un passage puis ⇧⌘H pour le citer ici")
+                                    .foregroundStyle(.tertiary)
+                                    .padding(.leading, 5)
+                                    .allowsHitTesting(false)
+                                    .accessibilityHidden(true)
+                            }
+                        }
                 }
                 Section("Tags") {
                     TagFlowLayout {

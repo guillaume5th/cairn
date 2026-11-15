@@ -8,6 +8,8 @@ struct HTMLView: View {
     let baseURL: URL?
     /// Search term to highlight in the content; empty removes the highlights.
     var query = ""
+    /// Passages quoted in the article's note, highlighted at their first occurrence.
+    var quotes: [String] = []
     /// Owned by the caller, which reads the text selection from it.
     @Binding var page: WebPage?
     @AppStorage(TextScale.key) private var textScale = 1.0
@@ -25,28 +27,84 @@ struct HTMLView: View {
             self.page = page
             do {
                 for try await _ in page.load(html: Self.page(html, scale: textScale), baseURL: baseURL ?? URL(string: "about:blank")!) {}
-                await Self.highlight(query, in: page)
+                await Self.highlight(query, quotes: quotes, scrollsToQuery: true, in: page)
             } catch {
                 // A failed load of our own string leaves the view blank; there is nothing to retry.
             }
         }
         .onChange(of: query) {
             guard let page else { return }
-            Task { await Self.highlight(query, in: page) }
+            Task { await Self.highlight(query, quotes: quotes, scrollsToQuery: true, in: page) }
+        }
+        .onChange(of: quotes) {
+            guard let page else { return }
+            Task { await Self.highlight(query, quotes: quotes, scrollsToQuery: false, in: page) }
         }
     }
 
-    /// Wraps every occurrence of the query (ignoring case and accents, like the search) in `<mark>` and scrolls to
-    /// the first. It is the app's own script, run in its own world: the feed's scripts stay disabled.
     /// The text selected in the page, read by the app's own script like the highlight.
     static func selection(in page: WebPage) async -> String {
         (try? await page.callJavaScript("return window.getSelection().toString()", contentWorld: .defaultClient)) as? String ?? ""
     }
 
-    private static func highlight(_ query: String, in page: WebPage) async {
-        _ = try? await page.callJavaScript(highlightScript, arguments: ["query": query], contentWorld: .defaultClient)
+    /// Highlights the query, then the quotes. The query's script matches within one text node, so it runs with the
+    /// quotes' marks removed: they split the text. The app's own scripts, run in their own world: the feed's scripts
+    /// stay disabled.
+    private static func highlight(_ query: String, quotes: [String], scrollsToQuery: Bool, in page: WebPage) async {
+        _ = try? await page.callJavaScript(quoteScript, arguments: ["quotes": [String]()], contentWorld: .defaultClient)
+        _ = try? await page.callJavaScript(highlightScript, arguments: ["query": query, "scrolls": scrollsToQuery],
+                                           contentWorld: .defaultClient)
+        _ = try? await page.callJavaScript(quoteScript, arguments: ["quotes": quotes], contentWorld: .defaultClient)
     }
 
+    /// Wraps the first occurrence of each quote in `<mark data-cairn-quote>`, one per text node it spans: a passage
+    /// crosses links and paragraphs, which a single `<mark>` cannot wrap. Whitespace is ignored on both sides, since
+    /// the selection's line breaks between blocks have no counterpart in the text nodes.
+    private static let quoteScript = """
+        document.querySelectorAll('mark[data-cairn-quote]').forEach(mark => mark.replaceWith(...mark.childNodes));
+        document.body.normalize();
+        const fold = s => s.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+            acceptNode: n => ['SCRIPT', 'STYLE', 'NOSCRIPT'].includes(n.parentNode.nodeName)
+                ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+        });
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        // The whole text folded and without whitespace, with, for each character, its node and offset.
+        let text = '', origin = [];
+        nodes.forEach((node, n) => {
+            for (let i = 0; i < node.data.length; i++) {
+                for (const c of fold(node.data[i])) if (!/\\s/.test(c)) { text += c; origin.push([n, i]); }
+            }
+        });
+        const segments = [];
+        for (const quote of quotes) {
+            const needle = fold(quote).replace(/\\s+/g, '');
+            const at = needle ? text.indexOf(needle) : -1;
+            if (at === -1) continue;
+            const [first, start] = origin[at], [last, end] = origin[at + needle.length - 1];
+            for (let n = first; n <= last; n++) {
+                const s = n === first ? start : 0, e = n === last ? end + 1 : nodes[n].data.length;
+                if (nodes[n].data.slice(s, e).trim()) segments.push([n, s, e]);
+            }
+        }
+        // Back to front within a node, so that wrapping keeps earlier offsets valid; overlapping quotes are skipped.
+        segments.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+        let previous = null;
+        for (const [n, s, e] of segments) {
+            if (previous && previous[0] === n && e > previous[1]) continue;
+            const range = document.createRange();
+            range.setStart(nodes[n], s);
+            range.setEnd(nodes[n], e);
+            const mark = document.createElement('mark');
+            mark.dataset.cairnQuote = '';
+            range.surroundContents(mark);
+            previous = [n, s];
+        }
+        """
+
+    /// Wraps every occurrence of the query (ignoring case and accents, like the search) in `<mark>`, scrolling to the
+    /// first unless only the quotes changed.
     private static let highlightScript = """
         document.querySelectorAll('mark[data-cairn]').forEach(mark => mark.replaceWith(...mark.childNodes));
         document.body.normalize();
@@ -82,7 +140,7 @@ struct HTMLView: View {
                 if (k === 0 && !first) first = mark;
             }
         }
-        if (first) first.scrollIntoView({ block: 'center' });
+        if (first && scrolls) first.scrollIntoView({ block: 'center' });
         return count;
         """
 
@@ -106,6 +164,8 @@ struct HTMLView: View {
         pre, code, kbd, samp { font-family: ui-monospace; }
         a { color: AccentColor; }
         mark { background: rgba(255, 204, 0, 0.45); color: inherit; border-radius: 2px; }
+        mark[data-cairn-quote] { background: rgba(0, 122, 255, 0.18); }
+        @media (prefers-color-scheme: dark) { mark[data-cairn-quote] { background: rgba(10, 132, 255, 0.35); } }
         </style></head><body>\(body)</body></html>
         """
     }

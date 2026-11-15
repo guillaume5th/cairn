@@ -16,4 +16,15 @@ struct QuoteTests {
     @Test func blankPassageLeavesNote() {
         #expect(Library.appendQuote(" \n ", to: "À relire") == "À relire")
     }
+
+    @Test func readsQuotedBlocks() {
+        #expect(Library.quotes(in: "") == [])
+        #expect(Library.quotes(in: "À relire\n\n> Un\n>deux\nTexte\n\n  > Trois  quatre") == ["Un deux", "Trois quatre"])
+        #expect(Library.quotes(in: "> \n>") == [])
+    }
+
+    @Test func roundTripsAppendedQuote() {
+        let note = Library.appendQuote("Un.\n\n  Deux.", to: "Note")
+        #expect(Library.quotes(in: note) == ["Un. Deux."])
+    }
 }
