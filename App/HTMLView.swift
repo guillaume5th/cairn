@@ -13,6 +13,9 @@ struct HTMLView: View {
     /// Owned by the caller, which reads the text selection from it.
     @Binding var page: WebPage?
     @AppStorage(TextScale.key) private var textScale = 1.0
+    /// How far the article is scrolled, 0 to 1; nil when it fits in the pane. Owned by the caller, which shows it
+    /// under the header, above the summary.
+    @Binding var progress: Double?
 
     private struct Load: Equatable { let html: String, scale: Double }
 
@@ -20,7 +23,10 @@ struct HTMLView: View {
         // Color.clear holds the layout (and runs .task) until the page exists.
         ZStack {
             Color.clear
-            if let page { WebView(page) }
+            if let page {
+                WebView(page)
+                    .webViewOnScrollGeometryChange(for: Double?.self, of: Self.progress) { _, new in progress = new }
+            }
         }
         .task(id: Load(html: html, scale: textScale)) {
             let page = page ?? Self.makePage()
@@ -40,6 +46,14 @@ struct HTMLView: View {
             guard let page else { return }
             Task { await Self.highlight(query, quotes: quotes, scrollsToQuery: false, in: page) }
         }
+    }
+
+    /// The scrolled fraction of the content, in steps of 0.5% so that each scrolled pixel does not redraw the bar.
+    private static func progress(_ geometry: ScrollGeometry) -> Double? {
+        let scrollable = geometry.contentSize.height - geometry.visibleRect.height
+        guard scrollable > 1 else { return nil }
+        let fraction = min(max(Double(geometry.visibleRect.minY / scrollable), 0), 1)
+        return (fraction * 200).rounded() / 200
     }
 
     /// The text selected in the page, read by the app's own script like the highlight.

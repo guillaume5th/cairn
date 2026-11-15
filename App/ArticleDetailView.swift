@@ -21,6 +21,7 @@ struct ArticleDetailView: View {
     @State private var summaryScroll = ScrollPosition()
     @AppStorage(KeptEditor.shownKey) private var inspectorShown = true
     @State private var page: WebPage?
+    @State private var progress: Double?
 
     private var quoteAction: QuoteAction? {
         // The page outlives an article without content, whose reader shows no page to select in.
@@ -49,11 +50,23 @@ struct ArticleDetailView: View {
                     .padding(.bottom, 12)
             }
             Divider()
+                .overlay(alignment: .top) {
+                    // A bare accent line on the header's divider, which reads as the divider filling up; no track.
+                    if Library.displayedContent(article) != nil, let progress {
+                        Rectangle()
+                            .fill(.tint)
+                            .frame(height: 2)
+                            .scaleEffect(x: progress, anchor: .leading)
+                            .allowsHitTesting(false)
+                            .accessibilityHidden(true) // the scroll bar already tells VoiceOver where the reading is
+                    }
+                }
             fullContentStatus
             summaryBox
 
             if let html = Library.displayedContent(article) {
-                HTMLView(html: html, baseURL: url, query: query, quotes: Library.quotes(in: article.note), page: $page)
+                HTMLView(html: html, baseURL: url, query: query, quotes: Library.quotes(in: article.note), page: $page,
+                         progress: $progress)
             } else {
                 ContentUnavailableView {
                     Label("Aucun contenu", systemImage: "doc")
