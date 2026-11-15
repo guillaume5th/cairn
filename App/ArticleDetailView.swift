@@ -395,6 +395,7 @@ struct ArticleMenuItems: View {
             Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
                    systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") { for article in articles { article.isRead = anyUnread } }
                 .keyboardShortcut("u", modifiers: [.command, .shift])
+            Divider() // filing above, sending the article out of the app below
             if articles.count == 1 {
                 ShareButton(article: articles[0])
             }
