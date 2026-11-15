@@ -534,3 +534,63 @@ Le système SHALL n'afficher qu'un article par lien normalisé dans les listes q
 - **GIVEN** l'exemplaire d'« Agrégateur » est gardé et celui de « Blog » ne l'est pas
 - **WHEN** l'utilisateur ouvre « Tous les articles »
 - **THEN** la ligne affichée est l'exemplaire gardé, avec sa marque de cairn
+
+### Requirement: Progression de lecture
+Le système SHALL afficher sous l'en-tête de l'article, au-dessus de son résumé, une fine barre de progression qui suit le défilement : vide quand le haut de l'article est visible, pleine quand sa fin est visible. La barre MUST être absente quand l'article tient entièrement dans le volet. La progression MUST NOT être mémorisée : un article rouvert s'affiche en haut, barre vide.
+
+#### Scenario: Défiler dans un long article
+- **GIVEN** un article plus haut que le volet de lecture est affiché en haut
+- **WHEN** l'utilisateur fait défiler jusqu'à la moitié de l'article
+- **THEN** la barre de progression est à moitié remplie
+
+#### Scenario: Fin de l'article
+- **WHEN** l'utilisateur fait défiler jusqu'à la fin d'un long article
+- **THEN** la barre de progression est pleine
+
+#### Scenario: Avec un résumé
+- **GIVEN** l'article affiché a un résumé
+- **WHEN** l'utilisateur fait défiler l'article
+- **THEN** la barre de progression est entre l'en-tête et le résumé
+
+#### Scenario: Article court
+- **WHEN** l'article affiché tient entièrement dans le volet
+- **THEN** aucune barre de progression n'est affichée
+
+#### Scenario: Rouvrir un article
+- **GIVEN** l'utilisateur a lu la moitié d'un long article puis en a ouvert un autre
+- **WHEN** il rouvre le premier article
+- **THEN** l'article s'affiche en haut et la barre est vide
+
+### Requirement: Marquer lu par balayage
+Le système SHALL proposer, en balayant vers la droite une ligne de la liste d'articles, « Marquer comme lu » pour un article non lu et « Marquer comme non lu » pour un article lu. L'action MUST porter sur l'article de la ligne seul et MUST NOT changer la sélection.
+
+#### Scenario: Marquer lu
+- **GIVEN** un article non lu n'est pas sélectionné
+- **WHEN** l'utilisateur balaie sa ligne vers la droite et choisit « Marquer comme lu »
+- **THEN** l'article est lu, le compteur de non lus de son abonnement diminue et la sélection est inchangée
+
+#### Scenario: Marquer non lu
+- **WHEN** l'utilisateur balaie vers la droite la ligne d'un article lu et choisit « Marquer comme non lu »
+- **THEN** l'article redevient non lu
+
+### Requirement: Mettre de côté par balayage
+Le système SHALL proposer, en balayant vers la gauche une ligne de la liste d'articles, « Lire plus tard » (« Retirer de Lire plus tard » pour un article dans la file) et « Retirer du cairn » pour un article gardé. « Garder dans le cairn » MUST être proposé pour un article non gardé seulement s'il n'existe qu'un cairn. Retirer un article qui a des notes ou des tags MUST demander confirmation, comme ailleurs. L'action MUST NOT changer la sélection ni marquer l'article lu.
+
+#### Scenario: Lire plus tard
+- **WHEN** l'utilisateur balaie vers la gauche la ligne d'un article hors de la file et choisit « Lire plus tard »
+- **THEN** l'article entre dans la file « Lire plus tard », non lu
+
+#### Scenario: Garder avec un seul cairn
+- **GIVEN** il n'existe qu'un cairn et l'article n'est pas gardé
+- **WHEN** l'utilisateur balaie sa ligne vers la gauche et choisit « Garder dans le cairn »
+- **THEN** l'article est gardé dans ce cairn
+
+#### Scenario: Plusieurs cairns
+- **GIVEN** il existe les cairns « Perso » et « Pro » et l'article n'est pas gardé
+- **WHEN** l'utilisateur balaie sa ligne vers la gauche
+- **THEN** seule l'action « Lire plus tard » est proposée
+
+#### Scenario: Retirer un article annoté
+- **GIVEN** un article gardé a une note
+- **WHEN** l'utilisateur balaie sa ligne vers la gauche et choisit « Retirer du cairn »
+- **THEN** une confirmation annonce que ses notes et ses tags seront perdus, et l'article n'est retiré qu'après confirmation
