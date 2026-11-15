@@ -291,11 +291,14 @@ struct KeepButton: View {
         }
     }
 
-    private func unkeep() {
+    private func unkeep() { Self.unkeep(articles, confirming: $articlesToUnkeep) }
+
+    /// Unkeeps the articles at once, or through `unkeepConfirmation` when one has a note or tags.
+    static func unkeep(_ articles: [Article], confirming articlesToUnkeep: Binding<[Article]>) {
         if articles.allSatisfy({ $0.note.isEmpty && ($0.tags ?? []).isEmpty }) {
             for article in articles { Library.unkeep(article) }
         } else {
-            articlesToUnkeep = articles
+            articlesToUnkeep.wrappedValue = articles
         }
     }
 }

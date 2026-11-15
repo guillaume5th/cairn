@@ -408,6 +408,7 @@ struct ArticleListView: View {
     @State private var articlesToUnkeep: [Article] = []
     @State private var articlesToOpen: [Article] = []
     @AppStorage("showListIcons") private var showListIcons = true
+    @Query private var cairns: [Cairn]
     @Environment(AppState.self) private var state
 
     var body: some View {
@@ -459,6 +460,29 @@ struct ArticleListView: View {
             }
             .padding(.vertical, 2)
             .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([article.persistentModelID]) })
+            // On the swiped row alone, like Mail. Same labels and symbols as the article's menu.
+            .swipeActions(edge: .leading) {
+                Button(article.isRead ? "Marquer comme non lu" : "Marquer comme lu",
+                       systemImage: article.isRead ? "circle.inset.filled" : "checkmark.circle") { article.isRead.toggle() }
+                    .tint(.accentColor)
+                    .labelStyle(.iconOnly) // the titles made the buttons far too wide; VoiceOver still reads them
+            }
+            // No full swipe: it must not take an article out of its cairn by accident.
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Group {
+                    ReadLaterButton(articles: [article]).tint(.orange)
+                    // A swipe cannot open the menu of the cairns: keeping is offered only when there is no cairn to pick.
+                    if cairns.count == 1 {
+                        KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep).tint(article.isKept ? .red : .blue)
+                    } else if article.isKept {
+                        Button("Retirer du cairn", image: ImageResource(name: "cairn.fill", bundle: .main)) {
+                            KeepButton.unkeep([article], confirming: $articlesToUnkeep)
+                        }
+                        .tint(.red)
+                    }
+                }
+                .labelStyle(.iconOnly)
+            }
         }
         // It gets the selection when the clicked row is part of it, else that row alone.
         .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
