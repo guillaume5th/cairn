@@ -49,7 +49,8 @@
       "translucency": {
         "enabled": true,
         "value": 0.4
-      }
+      },
+      "specular": false
     },
     {
       "layers": [
@@ -121,7 +122,8 @@
       "translucency": {
         "enabled": true,
         "value": 0.4
-      }
+      },
+      "specular": false
     }
   ],
   "supported-platforms": {
