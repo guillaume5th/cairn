@@ -23,6 +23,7 @@ struct DigestTests {
         let digest = try #require(try context.fetch(FetchDescriptor<Digest>()).first)
         #expect(digest.text == "# Résumé")
         #expect(digest.items == items)
+        #expect(!digest.isRead)
     }
 
     @Test func dueness() {

@@ -68,8 +68,8 @@ struct ContentView: View {
         } content: {
             Group {
                 if entry == .digests {
-                    DigestListView(digests: visibleDigests, query: searchText, selection: digestSelection)
-                        .navigationTitle(title)
+                    DigestListView(digests: visibleDigests, query: searchText, selection: digestSelection,
+                                   isSelectionModeOn: $isSelectionModeOn, unreadOnly: $unreadOnly)
                         .searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher")
                         .searchFocused($isSearchFocused)
                 } else {
@@ -79,8 +79,9 @@ struct ContentView: View {
             .navigationSplitViewColumnWidth(min: 260, ideal: 340)
         } detail: {
             if entry == .digests {
-                DigestDetail(digests: selectedDigests.count > 1 ? selectedDigests : displayedDigest.map { [$0] } ?? [],
-                             query: searchText, hasDigests: !digests.isEmpty)
+                let isPicking = selectedDigests.count > 1 || isSelectionModeOn
+                DigestDetail(digests: isPicking ? selectedDigests : displayedDigest.map { [$0] } ?? [],
+                             isSelecting: isSelectionModeOn, query: searchText, hasDigests: !digests.isEmpty)
             } else if selectedArticles.count > 1 || isSelectionModeOn {
                 ArticleSelectionView(articles: selectedArticles)
             } else if let article = articles.first(where: { $0.persistentModelID == displayedArticleID }) {
@@ -122,6 +123,11 @@ struct ContentView: View {
         .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil; isSelectionModeOn = false }
         .onChange(of: memory) { memory.save() }
         .onChange(of: state.digestToOpen, initial: true) { openNotifiedDigest() }
+        // The digest shown by default (the newest) is remembered too: shown means read, and the unread filter keeps
+        // the remembered one listed, else it would go on to the next unread one and mark them all read.
+        .onChange(of: entry == .digests ? displayedDigest?.persistentModelID : nil, initial: true) { _, id in
+            if multiDigests.isEmpty, !isSelectionModeOn, let id { memory.articles[.digests] = id }
+        }
         .onChange(of: state.keptArticleToOpen, initial: true) { openSpotlightResult() }
         .onChange(of: state.feedToOpen, initial: true) { openNotifiedFeed() }
         .onChange(of: state.isSearchRequested) {
@@ -273,10 +279,10 @@ struct ContentView: View {
     private var digestSelection: Binding<Set<PersistentIdentifier>> {
         Binding {
             let picked = selectedDigests
-            if picked.count > 1 { return Set(picked.map(\.persistentModelID)) }
+            if picked.count > 1 || isSelectionModeOn { return Set(picked.map(\.persistentModelID)) }
             return Set([displayedDigest?.persistentModelID].compactMap { $0 })
         } set: { ids in
-            if ids.count > 1 {
+            if ids.count > 1 || isSelectionModeOn {
                 multiDigests = ids
             } else {
                 multiDigests = []
@@ -338,7 +344,12 @@ struct ContentView: View {
         memory.articles[entry] = nil
     }
 
-    private var visibleDigests: [Digest] { Library.search(searchText, in: digests) }
+    private var visibleDigests: [Digest] {
+        let list = Library.search(searchText, in: digests)
+        guard unreadOnly else { return list }
+        // The digest being read and the ticked ones stay listed, like the article being read in « Lire plus tard ».
+        return list.filter { !$0.isRead || $0.persistentModelID == memory.articles[.digests] || multiDigests.contains($0.persistentModelID) }
+    }
 
     // Only what is still listed: a lot action (delete, unkeep, mark read under the unread filter) can remove items
     // from the list without going through the List's selection setter.
@@ -591,7 +602,7 @@ extension AttributedString {
 
 /// In the Mac's selection mode, a click on the row ticks it. Added only then: a gesture on every row slows the list
 /// down (rebuilding it on a filter change) and gets in the way of the table's own clicks.
-private struct TickOnClick: ViewModifier {
+struct TickOnClick: ViewModifier {
     let isOn: Bool
     let action: () -> Void
 
@@ -601,7 +612,7 @@ private struct TickOnClick: ViewModifier {
 }
 
 /// The Mac's selection-mode checkbox: white on a highlighted (selected) row, where the tint would vanish.
-private struct SelectionMark: View {
+struct SelectionMark: View {
     let isTicked: Bool
     @Environment(\.backgroundProminence) private var prominence
 
@@ -624,7 +635,7 @@ private struct KeptMark: View {
 }
 
 /// The accent color, like Mail, white on a selected row where it would vanish into the highlight.
-private struct UnreadDot: View {
+struct UnreadDot: View {
     @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {

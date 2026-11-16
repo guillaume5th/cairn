@@ -262,47 +262,113 @@ struct DigestListView: View {
     /// Current search: a highlighted excerpt is shown under each row.
     let query: String
     @Binding var selection: Set<PersistentIdentifier>
+    /// Selection mode, turned on with the button, as in the article list.
+    @Binding var isSelectionModeOn: Bool
+    @Binding var unreadOnly: Bool
     @Environment(AppState.self) private var state
     @State private var digestsToDelete: [Digest] = []
 
     var body: some View {
-        List(digests, selection: $selection) { digest in
-            VStack(alignment: .leading, spacing: 2) {
-                Text(digest.createdAt.formatted(.dateTime.weekday(.wide).day().month(.wide)).capitalized)
-                Text("\(digest.createdAt.formatted(date: .omitted, time: .shortened)) · \(digest.items.count) article(s) · \(digest.engine)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if let snippet = Library.snippet(for: query, in: digest) {
-                    Text(AttributedString(snippet, highlighting: query))
+        List(digests, selection: listSelection) { digest in
+            HStack(spacing: 10) {
+                if isSelecting { SelectionMark(isTicked: selection.contains(digest.persistentModelID)) }
+                // Hidden rather than removed when read, so every row keeps the same alignment.
+                UnreadDot()
+                    .opacity(digest.isRead ? 0 : 1)
+                    .accessibilityLabel("Non lu")
+                    .accessibilityHidden(digest.isRead)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(digest.createdAt.formatted(.dateTime.weekday(.wide).day().month(.wide)).capitalized)
+                    Text("\(digest.createdAt.formatted(date: .omitted, time: .shortened)) · \(digest.items.count) article(s) · \(digest.engine)")
                         .font(.caption)
-                        .lineLimit(2)
+                        .foregroundStyle(.secondary)
+                    if let snippet = Library.snippet(for: query, in: digest) {
+                        Text(AttributedString(snippet, highlighting: query))
+                            .font(.caption)
+                            .lineLimit(2)
+                    }
                 }
             }
             .padding(.vertical, 2)
+            .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([digest.persistentModelID]) })
+            // Same labels and symbols as the article rows.
+            .swipeActions(edge: .leading) {
+                Button(digest.isRead ? "Marquer comme non lu" : "Marquer comme lu",
+                       systemImage: digest.isRead ? "circle.inset.filled" : "checkmark.circle") { digest.isRead.toggle() }
+                    .tint(.accentColor)
+                    .labelStyle(.iconOnly)
+            }
+            // Asks for confirmation like the other ways to delete, so no full swipe.
+            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                Button("Supprimer le résumé…", systemImage: "trash", role: .destructive) { digestsToDelete = [digest] }
+                    .labelStyle(.iconOnly)
+            }
         }
         // It gets the selection when the clicked row is part of it, else that row alone.
         .contextMenu(forSelectionType: PersistentIdentifier.self) { ids in
             let lot = digests.filter { ids.contains($0.persistentModelID) }
             if !lot.isEmpty {
+                let anyUnread = lot.contains { !$0.isRead }
+                Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                       systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
+                    for digest in lot { digest.isRead = anyUnread }
+                }
+                Divider()
                 Button(lot.count == 1 ? "Supprimer le résumé…" : "Supprimer \(lot.count) résumés…", role: .destructive) {
                     digestsToDelete = lot
                 }
             }
         }
         .onDeleteCommand { digestsToDelete = digests.filter { selection.contains($0.persistentModelID) } }
+        .onExitCommand { if isSelecting { leaveSelection() } }
+        .navigationTitle(listTitle)
         .toolbar {
-            // Trailing edge of the list column, like the article list's buttons.
+            // Trailing edge of the list column, in the article list's order (see `ArticleListView`).
             ToolbarItem {
                 Button("Générer un résumé", systemImage: "text.badge.plus") { Task { await state.makeDigest(manual: true) } }
                     .symbolEffect(.pulse, isActive: state.isDigesting)
                     .disabled(state.isDigesting)
                     .help(state.isDigesting ? "Résumé en cours" : "Générer un résumé des dernières 24 heures maintenant")
             }
+            ToolbarItem {
+                Toggle(isOn: Binding { isSelecting } set: { $0 ? (isSelectionModeOn = true) : leaveSelection() }) {
+                    Label("Sélectionner", systemImage: "checklist")
+                }
+                .help(isSelecting ? "Terminer la sélection (Échap)" : "Sélectionner des résumés")
+            }
+            ToolbarItemGroup {
+                Toggle(isOn: $unreadOnly) { Label("Non lus seulement", systemImage: "line.3.horizontal.decrease.circle") }
+                    .help("N'afficher que les résumés non lus")
+                Button("Tout marquer comme lu", systemImage: "checkmark.circle") {
+                    for digest in digests { digest.isRead = true }
+                }
+                .help("Marquer tous les résumés de la liste comme lus")
+            }
         }
         .digestDeleteConfirmation($digestsToDelete)
         .overlay {
             if digests.isEmpty { ContentUnavailableView("Aucun résumé", systemImage: "text.append") }
         }
+    }
+
+    private var isSelecting: Bool { isSelectionModeOn || selection.count > 1 }
+
+    /// As in `ArticleListView`: in selection mode the rows' own click ticks them, the table's changes are ignored.
+    private var listSelection: Binding<Set<PersistentIdentifier>> {
+        isSelectionModeOn ? Binding { selection } set: { _ in } : $selection
+    }
+
+    /// Drops what was ticked without an action.
+    private func leaveSelection() {
+        isSelectionModeOn = false
+        selection = []
+    }
+
+    /// In selection mode, the count replaces the list's name, as in Mail.
+    private var listTitle: String {
+        guard isSelecting else { return "Résumés quotidiens" }
+        let count = digests.count { selection.contains($0.persistentModelID) }
+        return count == 0 ? "Aucune sélection" : count == 1 ? "1 sélectionné" : "\(count) sélectionnés"
     }
 }
 
@@ -337,6 +403,8 @@ extension View {
 struct DigestDetail: View {
     /// Selected digests: one is shown, several are counted.
     let digests: [Digest]
+    /// Selection mode: the ticked digests are counted, even one or none.
+    let isSelecting: Bool
     let query: String
     /// Whether any digest exists, searched or not.
     let hasDigests: Bool
@@ -346,8 +414,10 @@ struct DigestDetail: View {
 
     var body: some View {
         Group {
-            if digests.count > 1 {
-                ContentUnavailableView("\(digests.count) résumés sélectionnés", systemImage: "doc.on.doc")
+            if digests.count > 1 || isSelecting {
+                ContentUnavailableView(digests.isEmpty ? "Aucun résumé sélectionné"
+                                       : digests.count == 1 ? "1 résumé sélectionné" : "\(digests.count) résumés sélectionnés",
+                                       systemImage: "doc.on.doc")
             } else if let digest = digests.first {
                 DigestView(digest: digest, query: query)
             } else if hasDigests {
@@ -361,7 +431,15 @@ struct DigestDetail: View {
         .toolbar {
             // Leading edge of the reading pane, like the article actions. Kept (disabled) without a digest: a reading
             // pane without toolbar items lets the list's buttons drift to the window's trailing edge.
-            ToolbarItem {
+            ToolbarItemGroup {
+                // The article reader's button: the filled dot the list shows on unread rows.
+                let anyUnread = digests.contains { !$0.isRead }
+                Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                       systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
+                    for digest in digests { digest.isRead = anyUnread }
+                }
+                .disabled(digests.isEmpty)
+                .help(anyUnread ? "Marquer comme lu" : "Marquer comme non lu")
                 Button(digests.count > 1 ? "Supprimer les résumés" : "Supprimer le résumé", systemImage: "trash") {
                     digestsToDelete = digests
                 }
@@ -406,6 +484,8 @@ struct DigestView: View {
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // Shown alone means read, like an article; several selected ones only show their count.
+        .task(id: digest.persistentModelID) { digest.isRead = true }
     }
 }
 

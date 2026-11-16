@@ -13,6 +13,7 @@ struct SidebarView: View {
     @Query(sort: \CairnCore.Tag.name) private var tags: [CairnCore.Tag]
     // Every unread article, kept ones without a feed included, like the "Tous les articles" list.
     @Query(filter: #Predicate<Article> { !$0.isRead }) private var unreadArticles: [Article]
+    @Query(filter: #Predicate<Digest> { !$0.isRead }) private var unreadDigests: [Digest]
     @State private var feedsToDelete: [Feed] = []
     /// Keys of the collapsed folders, one per line, kept on this Mac.
     @AppStorage("collapsedFolders") private var collapsedFolders = ""
@@ -60,6 +61,7 @@ struct SidebarView: View {
                 .badge(unreadArticles.count { $0.readLaterAt != nil })
                 .tag(SidebarItem.readLater)
             Label("Résumés quotidiens", systemImage: "text.append")
+                .badge(unreadDigests.count)
                 .tag(SidebarItem.digests)
 
             Section {

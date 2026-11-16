@@ -141,12 +141,15 @@ public final class Digest {
     public var itemsData: Data = Data()
     /// Engine that wrote it, for display.
     public var engine: String = ""
+    /// `true` here so the migration marks digests made before this property as read; `init` makes new ones unread.
+    public var isRead: Bool = true
 
     public init(createdAt: Date, text: String, items: [DigestItem], engine: String) {
         self.createdAt = createdAt
         self.text = text
         self.itemsData = (try? JSONEncoder().encode(items)) ?? Data()
         self.engine = engine
+        self.isRead = false
     }
 
     public var items: [DigestItem] {
