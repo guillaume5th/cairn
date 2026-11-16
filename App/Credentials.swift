@@ -1,3 +1,4 @@
+import CairnCore
 import Foundation
 import Security
 
@@ -25,5 +26,16 @@ enum Credentials {
 
     static func remove(for host: String) {
         SecItemDelete([kSecClass: kSecClassGenericPassword, kSecAttrService: service(host)] as CFDictionary)
+    }
+}
+
+extension Credentials {
+    /// The API key of the Claude API engine. Only in the keychain: never in UserDefaults, so never in a backup.
+    static var anthropicKey: String? { login(for: AnthropicSummarizer.host)?.password }
+
+    /// An empty key removes it.
+    static func setAnthropicKey(_ key: String) throws {
+        let key = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if key.isEmpty { remove(for: AnthropicSummarizer.host) } else { try save(user: "API key", password: key, for: AnthropicSummarizer.host) }
     }
 }

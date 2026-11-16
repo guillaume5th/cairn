@@ -177,10 +177,21 @@ public struct DigestItem: Codable, Equatable, Hashable, Sendable {
 }
 
 public enum CairnStore {
-    public static func container(inMemory: Bool = false) throws -> ModelContainer {
-        try ModelContainer(
+    /// `~/Library/Application Support/<bundle id>/default.store`: one folder per app, so Cairn and Cairn Dev stay apart.
+    public static func defaultURL(bundleID: String, home: URL = FileManager.default.homeDirectoryForCurrentUser) -> URL {
+        home.appending(path: "Library/Application Support/\(bundleID)/default.store")
+    }
+
+    /// In memory, at `url`, or (both nil) at SwiftData's default location.
+    public static func container(inMemory: Bool = false, at url: URL? = nil) throws -> ModelContainer {
+        let configuration = if let url, !inMemory {
+            ModelConfiguration(url: url)
+        } else {
+            ModelConfiguration(isStoredInMemoryOnly: inMemory)
+        }
+        return try ModelContainer(
             for: Feed.self, Article.self, Tag.self, Folder.self, Cairn.self, Digest.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: inMemory)
+            configurations: configuration
         )
     }
 }

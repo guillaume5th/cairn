@@ -35,8 +35,6 @@ targets:
         SUFeedURL: https://github.com/guillaume5th/cairn/releases/latest/download/appcast.xml
         SUPublicEDKey: C5D91R2KSp/CwIli2HzinI/qFww79gbU+BWbbXYyBsw=
         SUEnableAutomaticChecks: true
-        # Required by Sparkle in a sandboxed app (the download goes through network.client).
-        SUEnableInstallerLauncherService: true
         # feed: links from sites and browsers open "Ajouter un abonnement" with the address.
         CFBundleURLTypes:
           - CFBundleURLName: Feed
@@ -52,17 +50,10 @@ targets:
     entitlements:
       path: App/Cairn.entitlements
       properties:
-        com.apple.security.app-sandbox: true
+        # No App Sandbox: the Claude Code engine launches the user's `claude` CLI, which a sandbox would block (and
+        # would keep from reading its login).
         # Ad-hoc signing + hardened runtime: without this, dyld refuses the embedded Sparkle.framework (no Team ID to match).
         com.apple.security.cs.disable-library-validation: true
-        com.apple.security.network.client: true
-        com.apple.security.files.user-selected.read-write: true
-        # Keeps access to the backup folder chosen once in Settings.
-        com.apple.security.files.bookmarks.app-scope: true
-        # Sparkle's installer talks to the app through these services.
-        com.apple.security.temporary-exception.mach-lookup.global-name:
-          - $(PRODUCT_BUNDLE_IDENTIFIER)-spks
-          - $(PRODUCT_BUNDLE_IDENTIFIER)-spki
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.cairn.Cairn

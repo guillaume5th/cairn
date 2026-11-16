@@ -16,6 +16,15 @@ public enum CairnError: LocalizedError, Equatable {
     case ollamaUnreachable
     case ollamaModelNotFound(String)
     case summarizerUnavailable(String)
+    case anthropicKeyMissing
+    case anthropicKeyInvalid
+    case anthropicBilling
+    case anthropicModelNotFound(String)
+    case anthropicRateLimited
+    case anthropicRefused
+    case claudeCodeNotFound
+    case claudeCodeNotLoggedIn
+    case claudeCodeFailed(String)
     case invalidBackup
     case emptyFeedName
     case emptyTagName
@@ -39,6 +48,15 @@ public enum CairnError: LocalizedError, Equatable {
         case .ollamaUnreachable: "Le serveur Ollama est injoignable. Vérifie qu'il tourne et son adresse dans les Réglages."
         case let .ollamaModelNotFound(model): "Le modèle Ollama « \(model) » est introuvable. Installe-le avec « ollama pull \(model) »."
         case let .summarizerUnavailable(reason): reason
+        case .anthropicKeyMissing: "Aucune clé API Anthropic n'est enregistrée. Saisis-la dans les Réglages."
+        case .anthropicKeyInvalid: "Anthropic refuse la clé API. Vérifie-la dans les Réglages."
+        case .anthropicBilling: "Anthropic signale un problème de facturation sur ce compte API (crédit épuisé ?)."
+        case let .anthropicModelNotFound(model): "Le modèle Claude « \(model) » est introuvable ou n'est pas accessible avec cette clé."
+        case .anthropicRateLimited: "Anthropic limite les requêtes ou est surchargé pour le moment. Réessaie dans un instant."
+        case .anthropicRefused: "Claude a refusé de résumer ce contenu."
+        case .claudeCodeNotFound: "La CLI Claude Code est introuvable. Installe-la, ou indique son chemin dans les Réglages."
+        case .claudeCodeNotLoggedIn: "Claude Code n'est connecté à aucun compte. Lance « claude » dans un terminal pour te connecter."
+        case let .claudeCodeFailed(reason): "Claude Code a échoué : \(reason)"
         case .emptyFeedName: "Le titre de l'abonnement ne peut pas être vide."
         case .emptyTagName: "Le nom du tag ne peut pas être vide."
         case .invalidBackup: "Ce fichier n'est pas une sauvegarde de Cairn lisible."

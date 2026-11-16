@@ -8,6 +8,9 @@ enum DigestSettings {
     static let engineKey = "digestEngine"
     static let ollamaURLKey = "ollamaURL"
     static let ollamaModelKey = "ollamaModel"
+    static let claudeCodePathKey = "claudeCodePath"
+    static let claudeCodeModelKey = "claudeCodeModel"
+    static let claudeModelKey = "claudeModel"
     static let retentionKey = "digestRetentionDays"
     static let lastAttemptKey = "digestLastAttempt"
     static let notifyKey = "digestNotify"
@@ -17,6 +20,8 @@ enum DigestSettings {
     static let defaultTime = 8 * 60
     static let defaultOllamaURL = "http://localhost:11434"
     static let defaultOllamaModel = "llama3.2"
+    /// Haiku for both Claude engines: summarizing is a light task, and the API is billed per token.
+    static let defaultClaudeCodeModel = "haiku"
     static let defaultRetention = 7
     static let retentionRange = 1...90
 
@@ -33,11 +38,31 @@ enum DigestSettings {
 
     /// The chosen engine and its display name.
     static func summarizer() throws -> (any Summarizer, String) {
-        guard defaults.string(forKey: engineKey) == Engine.ollama.rawValue else { return (AppleSummarizer(), "Apple") }
-        let model = defaults.string(forKey: ollamaModelKey) ?? defaultOllamaModel
-        let address = defaults.string(forKey: ollamaURLKey) ?? defaultOllamaURL
-        guard let url = URL(string: address), ["http", "https"].contains(url.scheme?.lowercased()) else { throw CairnError.invalidURL }
-        return (OllamaSummarizer(baseURL: url, model: model), "Ollama (\(model))")
+        switch Engine(rawValue: defaults.string(forKey: engineKey) ?? "") ?? .apple {
+        case .apple:
+            return (AppleSummarizer(), "Apple")
+        case .ollama:
+            let model = defaults.string(forKey: ollamaModelKey) ?? defaultOllamaModel
+            let address = defaults.string(forKey: ollamaURLKey) ?? defaultOllamaURL
+            guard let url = URL(string: address), ["http", "https"].contains(url.scheme?.lowercased()) else { throw CairnError.invalidURL }
+            return (OllamaSummarizer(baseURL: url, model: model), "Ollama (\(model))")
+        case .claudeCode:
+            guard let cli = claudeCodeURL() else { throw CairnError.claudeCodeNotFound }
+            let model = defaults.string(forKey: claudeCodeModelKey).flatMap { $0.isEmpty ? nil : $0 } ?? defaultClaudeCodeModel
+            return (ClaudeCodeSummarizer(executable: cli, model: model), "Claude Code (\(model))")
+        case .claudeAPI:
+            guard let key = Credentials.anthropicKey, !key.isEmpty else { throw CairnError.anthropicKeyMissing }
+            let model = defaults.string(forKey: claudeModelKey) ?? AnthropicSummarizer.defaultModel
+            return (AnthropicSummarizer(apiKey: key, model: model), "Claude API (\(model))")
+        }
+    }
+
+    /// The Claude Code CLI: the path set in Settings, else the first usual install place. Nil when it is not there.
+    static func claudeCodeURL() -> URL? {
+        let set = (defaults.string(forKey: claudeCodePathKey) ?? "").trimmingCharacters(in: .whitespaces)
+        guard !set.isEmpty else { return ClaudeCodeSummarizer.locate() }
+        let url = URL(filePath: (set as NSString).expandingTildeInPath)
+        return FileManager.default.isExecutableFile(atPath: url.path(percentEncoded: false)) ? url : nil
     }
 
     static func timeText(_ minutes: Int) -> String {
@@ -46,7 +71,7 @@ enum DigestSettings {
     }
 
     enum Engine: String, CaseIterable {
-        case apple, ollama
+        case apple, ollama, claudeCode, claudeAPI
     }
 }
 
@@ -55,6 +80,12 @@ struct SettingsView: View {
     @AppStorage(DigestSettings.engineKey) private var engine = DigestSettings.Engine.apple
     @AppStorage(DigestSettings.ollamaURLKey) private var ollamaURL = DigestSettings.defaultOllamaURL
     @AppStorage(DigestSettings.ollamaModelKey) private var ollamaModel = DigestSettings.defaultOllamaModel
+    @AppStorage(DigestSettings.claudeCodePathKey) private var claudeCodePath = ""
+    @AppStorage(DigestSettings.claudeCodeModelKey) private var claudeCodeModel = DigestSettings.defaultClaudeCodeModel
+    @AppStorage(DigestSettings.claudeModelKey) private var claudeModel = AnthropicSummarizer.defaultModel
+    /// The API key lives in the keychain, not in UserDefaults: it is loaded when Settings opens.
+    @State private var apiKey = ""
+    @State private var apiKeyError: String?
     @AppStorage(DigestSettings.retentionKey) private var retention = DigestSettings.defaultRetention
     @State private var installedModels: [String] = []
     @State private var modelsError: String?
@@ -67,6 +98,7 @@ struct SettingsView: View {
     private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
     private static let disabledNote = "Aucun résumé n'est produit automatiquement. Tu peux en générer un depuis la liste des résumés."
     private static let ollamaPlace = "Ollama doit tourner sur ce Mac ou sur ton réseau."
+    private static let sentToAnthropic = "Le contenu des articles résumés est envoyé à Anthropic."
     private static let badgesDeniedNote = "Les pastilles de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
     private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
     @AppStorage(TextScale.key) private var textScale = 1.0
@@ -176,6 +208,8 @@ struct SettingsView: View {
                 Picker("Moteur", selection: $engine) {
                     Text("Apple Intelligence").tag(DigestSettings.Engine.apple)
                     Text("Ollama").tag(DigestSettings.Engine.ollama)
+                    Text("Claude Code").tag(DigestSettings.Engine.claudeCode)
+                    Text("Claude (API)").tag(DigestSettings.Engine.claudeAPI)
                 }
                 // Only the chosen engine's options are shown, as in System Settings.
                 if engine == .ollama {
@@ -196,12 +230,44 @@ struct SettingsView: View {
                         }
                     }
                 }
+                if engine == .claudeCode {
+                    TextField("Chemin de la CLI", text: $claudeCodePath,
+                              prompt: Text(ClaudeCodeSummarizer.locate()?.path(percentEncoded: false) ?? "~/.local/bin/claude"))
+                    Picker("Modèle", selection: $claudeCodeModel) {
+                        Text("Haiku").tag("haiku")
+                        Text("Sonnet").tag("sonnet")
+                        Text("Opus").tag("opus")
+                    }
+                }
+                if engine == .claudeAPI {
+                    SecureField("Clé API", text: $apiKey, prompt: Text("sk-ant-…"))
+                        .onChange(of: apiKey) {
+                            do { try Credentials.setAnthropicKey(apiKey); apiKeyError = nil } catch { apiKeyError = "La clé n'a pas pu être enregistrée dans le trousseau : \(error.localizedDescription)" }
+                        }
+                    Picker("Modèle", selection: $claudeModel) {
+                        Text("Haiku").tag("claude-haiku-5-5")
+                        Text("Sonnet").tag("claude-sonnet-5-5")
+                        Text("Opus").tag("claude-opus-5-5")
+                    }
+                }
             } header: {
                 Text("Moteur d'IA")
             } footer: {
                 Group {
                     if engine == .apple {
                         Text("Les résumés quotidiens et les résumés d'articles sont rédigés sur cet appareil : les articles ne sont envoyés à aucun service en ligne.")
+                    } else if engine == .claudeCode {
+                        if DigestSettings.claudeCodeURL() == nil {
+                            Label(CairnError.claudeCodeNotFound.localizedDescription, systemImage: "exclamationmark.triangle")
+                        } else {
+                            Text("Utilise le compte connecté dans Claude Code, donc ton forfait Claude. \(Self.sentToAnthropic)")
+                        }
+                    } else if engine == .claudeAPI {
+                        if let apiKeyError {
+                            Label(apiKeyError, systemImage: "exclamationmark.triangle")
+                        } else {
+                            Text("Facturé sur ton compte API Anthropic, hors forfait Claude. La clé est gardée dans le trousseau. \(Self.sentToAnthropic)")
+                        }
                     } else if let modelsError {
                         Label(modelsError, systemImage: "exclamationmark.triangle")
                     } else {
@@ -218,6 +284,7 @@ struct SettingsView: View {
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
         .task(id: "\(engine.rawValue)|\(ollamaURL)|\(reloadCount)") { await loadModels() }
+        .task { apiKey = Credentials.anthropicKey ?? "" }
     }
 
     /// Installed models, plus the configured one when the server lacks it (shown as not installed).

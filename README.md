@@ -40,8 +40,12 @@ propre bibliothèque et ses propres réglages, et les deux peuvent tourner en m�
 exporte-les en OPML depuis Cairn et importe-les dans Cairn Dev.
 
 Les données sont stockées localement dans
-`~/Library/Containers/dev.cairn.Cairn/Data/Library/Application Support/default.store`
+`~/Library/Application Support/dev.cairn.Cairn/default.store`
 (`dev.cairn.Cairn.debug` pour Cairn Dev).
+
+Les versions précédentes de Cairn (avec App Sandbox) les gardaient dans
+`~/Library/Containers/dev.cairn.Cairn/Data/`. Au premier lancement, Cairn les recopie (articles, réglages) sans toucher
+à ce dossier : tu peux le supprimer une fois que tout est en place.
 
 ## Installation
 

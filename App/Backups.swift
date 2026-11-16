@@ -16,7 +16,8 @@ enum BackupSettings {
     static let settingKeys = [TextScale.key, "showListIcons", AppState.dockBadgeKey, AppState.refreshIntervalKey,
                               "articleSummaryHidden", "collapsedFolders", DigestSettings.enabledKey,
                               DigestSettings.timeKey, DigestSettings.engineKey, DigestSettings.ollamaURLKey,
-                              DigestSettings.ollamaModelKey, DigestSettings.retentionKey, DigestSettings.notifyKey,
+                              DigestSettings.ollamaModelKey, DigestSettings.claudeCodePathKey, DigestSettings.claudeCodeModelKey,
+                              DigestSettings.claudeModelKey, DigestSettings.retentionKey, DigestSettings.notifyKey,
                               Retention.key, ContentView.oldestFirstKey]
 
     private static var defaults: UserDefaults { .standard }

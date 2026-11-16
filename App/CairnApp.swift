@@ -11,7 +11,14 @@ struct CairnApp: App {
 
     init() {
         do {
-            _state = State(initialValue: AppState(container: try CairnStore.container()))
+            let bundleID = Bundle.main.bundleIdentifier ?? "dev.cairn.Cairn"
+            let store = CairnStore.defaultURL(bundleID: bundleID)
+            // First launch outside the sandbox: take over the sandboxed version's data, which stays where it is.
+            let legacy = LegacyImport.container(bundleID: bundleID)
+            LegacyImport.importSettings(from: legacy.appending(path: "Library/Preferences/\(bundleID).plist"), into: .standard)
+            try LegacyImport.importStore(from: legacy.appending(path: "Library/Application Support"), to: store)
+            try FileManager.default.createDirectory(at: store.deletingLastPathComponent(), withIntermediateDirectories: true)
+            _state = State(initialValue: AppState(container: try CairnStore.container(at: store)))
         } catch {
             fatalError("Impossible d'ouvrir la base de données Cairn : \(error)")
         }
