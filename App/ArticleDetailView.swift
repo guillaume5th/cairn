@@ -50,6 +50,8 @@ struct ArticleDetailView: View {
                     .padding(.bottom, 12)
             }
             Divider()
+                // Room for the whole line: below the 1 pt divider, the article's web view would hide half of it.
+                .frame(height: 2, alignment: .top)
                 .overlay(alignment: .top) {
                     // A bare accent line on the header's divider, which reads as the divider filling up; no track.
                     if Library.displayedContent(article) != nil, let progress {
