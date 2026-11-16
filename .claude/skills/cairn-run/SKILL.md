@@ -1,6 +1,7 @@
 ---
 name: cairn-run
 description: Build and launch Cairn Dev, bring its window on screen, screenshot it, click through it and inspect accessibility, to check a UI change in the real app. Use when the user asks to run, launch, screenshot, "vérifie toi-même", or to confirm a UI change works.
+model: sonnet
 ---
 
 # Run and inspect Cairn Dev

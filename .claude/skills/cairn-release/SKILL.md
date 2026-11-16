@@ -1,6 +1,7 @@
 ---
 name: cairn-release
 description: Publish a new Cairn version end to end - merge the release-please PR, wait for the tag, build the DMG and attach it with the Sparkle appcast. Use when the user asks to release, publish a version, ship, or "générer la release / le DMG".
+model: sonnet
 ---
 
 # Release Cairn

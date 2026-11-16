@@ -1,6 +1,7 @@
 ---
 name: cairn-check
 description: Run Cairn's checks before a commit - CairnCore unit tests, then the Xcode build of the app - and report only failures. Use when the user asks to test, check, build, or "vérifier avant de commiter", and after any code change in App/ or CairnCore/.
+model: sonnet
 ---
 
 # Check Cairn

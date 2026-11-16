@@ -1,6 +1,7 @@
 ---
 name: cairn-idea
 description: "Manage the Cairn ideas backlog, GitHub issue #20 - add an idea under the right theme, start one as an OpenSpec change, or tick one off once shipped. Use when the user has a feature idea, asks what is in the backlog, wants to start an idea, or after archiving a change that came from it."
+model: opus
 ---
 
 # Cairn ideas backlog (issue #20)
