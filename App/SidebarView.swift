@@ -17,6 +17,8 @@ struct SidebarView: View {
     @State private var feedsToDelete: [Feed] = []
     /// Keys of the collapsed folders, one per line, kept on this Mac.
     @AppStorage("collapsedFolders") private var collapsedFolders = ""
+    @AppStorage("cairnsSectionExpanded") private var cairnsExpanded = true
+    @AppStorage("subscriptionsSectionExpanded") private var subscriptionsExpanded = true
     /// What the name alert creates or renames; nil when it is closed.
     @State private var naming: Naming?
     @State private var name = ""
@@ -65,7 +67,8 @@ struct SidebarView: View {
                 .tag(SidebarItem.digests)
 
             Section {
-                ForEach(cairns) { cairn in
+                // Filtered data rather than an `if`: List rows under an `if` do not come back when it flips to true.
+                ForEach(cairnsExpanded ? cairns : []) { cairn in
                     Label(cairn.name, image: "cairn")
                         .tag(SidebarItem.cairn(cairn.persistentModelID))
                     ForEach(tags(in: cairn)) { tag in
@@ -75,14 +78,15 @@ struct SidebarView: View {
                     }
                 }
             } header: {
-                Text("Cairns")
+                SectionHeader("Cairns", isExpanded: $cairnsExpanded, help: "Nouveau cairn") {
+                    Button("Nouveau cairn…", image: ImageResource(name: "cairn", bundle: .main)) { startNaming(.newCairn) }
+                }
             }
 
             subscriptionsSection
         }
         // One menu for the whole list: it gets the selection when the clicked row is part of it, else that row alone.
         .contextMenu(forSelectionType: SidebarItem.self, menu: menu)
-        .toolbar { sidebarCommands }
         // Dragging a selected feed drags the whole selection of feeds.
         .dragContainer(for: String.self, itemID: \.self) { urls in urls }
         .dragContainerSelection(selectedFeeds.map(\.url))
@@ -133,22 +137,10 @@ struct SidebarView: View {
         }
     }
 
-    /// What can be created, in one "+".
-    @ToolbarContentBuilder private var sidebarCommands: some ToolbarContent {
-        ToolbarItemGroup(placement: .navigation) {
-            Menu("Ajouter", systemImage: "plus") {
-                Button("Ajouter un abonnement…", systemImage: "dot.radiowaves.up.forward") { state.isAddingFeed = true }
-                Button("Nouveau dossier…", systemImage: "folder.badge.plus") { startNaming(.newFolder) }
-                Button("Nouveau cairn…", image: ImageResource(name: "cairn", bundle: .main)) { startNaming(.newCairn) }
-            }
-            .help("Ajouter un abonnement (⌘N), un dossier ou un cairn")
-        }
-    }
-
     /// Folders and feeds, split out of `body`, which is otherwise too big for the type checker.
     private var subscriptionsSection: some View {
         Section {
-            ForEach(folders) { folder in
+            ForEach(subscriptionsExpanded ? folders : []) { folder in
                 DisclosureGroup(isExpanded: isExpanded(folder)) {
                     ForEach(feeds.filter { $0.folder?.persistentModelID == folder.persistentModelID }, content: feedRow)
                 } label: {
@@ -158,9 +150,12 @@ struct SidebarView: View {
                         .dropDestination(for: String.self) { urls, _ in return move(urls, to: folder) }
                 }
             }
-            ForEach(feeds.filter { $0.folder == nil }, content: feedRow)
+            ForEach(subscriptionsExpanded ? feeds.filter { $0.folder == nil } : [], content: feedRow)
         } header: {
-            Text("Abonnements")
+            SectionHeader("Abonnements", isExpanded: $subscriptionsExpanded, help: "Ajouter un abonnement (⌘N) ou un dossier") {
+                Button("Ajouter un abonnement…", systemImage: "dot.radiowaves.up.forward") { state.isAddingFeed = true }
+                Button("Nouveau dossier…", systemImage: "folder.badge.plus") { startNaming(.newFolder) }
+            }
                 // Dropping a feed on the section header takes it out of its folder.
                 .dropDestination(for: String.self) { urls, _ in return move(urls, to: nil) }
         }
@@ -359,5 +354,61 @@ struct SidebarView: View {
         }
         // After the List has moved its selection to a neighbouring row (see the folder deletion).
         if wasSelected { Task { selection = [.all] } }
+    }
+}
+
+/// A section title with a "+" menu then a collapse chevron, both shown while the pointer is over the header, as in Mail.
+private struct SectionHeader<Actions: View>: View {
+    let title: String
+    @Binding var isExpanded: Bool
+    let help: String
+    @ViewBuilder let actions: Actions
+    @State private var isHovering = false
+
+    init(_ title: String, isExpanded: Binding<Bool>, help: String, @ViewBuilder actions: () -> Actions) {
+        self.title = title
+        _isExpanded = isExpanded
+        self.help = help
+        self.actions = actions()
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Text(title)
+            Spacer()
+            Menu {
+                actions
+            } label: {
+                Image(systemName: "plus").modifier(HeaderIcon())
+            }
+            .menuStyle(.button)
+            .buttonStyle(.plain)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help(help)
+            .opacity(isHovering ? 1 : 0)
+            Button {
+                isExpanded.toggle()
+            } label: {
+                Image(systemName: "chevron.down")
+                    .rotationEffect(.degrees(isExpanded ? 0 : -90))
+                    .modifier(HeaderIcon())
+            }
+            .buttonStyle(.plain)
+            .help(isExpanded ? "Masquer" : "Afficher")
+            .opacity(isHovering ? 1 : 0)
+        }
+        .contentShape(Rectangle())
+        .onHover { isHovering = $0 }
+    }
+}
+
+private struct HeaderIcon: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .frame(width: 20, height: 20)
+            .contentShape(Rectangle())
     }
 }
