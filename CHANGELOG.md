@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.1](https://github.com/guillaume5th/cairn/compare/v2.6.0...v2.6.1) (2026-11-16)
+
+
+### Bug Fixes
+
+* sharp app icon in Finder and Dock on macOS 27 ([7db50e3](https://github.com/guillaume5th/cairn/commit/7db50e3c9ea9d5cc67c714ab04d833ba64fd16ad))
+
 ## [2.6.0](https://github.com/guillaume5th/cairn/compare/v2.5.0...v2.6.0) (2026-11-16)
 
 
