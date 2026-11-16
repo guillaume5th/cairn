@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.5.0](https://github.com/guillaume5th/cairn/compare/v2.4.0...v2.5.0) (2026-11-16)
+
+
+### Features
+
+* read and unread daily digests ([aca5d1d](https://github.com/guillaume5th/cairn/commit/aca5d1deec0d02805b7a7496bb1caf801ac98e58))
+
+
+### Bug Fixes
+
+* same reading progress thickness with or without a summary ([54dd147](https://github.com/guillaume5th/cairn/commit/54dd1473ce40cdb8269ad4b7783e2d840a4c36ee))
+
 ## [2.4.0](https://github.com/guillaume5th/cairn/compare/v2.3.3...v2.4.0) (2026-11-15)
 
 
