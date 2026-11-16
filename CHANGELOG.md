@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.7.0](https://github.com/guillaume5th/cairn/compare/v2.6.1...v2.7.0) (2026-11-16)
+
+
+### Features
+
+* add menu and collapsible sections in the sidebar headers ([f3714d6](https://github.com/guillaume5th/cairn/commit/f3714d611896ed57fb951f656b5cf4be610d0fa6))
+
 ## [2.6.1](https://github.com/guillaume5th/cairn/compare/v2.6.0...v2.6.1) (2026-11-16)
 
 
