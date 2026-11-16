@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.6.0](https://github.com/guillaume5th/cairn/compare/v2.5.0...v2.6.0) (2026-11-16)
+
+
+### Features
+
+* Claude Code and Claude API summary engines ([aa18c65](https://github.com/guillaume5th/cairn/commit/aa18c653fbcf11a7fe35f649e0318a93c4270286))
+
 ## [2.5.0](https://github.com/guillaume5th/cairn/compare/v2.4.0...v2.5.0) (2026-11-16)
 
 
