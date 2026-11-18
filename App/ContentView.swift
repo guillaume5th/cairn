@@ -435,7 +435,46 @@ struct ArticleListView: View {
     @Environment(AppState.self) private var state
 
     var body: some View {
-        ScrollViewReader { proxy in list.onKeyPress(keys: [.space, "n"]) { _ in openNextUnread(proxy) } }
+        ScrollViewReader { proxy in
+            list.onKeyPress(keys: [.space, "n", "j", "k", "s"]) { press in
+                switch press.characters {
+                case "j": openNeighbor(offset: -1, proxy, press)
+                case "k": openNeighbor(offset: 1, proxy, press)
+                case "s": toggleKept(press)
+                default: openNextUnread(proxy)
+                }
+            }
+        }
+    }
+
+    /// Only the bare key: a shortcut with ⌘, ⌃ or ⌥ belongs to the menus.
+    private func isBare(_ press: KeyPress) -> Bool { press.modifiers.isDisjoint(with: [.command, .control, .option]) }
+
+    /// K or J: the article after (below) or before (above) the current one, as a click; the alert sound at either end.
+    private func openNeighbor(offset: Int, _ proxy: ScrollViewProxy, _ press: KeyPress) -> KeyPress.Result {
+        guard !isSelecting, isBare(press) else { return .ignored }
+        let current = selection.count == 1 ? selection.first : nil
+        guard let next = Library.neighbor(of: current, in: articles, offset: offset) else {
+            NSSound.beep()
+            return .handled
+        }
+        selection = [next.persistentModelID]
+        proxy.scrollTo(next.persistentModelID)
+        return .handled
+    }
+
+    /// S: keeps the displayed article in the cairn used last, or unkeeps it (the usual confirmation if it has notes).
+    private func toggleKept(_ press: KeyPress) -> KeyPress.Result {
+        guard !isSelecting, isBare(press), selection.count == 1,
+              let article = articles.first(where: { $0.persistentModelID == selection.first }) else { return .ignored }
+        if article.isKept {
+            KeepButton.unkeep([article], confirming: $articlesToUnkeep)
+        } else if let cairn = try? Library.lastUsedCairn(context: context) {
+            Library.keep(article, in: cairn)
+        } else {
+            NSSound.beep()
+        }
+        return .handled
     }
 
     /// Space or N, while the list has the focus (the article and text fields keep their own Space).

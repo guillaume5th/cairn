@@ -195,6 +195,24 @@ public enum Library {
         return (articles[start...] + articles[..<start]).first { !$0.isRead && $0.persistentModelID != current }
     }
 
+    /// The article `offset` places after (positive) or before (negative) `current` in `articles`, no wrapping; nil
+    /// past either end. Without a current article, the first one whichever the direction.
+    public static func neighbor(of current: PersistentIdentifier?, in articles: [Article], offset: Int) -> Article? {
+        guard let index = articles.firstIndex(where: { $0.persistentModelID == current }) else {
+            return articles.first
+        }
+        let target = index + offset
+        return articles.indices.contains(target) ? articles[target] : nil
+    }
+
+    /// The cairn of the article kept most recently, else the first cairn by name; nil when there is no cairn.
+    public static func lastUsedCairn(context: ModelContext) throws -> Cairn? {
+        let kept = try context.fetch(FetchDescriptor<Article>(predicate: #Predicate { $0.isKept },
+                                                              sortBy: [SortDescriptor(\.keptAt, order: .reverse)]))
+        if let cairn = kept.lazy.compactMap(\.cairn).first { return cairn }
+        return try context.fetch(FetchDescriptor<Cairn>()).min { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
     /// Deletes non-kept articles published before the retention window, except unread ones in the read-later queue.
     public static func purge(context: ModelContext, now: Date = .now) throws {
         let cutoff = Retention.cutoff(now: now)
