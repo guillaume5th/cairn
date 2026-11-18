@@ -20,6 +20,10 @@ public struct FeedFetcher: Sendable {
     func download(_ url: URL, timeout: TimeInterval = 20) async throws -> (data: Data, url: URL) {
         // A refresh must reach the server: heuristic HTTP caching would otherwise hide new items.
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
+        // Without it YouTube redirects EU clients to a consent page that declares no feed.
+        if let host = url.host(), host == "youtube.com" || host.hasSuffix(".youtube.com") {
+            request.setValue("SOCS=CAI", forHTTPHeaderField: "Cookie")
+        }
         let delegate = Self.authorize(&request, login: url.host().flatMap(credentials))
         let (data, response) = try await session.data(for: request, delegate: delegate)
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
