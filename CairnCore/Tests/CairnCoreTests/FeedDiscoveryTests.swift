@@ -57,6 +57,11 @@ struct FeedDiscoveryTests {
         await #expect(throws: CairnError.httpStatus(500)) { try await discover("https://broken.test/") }
     }
 
+    @Test func declaredFeedsFoundAfterHeadClose() {
+        let html = #"<html><head></head><body><link rel="alternate" type="application/rss+xml" href="https://s.test/f.xml"></body></html>"#
+        #expect(Library.declaredFeeds(inHTML: html, baseURL: URL(string: "https://s.test/")!).map(\.url) == ["https://s.test/f.xml"])
+    }
+
     @Test func declaredFeedsIgnoreNonFeedAlternates() {
         let html = #"<link rel="alternate" type="text/html" href="/fr/"><link rel="alternate" href="/x"><link rel="feed" type="application/rss+xml" href="/f">"#
         #expect(Library.declaredFeeds(inHTML: html, baseURL: URL(string: "https://s.test/")!).isEmpty)

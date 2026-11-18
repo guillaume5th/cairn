@@ -14,9 +14,10 @@ enum HTMLHead {
         var sizes: String?
     }
 
-    /// Links with an `href`, in document order. Only the head is read (the whole page when it has no `</head>`).
-    static func links(in html: String, baseURL: URL) -> [Link] {
-        let head = html.firstRange(of: /<\/head\s*>/.ignoresCase()).map { String(html[..<$0.lowerBound]) } ?? html
+    /// Links with an `href`, in document order. Only the head is read (the whole page when it has no `</head>`
+    /// or when `wholePage` is set: YouTube declares its feed after `</head>`).
+    static func links(in html: String, baseURL: URL, wholePage: Bool = false) -> [Link] {
+        let head = wholePage ? html : html.firstRange(of: /<\/head\s*>/.ignoresCase()).map { String(html[..<$0.lowerBound]) } ?? html
         return head.matches(of: /<link\b[^>]*>/.ignoresCase()).compactMap { match in
             let tag = String(match.output)
             guard let href = attribute("href", in: tag),

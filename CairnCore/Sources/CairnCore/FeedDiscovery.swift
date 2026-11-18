@@ -43,10 +43,10 @@ extension Library {
     /// Plain `application/json` is left out: WordPress declares its REST API with it.
     static let feedTypes: Set<String> = ["application/rss+xml", "application/atom+xml", "application/feed+json"]
 
-    /// `<link rel="alternate">` feeds of the page head, in document order, without duplicates.
+    /// `<link rel="alternate">` feeds of the page (not only its head, YouTube puts them in the body), in document order, without duplicates.
     static func declaredFeeds(inHTML html: String, baseURL: URL) -> [DiscoveredFeed] {
         var seen: Set<String> = []
-        return HTMLHead.links(in: html, baseURL: baseURL).compactMap { link in
+        return HTMLHead.links(in: html, baseURL: baseURL, wholePage: true).compactMap { link in
             guard link.rel.contains("alternate"), let type = link.type, feedTypes.contains(type),
                   ["http", "https"].contains(link.href.scheme?.lowercased()),
                   seen.insert(link.href.absoluteString).inserted else { return nil }
