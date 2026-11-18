@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.1](https://github.com/guillaume5th/cairn/compare/v2.8.0...v2.8.1) (2026-11-18)
+
+
+### Bug Fixes
+
+* align app icon proportions with the cairn symbol ([8946f46](https://github.com/guillaume5th/cairn/commit/8946f46de0b1351f8a295bf305dd4bbd4e67e552))
+
 ## [2.8.0](https://github.com/guillaume5th/cairn/compare/v2.7.0...v2.8.0) (2026-11-18)
 
 
