@@ -22,8 +22,8 @@ un cairn à la fois.
 ## Commandes
 
 ```sh
-# Tests de la logique
-cd CairnCore && swift test && cd ..
+# Tests de la logique (le flag évite que SwiftPM réécrive Package.resolved sans Sparkle)
+cd CairnCore && swift test --only-use-versions-from-resolved-file && cd ..
 
 # Générer le projet Xcode puis construire l'app
 xcodegen
@@ -102,4 +102,4 @@ Le modèle d'Apple lit environ 4 000 tokens : les jours chargés, seuls les prem
 
 ## Dépendances
 
-Dependabot (`.github/dependabot.yml`) vérifie chaque semaine les paquets Swift de `CairnCore` et ouvre une pull request à chaque nouvelle version. Avant de fusionner : `cd CairnCore && swift test`, puis construire l'app.
+Dependabot (`.github/dependabot.yml`) vérifie chaque semaine les paquets Swift de `CairnCore` et ouvre une pull request à chaque nouvelle version. Avant de fusionner : `cd CairnCore && swift test --only-use-versions-from-resolved-file`, puis construire l'app.
