@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.8.0](https://github.com/guillaume5th/cairn/compare/v2.7.0...v2.8.0) (2026-11-18)
+
+
+### Features
+
+* j, k and s keys in the article list ([ceec6e9](https://github.com/guillaume5th/cairn/commit/ceec6e9d5825ed1656949f6f380d487085867413))
+* open article images in Quick Look ([8a7f0cf](https://github.com/guillaume5th/cairn/commit/8a7f0cf29f8bf1b270f6afd1be2d98482dd5e692))
+* search tokens for source, tag, unread and kept ([c082acb](https://github.com/guillaume5th/cairn/commit/c082acbcb835a0313bfa78c49b86497d9122df93))
+* watch YouTube videos in the reader ([dacd4ba](https://github.com/guillaume5th/cairn/commit/dacd4ba3335586fc8111576e89645eed830a564b))
+
+
+### Bug Fixes
+
+* discover feeds declared after &lt;/head&gt; (YouTube channels) ([f803d65](https://github.com/guillaume5th/cairn/commit/f803d6554aee6eb6736b4182b604436efcf645c7))
+* send the consent cookie to YouTube so channel pages are not redirected ([7542db6](https://github.com/guillaume5th/cairn/commit/7542db62f1d16724fafaf9eb7bbfa314148e8df8))
+
 ## [2.7.0](https://github.com/guillaume5th/cairn/compare/v2.6.1...v2.7.0) (2026-11-16)
 
 
