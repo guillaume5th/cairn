@@ -49,6 +49,11 @@ struct ArticleDetailView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 12)
             }
+            if let video = Library.youtubeVideoID(in: article.link) {
+                // With no content to read, the video is the content: it fills the pane.
+                VideoPlayer(id: video, fillsPane: Library.displayedContent(article) == nil)
+                    .id(video)
+            }
             Divider()
                 // Room for the whole line: below the 1 pt divider, the article's web view would hide half of it.
                 .frame(height: 2, alignment: .top)
@@ -69,6 +74,8 @@ struct ArticleDetailView: View {
             if let html = Library.displayedContent(article) {
                 HTMLView(html: html, baseURL: url, query: query, quotes: Library.quotes(in: article.note), page: $page,
                          progress: $progress)
+            } else if Library.youtubeVideoID(in: article.link) != nil {
+                Spacer(minLength: 0)
             } else {
                 ContentUnavailableView {
                     Label("Aucun contenu", systemImage: "doc")
