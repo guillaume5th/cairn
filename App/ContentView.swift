@@ -58,6 +58,8 @@ struct ContentView: View {
     @State private var loginUser = ""
     @State private var loginPassword = ""
     @State private var searchText = ""
+    /// Filters added to the search of an article list; emptied with the text.
+    @State private var searchTokens: [SearchToken] = []
     @FocusState private var isSearchFocused: Bool
 
     var body: some View {
@@ -117,10 +119,10 @@ struct ContentView: View {
             settleArticle()
         }
         .onChange(of: memory.item) {
-            searchText = ""; multiArticles = []; multiDigests = []; isSelectionModeOn = false
+            searchText = ""; searchTokens = []; multiArticles = []; multiDigests = []; isSelectionModeOn = false
             settleArticle()
         }
-        .onChange(of: multiFeeds) { searchText = ""; multiArticles = []; multiFeedArticle = nil; isSelectionModeOn = false }
+        .onChange(of: multiFeeds) { searchText = ""; searchTokens = []; multiArticles = []; multiFeedArticle = nil; isSelectionModeOn = false }
         .onChange(of: memory) { memory.save() }
         .onChange(of: state.digestToOpen, initial: true) { openNotifiedDigest() }
         // The digest shown by default (the newest) is remembered too: shown means read, and the unread filter keeps
@@ -235,7 +237,14 @@ struct ContentView: View {
                         .help(state.isRefreshing ? "Rafraîchissement en cours" : "Rafraîchir tous les abonnements (⌘R)")
                 }
             }
-            .searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher")
+            .searchable(text: $searchText, tokens: $searchTokens, placement: .toolbar, prompt: "Rechercher") { token in
+                SearchTokenLabel(token: token)
+            }
+            .searchSuggestions {
+                ForEach(Library.suggestedTokens(for: searchText, in: entryArticles, excluding: searchTokens)) { token in
+                    SearchTokenLabel(token: token).searchCompletion(token)
+                }
+            }
             .searchFocused($isSearchFocused)
     }
 
@@ -382,10 +391,17 @@ struct ContentView: View {
     }
 
     private var visibleArticles: [Article] {
-        var list: [Article] = if isMultiFeed {
-            Library.withoutDuplicates(articles.filter { $0.feed.map { multiFeeds.contains($0.persistentModelID) } ?? false })
-        } else {
-            switch memory.item {
+        var list = Library.search(searchText, in: Library.filter(entryArticles, tokens: searchTokens))
+        if unreadOnly { list = list.filter { !$0.isRead } }
+        return oldestFirst ? list.reversed() : list
+    }
+
+    /// The articles of the entry, before the search and the unread filter: what the search suggestions draw from.
+    private var entryArticles: [Article] {
+        if isMultiFeed {
+            return Library.withoutDuplicates(articles.filter { $0.feed.map { multiFeeds.contains($0.persistentModelID) } ?? false })
+        }
+        return switch memory.item {
         case .all, nil: Library.withoutDuplicates(articles)
         // shortcut: not recomputed at midnight by itself, only on the next change; add a day timer if that matters.
         case .today: Library.withoutDuplicates(articles.filter { $0.publishedAt >= Calendar.current.startOfDay(for: .now) })
@@ -397,11 +413,7 @@ struct ContentView: View {
         case let .folder(id): Library.withoutDuplicates(articles.filter { $0.feed?.folder?.persistentModelID == id })
         case let .cairn(id): kept(in: id)
         case let .tag(id, key): kept(in: id).filter { $0.tags?.contains { $0.key == key } ?? false }
-            }
         }
-        list = Library.search(searchText, in: list)
-        if unreadOnly { list = list.filter { !$0.isRead } }
-        return oldestFirst ? list.reversed() : list
     }
 }
 
@@ -621,6 +633,20 @@ struct SelectionMark: View {
             .foregroundStyle(prominence == .increased ? AnyShapeStyle(.white)
                                                       : isTicked ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
             .accessibilityHidden(true)
+    }
+}
+
+/// A search token as the field and its suggestions show it.
+private struct SearchTokenLabel: View {
+    let token: SearchToken
+
+    var body: some View {
+        switch token {
+        case .source: Label(token.label, systemImage: "antenna.radiowaves.left.and.right")
+        case .tag: Label(token.label, systemImage: "tag")
+        case .unread: Label(token.label, systemImage: "circle.fill")
+        case .kept: Label(token.label, image: "cairn.fill")
+        }
     }
 }
 
