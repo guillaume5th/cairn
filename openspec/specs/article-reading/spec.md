@@ -101,7 +101,7 @@ Le système SHALL proposer un champ de recherche dans toutes les vues de la barr
 
 #### Scenario: Changement d'entrée
 - **WHEN** l'utilisateur change d'entrée dans la barre latérale après une recherche
-- **THEN** le champ de recherche est vide et la nouvelle liste est complète
+- **THEN** le champ de recherche est vide, sans texte ni jeton, et la nouvelle liste est complète
 
 ### Requirement: Surligner le terme recherché
 Pendant une recherche, le système SHALL surligner le terme recherché dans la liste et dans l'article affiché, selon la même règle que la recherche (sans tenir compte de la casse ni des accents). Une ligne dont le titre ne contient pas le terme MUST afficher un court extrait autour de sa première occurrence dans le contenu, la note ou les tags. Le surlignage MUST NOT exécuter de script de l'article.
@@ -629,3 +629,40 @@ Le système SHALL afficher, sous l'en-tête d'un article dont le lien est une vi
 #### Scenario: Contenu de l'article inchangé
 - **WHEN** l'article d'une vidéo est affiché avec son lecteur
 - **THEN** le contenu de l'article reste affiché sans exécuter de script ni charger de contenu distant autre que les images
+
+### Requirement: Filtrer par jetons de recherche
+Le système SHALL accepter dans le champ de recherche d'une liste d'articles des jetons de filtre : une source, un tag, « Non lus », « Gardés ». Il MUST proposer, pendant la frappe, les jetons qui correspondent au texte saisi, parmi les sources et les tags des articles de la liste affichée. Les jetons d'un même type MUST élargir la liste, ceux de types différents la restreindre, et le texte recherché s'applique en plus.
+
+#### Scenario: Proposition d'une source
+- **GIVEN** la liste « Tous les articles » contient des articles de l'abonnement « Korben »
+- **WHEN** l'utilisateur tape « kor » dans le champ de recherche
+- **THEN** le jeton de source « Korben » est proposé, et le choisir remplace le texte tapé par ce jeton
+
+#### Scenario: Préfixe de type
+- **WHEN** l'utilisateur tape « tag: » dans le champ de recherche
+- **THEN** seuls des jetons de tag sont proposés
+
+#### Scenario: Jeton de source
+- **WHEN** le champ contient le jeton de source « Korben »
+- **THEN** seuls les articles de cet abonnement sont listés
+
+#### Scenario: Deux sources
+- **WHEN** le champ contient les jetons de source « Korben » et « Xavki »
+- **THEN** les articles de l'un et de l'autre sont listés, et aucun autre
+
+#### Scenario: Types combinés avec du texte
+- **WHEN** le champ contient le jeton de tag « swift », le jeton « Non lus » et le texte « concurrency »
+- **THEN** seuls les articles non lus, tagués « swift », qui contiennent « concurrency » sont listés
+
+#### Scenario: Jeton « Gardés »
+- **WHEN** le champ contient le jeton « Gardés » dans « Tous les articles »
+- **THEN** seuls les articles gardés sont listés
+
+#### Scenario: Tag sans tenir compte de la casse ni des accents
+- **GIVEN** un article gardé tagué « Sécurité » et un autre tagué « securite »
+- **WHEN** le champ contient le jeton de tag « Sécurité »
+- **THEN** les deux articles sont listés
+
+#### Scenario: Résumés quotidiens
+- **WHEN** l'utilisateur recherche dans la vue « Résumés quotidiens »
+- **THEN** aucun jeton n'est proposé et la recherche porte sur le texte seul
