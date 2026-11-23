@@ -168,6 +168,47 @@
         }
       }
     },
+    "%lld digests selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld digest selected"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld digests selected"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld digest sélectionné"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld digests sélectionnés"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld new articles · %@": {
       "extractionState": "manual",
       "localizations": {
@@ -238,47 +279,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld abonnements"
-          }
-        }
-      }
-    },
-    "%lld summaries selected": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld summary selected"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld summaries selected"
-                }
-              }
-            }
-          }
-        },
-        "fr": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld résumé sélectionné"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld résumés sélectionnés"
-                }
-              }
-            }
           }
         }
       }
@@ -536,35 +536,35 @@
         }
       }
     },
-    "Articles from the last 24 hours are summarized at that time if Cairn is open, otherwise at the next launch.": {
+    "Articles in the digest": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
+            "value": "Articles du digest"
           }
         }
       }
     },
-    "Automatic summary": {
+    "Automatic digest": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Résumé automatique"
+            "value": "Digest automatique"
           }
         }
       }
     },
-    "Automatic summary turned off.": {
+    "Automatic digest turned off.": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Résumé automatique désactivé."
+            "value": "Digest automatique désactivé."
           }
         }
       }
@@ -844,35 +844,35 @@
         }
       }
     },
-    "Daily and article summaries are written on this device: articles are not sent to any online service.": {
+    "Daily digest": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les résumés quotidiens et les résumés d'articles sont rédigés sur cet appareil : les articles ne sont envoyés à aucun service en ligne."
+            "value": "Digest quotidien"
           }
         }
       }
     },
-    "Daily summaries": {
+    "Daily digests": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Résumés quotidiens"
+            "value": "Digests quotidiens"
           }
         }
       }
     },
-    "Daily summary": {
+    "Daily digests and article summaries are written on this device: articles are not sent to any online service.": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Résumé quotidien"
+            "value": "Les digests quotidiens et les résumés d'articles sont rédigés sur cet appareil : les articles ne sont envoyés à aucun service en ligne."
           }
         }
       }
@@ -951,6 +951,58 @@
         }
       }
     },
+    "Delete %lld digests?": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer %lld digests ?"
+          }
+        }
+      }
+    },
+    "Delete %lld digests…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete digest…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Delete %lld digests…"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Supprimer le digest…"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Supprimer %lld digests…"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Delete %lld subscriptions?": {
       "extractionState": "manual",
       "localizations": {
@@ -1003,58 +1055,6 @@
         }
       }
     },
-    "Delete %lld summaries?": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer %lld résumés ?"
-          }
-        }
-      }
-    },
-    "Delete %lld summaries…": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Delete summary…"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Delete %lld summaries…"
-                }
-              }
-            }
-          }
-        },
-        "fr": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Supprimer le résumé…"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Supprimer %lld résumés…"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "Delete cairn “%@”?": {
       "extractionState": "manual",
       "localizations": {
@@ -1077,6 +1077,39 @@
         }
       }
     },
+    "Delete digest": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer le digest"
+          }
+        }
+      }
+    },
+    "Delete digests": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer les digests"
+          }
+        }
+      }
+    },
+    "Delete digest…": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Supprimer le digest…"
+          }
+        }
+      }
+    },
     "Delete folder": {
       "extractionState": "manual",
       "localizations": {
@@ -1088,17 +1121,6 @@
         }
       }
     },
-    "Delete summaries": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer les résumés"
-          }
-        }
-      }
-    },
     "Delete summary": {
       "extractionState": "manual",
       "localizations": {
@@ -1106,17 +1128,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Supprimer le résumé"
-          }
-        }
-      }
-    },
-    "Delete summary…": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Supprimer le résumé…"
           }
         }
       }
@@ -1143,24 +1154,24 @@
         }
       }
     },
-    "Delete the summary of %@?": {
+    "Delete the digest of %@?": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supprimer le résumé du %@ ?"
+            "value": "Supprimer le digest du %@ ?"
           }
         }
       }
     },
-    "Delete these summaries": {
+    "Delete these digests": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supprimer ces résumés"
+            "value": "Supprimer ces digests"
           }
         }
       }
@@ -1176,13 +1187,13 @@
         }
       }
     },
-    "Delete this summary": {
+    "Delete this digest": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Supprimer ce résumé"
+            "value": "Supprimer ce digest"
           }
         }
       }
@@ -1194,6 +1205,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Supprimer « %@ » ?"
+          }
+        }
+      }
+    },
+    "Digest in progress": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Digest en cours"
+          }
+        }
+      }
+    },
+    "Digest time": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heure du digest"
           }
         }
       }
@@ -1352,35 +1385,35 @@
         }
       }
     },
-    "Generate Summary Now": {
+    "Generate Digest Now": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Générer le résumé maintenant"
+            "value": "Générer le digest maintenant"
           }
         }
       }
     },
-    "Generate a summary": {
+    "Generate a digest": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Générer un résumé"
+            "value": "Générer un digest"
           }
         }
       }
     },
-    "Generate a summary of the last 24 hours now": {
+    "Generate a digest of the last 24 hours now": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Générer un résumé des dernières 24 heures maintenant"
+            "value": "Générer un digest des dernières 24 heures maintenant"
           }
         }
       }
@@ -1621,6 +1654,17 @@
         }
       }
     },
+    "Keep digests": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conserver les digests"
+          }
+        }
+      }
+    },
     "Keep in cairn": {
       "extractionState": "manual",
       "localizations": {
@@ -1639,17 +1683,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Garde-le pour lui ajouter des notes et des tags."
-          }
-        }
-      }
-    },
-    "Keep summaries": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Conserver les résumés"
           }
         }
       }
@@ -1731,13 +1764,13 @@
         }
       }
     },
-    "Mark all summaries in the list as read": {
+    "Mark all digests in the list as read": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Marquer tous les résumés de la liste comme lus"
+            "value": "Marquer tous les digests de la liste comme lus"
           }
         }
       }
@@ -1863,24 +1896,24 @@
         }
       }
     },
-    "Next summary at %@.": {
+    "Next digest at %@.": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Prochain résumé à %@."
+            "value": "Prochain digest à %@."
           }
         }
       }
     },
-    "No article published in the last 24 hours: no summary.": {
+    "No article published in the last 24 hours: no digest.": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aucun article publié ces dernières 24 heures : pas de résumé."
+            "value": "Aucun article publié ces dernières 24 heures : pas de digest."
           }
         }
       }
@@ -1918,6 +1951,39 @@
         }
       }
     },
+    "No digest is produced automatically. You can generate one from the digests list.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun digest n'est produit automatiquement. Tu peux en générer un depuis la liste des digests."
+          }
+        }
+      }
+    },
+    "No digest selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun digest sélectionné"
+          }
+        }
+      }
+    },
+    "No digests": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun digest"
+          }
+        }
+      }
+    },
     "No folder": {
       "extractionState": "manual",
       "localizations": {
@@ -1951,39 +2017,6 @@
         }
       }
     },
-    "No summaries": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucun résumé"
-          }
-        }
-      }
-    },
-    "No summary is produced automatically. You can generate one from the summaries list.": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucun résumé n'est produit automatiquement. Tu peux en générer un depuis la liste des résumés."
-          }
-        }
-      }
-    },
-    "No summary selected": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aucun résumé sélectionné"
-          }
-        }
-      }
-    },
     "None": {
       "extractionState": "manual",
       "localizations": {
@@ -2006,13 +2039,13 @@
         }
       }
     },
-    "Notify me when the summary is ready": {
+    "Notify me when the digest is ready": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Me prévenir quand le résumé est prêt"
+            "value": "Me prévenir quand le digest est prêt"
           }
         }
       }
@@ -2597,13 +2630,13 @@
         }
       }
     },
-    "Select summaries": {
+    "Select digests": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sélectionner des résumés"
+            "value": "Sélectionner des digests"
           }
         }
       }
@@ -2674,13 +2707,13 @@
         }
       }
     },
-    "Show only unread summaries": {
+    "Show only unread digests": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "N'afficher que les résumés non lus"
+            "value": "N'afficher que les digests non lus"
           }
         }
       }
@@ -2762,17 +2795,6 @@
         }
       }
     },
-    "Summarized articles": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Articles résumés"
-          }
-        }
-      }
-    },
     "Summarizing…": {
       "extractionState": "manual",
       "localizations": {
@@ -2795,17 +2817,6 @@
         }
       }
     },
-    "Summary in progress": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Résumé en cours"
-          }
-        }
-      }
-    },
     "Summary of the excerpt provided by the feed": {
       "extractionState": "manual",
       "localizations": {
@@ -2813,17 +2824,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Résumé de l'extrait fourni par le flux"
-          }
-        }
-      }
-    },
-    "Summary time": {
-      "extractionState": "manual",
-      "localizations": {
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Heure du résumé"
           }
         }
       }
@@ -2857,6 +2857,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "Le contenu des articles résumés est envoyé à Anthropic."
+          }
+        }
+      }
+    },
+    "The digest could not be produced: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le digest n'a pas pu être produit : %@"
+          }
+        }
+      }
+    },
+    "The digest of the last 24 hours is produced at that time if Cairn is open, otherwise at the next launch.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le digest des dernières 24 heures est produit à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
           }
         }
       }
@@ -3048,13 +3070,13 @@
         }
       }
     },
-    "Used for daily and article summaries. %@ Install other models with “ollama pull”, then refresh the list.": {
+    "Used for daily digests and article summaries. %@ Install other models with “ollama pull”, then refresh the list.": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sert aux résumés quotidiens et aux résumés d'articles. %@ Installe d'autres modèles avec « ollama pull », puis actualise la liste."
+            "value": "Sert aux digests quotidiens et aux résumés d'articles. %@ Installe d'autres modèles avec « ollama pull », puis actualise la liste."
           }
         }
       }
@@ -3092,13 +3114,13 @@
         }
       }
     },
-    "Your daily summary is ready": {
+    "Your daily digest is ready": {
       "extractionState": "manual",
       "localizations": {
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ton résumé du jour est prêt"
+            "value": "Ton digest du jour est prêt"
           }
         }
       }

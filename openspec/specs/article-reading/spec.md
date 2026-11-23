@@ -415,7 +415,7 @@ Le système SHALL proposer dans la barre des menus un menu « Article » avec le
 - **THEN** les trois articles sont lus
 
 #### Scenario: Pas de liste d'articles
-- **WHEN** « Résumés quotidiens » est affiché
+- **WHEN** « Digests quotidiens » est affiché
 - **THEN** les actions du menu « Article » sont grisées
 
 #### Scenario: Lire plus tard au clavier
@@ -663,8 +663,8 @@ Le système SHALL accepter dans le champ de recherche d'une liste d'articles des
 - **WHEN** le champ contient le jeton de tag « Sécurité »
 - **THEN** les deux articles sont listés
 
-#### Scenario: Résumés quotidiens
-- **WHEN** l'utilisateur recherche dans la vue « Résumés quotidiens »
+#### Scenario: Digests quotidiens
+- **WHEN** l'utilisateur recherche dans la vue « Digests quotidiens »
 - **THEN** aucun jeton n'est proposé et la recherche porte sur le texte seul
 
 ### Requirement: Article suivant et précédent au clavier

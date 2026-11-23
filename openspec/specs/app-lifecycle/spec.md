@@ -29,12 +29,12 @@ Le système SHALL se terminer quand l'utilisateur choisit Quitter (⌘Q), en enr
 - **THEN** l'application se termine et la dernière modification est conservée au prochain lancement
 
 ### Requirement: Démarrage unique
-Le système SHALL exécuter le travail de démarrage (préparation du cairn, purge, actualisation, programmation du résumé quotidien) une seule fois par lancement. Rouvrir la fenêtre MUST NOT le relancer.
+Le système SHALL exécuter le travail de démarrage (préparation du cairn, purge, actualisation, programmation du digest quotidien) une seule fois par lancement. Rouvrir la fenêtre MUST NOT le relancer.
 
 #### Scenario: Réouverture de la fenêtre
 - **GIVEN** l'application a démarré puis la fenêtre a été fermée
 - **WHEN** l'utilisateur rouvre la fenêtre
-- **THEN** aucune purge ni actualisation automatique n'est lancée, et un seul résumé automatique au plus est produit ce jour-là
+- **THEN** aucune purge ni actualisation automatique n'est lancée, et un seul digest automatique au plus est produit ce jour-là
 
 ### Requirement: Reprendre les données de l'ancienne version sandboxée
 Le système SHALL, au premier lancement d'une version hors sandbox, reprendre les articles, abonnements, cairns, résumés, réglages et le dossier de sauvegarde de la version sandboxée, s'il n'a pas encore de données à lui. Les données de l'ancien conteneur MUST NOT être supprimées ni modifiées.

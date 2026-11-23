@@ -94,10 +94,10 @@ revient au contenu du flux. Dans le menu d'un abonnement, « Toujours charger le
 article. Le site de l'article est contacté comme par un navigateur, mais sans cookies, et aucun de ses scripts n'est exécuté.
 Les résumés IA portent sur l'article complet quand il est chargé.
 
-## Résumé quotidien
+## Digest quotidien
 
-Chaque jour à l'heure réglée (8 h par défaut), pendant que l'app est ouverte, Cairn rafraîchit les abonnements et fait résumer par une IA locale les articles publiés dans les 24 heures précédentes. Si l'app était fermée à cette heure-là, le résumé est fait au lancement suivant. Les résumés apparaissent dans l'entrée « Résumés quotidiens » de la barre latérale et sont gardés 7 jours par défaut. « Présentation > Générer le résumé maintenant » relance à la main. Avec « Me prévenir quand le résumé est prêt » (Réglages),
-une notification annonce le résumé fait pendant que Cairn n'est pas au premier plan ; la toucher ouvre ce résumé.
+Chaque jour à l'heure réglée (8 h par défaut), pendant que l'app est ouverte, Cairn rafraîchit les abonnements et fait résumer par une IA locale les articles publiés dans les 24 heures précédentes. Si l'app était fermée à cette heure-là, le digest est fait au lancement suivant. Les digests apparaissent dans l'entrée « Digests quotidiens » de la barre latérale et sont gardés 7 jours par défaut. « Présentation > Générer le digest maintenant » relance à la main. Avec « Me prévenir quand le digest est prêt » (Réglages),
+une notification annonce le digest fait pendant que Cairn n'est pas au premier plan ; la toucher ouvre ce digest.
 
 Réglages (⌘,) : heure, durée de conservation (1 à 90 jours) et moteur :
 

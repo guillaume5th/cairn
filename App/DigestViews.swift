@@ -95,8 +95,8 @@ struct SettingsView: View {
     @State private var notificationsDenied = false
     @State private var badgesDenied = false
 
-    private static let scheduleNote = String(localized: "Articles from the last 24 hours are summarized at that time if Cairn is open, otherwise at the next launch.")
-    private static let disabledNote = String(localized: "No summary is produced automatically. You can generate one from the summaries list.")
+    private static let scheduleNote = String(localized: "The digest of the last 24 hours is produced at that time if Cairn is open, otherwise at the next launch.")
+    private static let disabledNote = String(localized: "No digest is produced automatically. You can generate one from the digests list.")
     private static let ollamaPlace = String(localized: "Ollama must be running on this Mac or on your network.")
     private static let sentToAnthropic = String(localized: "The content of summarized articles is sent to Anthropic.")
     private static let badgesDeniedNote = String(localized: "Cairn's badges are turned off: allow them in System Settings > Notifications > Cairn.")
@@ -135,7 +135,7 @@ struct SettingsView: View {
             }
             // Also in the Mac's View menu.
             Section {
-                // Value then arrows on the right, like "Keep summaries".
+                // Value then arrows on the right, like "Keep digests".
                 LabeledContent("Text size") {
                     HStack {
                         Text(textScale, format: .percent.precision(.fractionLength(0))).monospacedDigit()
@@ -163,19 +163,19 @@ struct SettingsView: View {
             }
             .task { badgesDenied = await DigestNotifications.badgesDenied() }
             Section {
-                Toggle("Automatic summary", isOn: $isEnabled)
+                Toggle("Automatic digest", isOn: $isEnabled)
                 // Greyed out rather than hidden: the window fits its content and would change height.
-                DatePicker("Summary time", selection: timeBinding, displayedComponents: .hourAndMinute)
+                DatePicker("Digest time", selection: timeBinding, displayedComponents: .hourAndMinute)
                     .disabled(!isEnabled)
-                LabeledContent("Keep summaries") {
+                LabeledContent("Keep digests") {
                     // Field + stepper: the standard macOS pairing for a bounded number.
                     HStack(spacing: 4) {
-                        TextField("Keep summaries", value: $retention, format: .number)
+                        TextField("Keep digests", value: $retention, format: .number)
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 40)
-                        Stepper("Keep summaries", value: $retention, in: DigestSettings.retentionRange)
+                        Stepper("Keep digests", value: $retention, in: DigestSettings.retentionRange)
                             .labelsHidden()
                         Text(retention > 1 ? "days" : "day")
                     }
@@ -185,7 +185,7 @@ struct SettingsView: View {
                     if !range.contains(retention) { retention = min(max(retention, range.lowerBound), range.upperBound) }
                 }
                 // The system is asked only when the user turns it on.
-                Toggle("Notify me when the summary is ready", isOn: Binding { notifies } set: { isOn in
+                Toggle("Notify me when the digest is ready", isOn: Binding { notifies } set: { isOn in
                     guard isOn else { notifies = false; return }
                     Task {
                         let granted = await DigestNotifications.requestAuthorization()
@@ -195,7 +195,7 @@ struct SettingsView: View {
                 })
                 .disabled(!isEnabled)
             } header: {
-                Text("Daily summary")
+                Text("Daily digest")
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(isEnabled ? Self.scheduleNote : Self.disabledNote)
@@ -255,7 +255,7 @@ struct SettingsView: View {
             } footer: {
                 Group {
                     if engine == .apple {
-                        Text("Daily and article summaries are written on this device: articles are not sent to any online service.")
+                        Text("Daily digests and article summaries are written on this device: articles are not sent to any online service.")
                     } else if engine == .claudeCode {
                         if DigestSettings.claudeCodeURL() == nil {
                             Label(CairnError.claudeCodeNotFound.localizedDescription, systemImage: "exclamationmark.triangle")
@@ -271,7 +271,7 @@ struct SettingsView: View {
                     } else if let modelsError {
                         Label(modelsError, systemImage: "exclamationmark.triangle")
                     } else {
-                        Text("Used for daily and article summaries. \(Self.ollamaPlace) Install other models with “ollama pull”, then refresh the list.")
+                        Text("Used for daily digests and article summaries. \(Self.ollamaPlace) Install other models with “ollama pull”, then refresh the list.")
                     }
                 }
                 .foregroundStyle(.secondary)
@@ -367,7 +367,7 @@ struct DigestListView: View {
             }
             // Asks for confirmation like the other ways to delete, so no full swipe.
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                Button("Delete summary…", systemImage: "trash", role: .destructive) { digestsToDelete = [digest] }
+                Button("Delete digest…", systemImage: "trash", role: .destructive) { digestsToDelete = [digest] }
                     .labelStyle(.iconOnly)
             }
         }
@@ -381,7 +381,7 @@ struct DigestListView: View {
                     for digest in lot { digest.isRead = anyUnread }
                 }
                 Divider()
-                Button("Delete \(lot.count) summaries…", role: .destructive) {
+                Button("Delete \(lot.count) digests…", role: .destructive) {
                     digestsToDelete = lot
                 }
             }
@@ -392,29 +392,29 @@ struct DigestListView: View {
         .toolbar {
             // Trailing edge of the list column, in the article list's order (see `ArticleListView`).
             ToolbarItem {
-                Button("Generate a summary", systemImage: "text.badge.plus") { Task { await state.makeDigest(manual: true) } }
+                Button("Generate a digest", systemImage: "text.badge.plus") { Task { await state.makeDigest(manual: true) } }
                     .symbolEffect(.pulse, isActive: state.isDigesting)
                     .disabled(state.isDigesting)
-                    .help(state.isDigesting ? "Summary in progress" : "Generate a summary of the last 24 hours now")
+                    .help(state.isDigesting ? "Digest in progress" : "Generate a digest of the last 24 hours now")
             }
             ToolbarItem {
                 Toggle(isOn: Binding { isSelecting } set: { $0 ? (isSelectionModeOn = true) : leaveSelection() }) {
                     Label("Select", systemImage: "checklist")
                 }
-                .help(isSelecting ? "End selection (Esc)" : "Select summaries")
+                .help(isSelecting ? "End selection (Esc)" : "Select digests")
             }
             ToolbarItemGroup {
                 Toggle(isOn: $unreadOnly) { Label("Unread only", systemImage: "line.3.horizontal.decrease.circle") }
-                    .help("Show only unread summaries")
+                    .help("Show only unread digests")
                 Button("Mark all as read", systemImage: "checkmark.circle") {
                     for digest in digests { digest.isRead = true }
                 }
-                .help("Mark all summaries in the list as read")
+                .help("Mark all digests in the list as read")
             }
         }
         .digestDeleteConfirmation($digestsToDelete)
         .overlay {
-            if digests.isEmpty { ContentUnavailableView("No summaries", systemImage: "text.append") }
+            if digests.isEmpty { ContentUnavailableView("No digests", systemImage: "text.append") }
         }
     }
 
@@ -433,7 +433,7 @@ struct DigestListView: View {
 
     /// In selection mode, the count replaces the list's name, as in Mail.
     private var listTitle: String {
-        guard isSelecting else { return String(localized: "Daily summaries") }
+        guard isSelecting else { return String(localized: "Daily digests") }
         let count = digests.count { selection.contains($0.persistentModelID) }
         return count == 0 ? String(localized: "No selection") : String(localized: "\(count) selected")
     }
@@ -446,8 +446,8 @@ struct DigestDeleteConfirmation: ViewModifier {
 
     func body(content: Content) -> some View {
         content.confirmationDialog(digests.count == 1
-                                   ? "Delete the summary of \(digests[0].createdAt.formatted(date: .long, time: .shortened))?"
-                                   : "Delete \(digests.count) summaries?",
+                                   ? "Delete the digest of \(digests[0].createdAt.formatted(date: .long, time: .shortened))?"
+                                   : "Delete \(digests.count) digests?",
                                    isPresented: Binding(get: { !digests.isEmpty }, set: { if !$0 { digests = [] } }),
                                    presenting: digests) { lot in
             Button("Delete", role: .destructive) {
@@ -466,7 +466,7 @@ extension View {
     }
 }
 
-/// Reading pane of the « Résumés quotidiens » entry: the digest shown, the count of several selected ones, or why there is none.
+/// Reading pane of the « Digests quotidiens » entry: the digest shown, the count of several selected ones, or why there is none.
 struct DigestDetail: View {
     /// Selected digests: one is shown, several are counted.
     let digests: [Digest]
@@ -482,17 +482,17 @@ struct DigestDetail: View {
     var body: some View {
         Group {
             if digests.count > 1 || isSelecting {
-                ContentUnavailableView(digests.isEmpty ? "No summary selected"
-                                       : "\(digests.count) summaries selected",
+                ContentUnavailableView(digests.isEmpty ? "No digest selected"
+                                       : "\(digests.count) digests selected",
                                        systemImage: "doc.on.doc")
             } else if let digest = digests.first {
                 DigestView(digest: digest, query: query)
             } else if hasDigests {
                 ContentUnavailableView.search(text: query)
             } else {
-                ContentUnavailableView("No summaries", systemImage: "text.append",
-                                       description: Text(isEnabled ? "Next summary at \(DigestSettings.timeText(digestTime))."
-                                                                   : "Automatic summary turned off."))
+                ContentUnavailableView("No digests", systemImage: "text.append",
+                                       description: Text(isEnabled ? "Next digest at \(DigestSettings.timeText(digestTime))."
+                                                                   : "Automatic digest turned off."))
             }
         }
         .toolbar {
@@ -507,11 +507,11 @@ struct DigestDetail: View {
                 }
                 .disabled(digests.isEmpty)
                 .help(anyUnread ? "Mark as read" : "Mark as unread")
-                Button(digests.count > 1 ? "Delete summaries" : "Delete summary", systemImage: "trash") {
+                Button(digests.count > 1 ? "Delete digests" : "Delete digest", systemImage: "trash") {
                     digestsToDelete = digests
                 }
                 .disabled(digests.isEmpty)
-                .help(digests.count > 1 ? "Delete these summaries" : "Delete this summary")
+                .help(digests.count > 1 ? "Delete these digests" : "Delete this digest")
             }
         }
         .digestDeleteConfirmation($digestsToDelete)
@@ -533,7 +533,7 @@ struct DigestView: View {
                     MarkdownLine(line: line, query: query)
                 }
                 Divider().padding(.vertical, 8)
-                Text("Summarized articles").font(.headline)
+                Text("Articles in the digest").font(.headline)
                 ForEach(digest.items, id: \.self) { item in
                     VStack(alignment: .leading, spacing: 0) {
                         let title = AttributedString(item.title.isEmpty ? item.link : item.title, highlighting: query)

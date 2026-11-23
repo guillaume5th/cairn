@@ -337,7 +337,7 @@ struct ContentView: View {
         memory.articles[.cairn(cairn.persistentModelID)] = article.persistentModelID
     }
 
-    /// Shows the digest of a tapped notification: the String(localized: "Daily summaries") entry, that digest selected.
+    /// Shows the digest of a tapped notification: the String(localized: "Daily digests") entry, that digest selected.
     private func openNotifiedDigest() {
         guard let id = state.digestToOpen else { return }
         state.digestToOpen = nil
@@ -377,7 +377,7 @@ struct ContentView: View {
         case .all, nil: String(localized: "All articles")
         case .today: String(localized: "Today")
         case .readLater: String(localized: "Read later")
-        case .digests: String(localized: "Daily summaries")
+        case .digests: String(localized: "Daily digests")
         case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
         case let .tag(_, key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
         case let .feed(id): feeds.first { $0.persistentModelID == id }?.title ?? String(localized: "Subscription")

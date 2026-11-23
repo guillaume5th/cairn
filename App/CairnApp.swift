@@ -81,7 +81,7 @@ struct CairnCommands: Commands {
             Button("Refresh") { Task { await state.refresh() } }
                 .keyboardShortcut("r")
                 .disabled(state.isRefreshing)
-            Button("Generate Summary Now") { Task { await state.makeDigest(manual: true) } }
+            Button("Generate Digest Now") { Task { await state.makeDigest(manual: true) } }
                 .disabled(state.isDigesting)
             Divider()
             Button("Increase Text Size") { textScale = TextScale.stepped(textScale, by: 0.1) }

@@ -62,7 +62,7 @@ struct SidebarView: View {
             Label("Read later", systemImage: "clock")
                 .badge(unreadArticles.count { $0.readLaterAt != nil })
                 .tag(SidebarItem.readLater)
-            Label(String(localized: "Daily summaries"), systemImage: "text.append")
+            Label(String(localized: "Daily digests"), systemImage: "text.append")
                 .badge(unreadDigests.count)
                 .tag(SidebarItem.digests)
 

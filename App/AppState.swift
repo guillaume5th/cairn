@@ -125,7 +125,7 @@ final class AppState {
             let now = Date.now
             let articles = try Library.digestArticles(context: context, now: now)
             guard !articles.isEmpty else {
-                if manual { message = String(localized: "No article published in the last 24 hours: no summary.") }
+                if manual { message = String(localized: "No article published in the last 24 hours: no digest.") }
                 return
             }
             let items = Library.digestItems(for: articles)
@@ -138,7 +138,7 @@ final class AppState {
             try context.save()
             if !manual && !Self.isInFront { await DigestNotifications.post(for: digest) }
         } catch {
-            message = String(localized: "The summary could not be produced: \(error.localizedDescription)")
+            message = String(localized: "The digest could not be produced: \(error.localizedDescription)")
         }
     }
 

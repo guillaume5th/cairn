@@ -24,7 +24,7 @@ enum DigestNotifications {
     static func post(for digest: Digest) async {
         guard DigestSettings.notifies else { return }
         let content = UNMutableNotificationContent()
-        content.title = String(localized: "Your daily summary is ready")
+        content.title = String(localized: "Your daily digest is ready")
         content.body = headline(of: digest.text)
         content.sound = .default
         if let id = try? JSONEncoder().encode(digest.persistentModelID) {
