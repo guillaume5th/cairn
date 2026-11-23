@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.0](https://github.com/guillaume5th/cairn/compare/v2.8.1...v2.9.0) (2026-11-23)
+
+
+### Features
+
+* localize app to support English and French ([a32c824](https://github.com/guillaume5th/cairn/commit/a32c824fec0c5c1498eefb5f9b6b5e0b62672fd7))
+
 ## [2.8.1](https://github.com/guillaume5th/cairn/compare/v2.8.0...v2.8.1) (2026-11-18)
 
 
