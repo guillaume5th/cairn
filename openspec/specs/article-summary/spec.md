@@ -7,7 +7,7 @@ Résumer à la demande l'article consulté avec le moteur d'IA des réglages (Ap
 ## Requirements
 
 ### Requirement: Résumer l'article consulté
-Le système SHALL proposer, dans la barre d'outils de l'article affiché, une action « Résumer » qui le fait résumer en français par le moteur d'IA des réglages (Apple Intelligence, Ollama, Claude Code ou Claude API), à partir de son titre et de son texte intégral quand il a été chargé, sinon du contenu fourni par le flux. Le résumé lui-même MUST NOT télécharger quoi que ce soit depuis le site de l'article. L'action MUST être indisponible sans contenu ou pendant un résumé en cours de cet article. Aucun résumé d'article n'est produit sans demande.
+Le système SHALL proposer, dans la barre d'outils de l'article affiché, une action « Résumer » qui le fait résumer, dans la langue de l'interface (français ou anglais), par le moteur d'IA des réglages (Apple Intelligence, Ollama, Claude Code ou Claude API), à partir de son titre et de son texte intégral quand il a été chargé, sinon du contenu fourni par le flux. Le résumé lui-même MUST NOT télécharger quoi que ce soit depuis le site de l'article. L'action MUST être indisponible sans contenu ou pendant un résumé en cours de cet article. Aucun résumé d'article n'est produit sans demande.
 
 #### Scenario: Résumer un article
 - **GIVEN** l'article affiché a un contenu et pas encore de résumé
@@ -31,6 +31,11 @@ Le système SHALL proposer, dans la barre d'outils de l'article affiché, une ac
 - **GIVEN** le moteur choisi est Claude Code ou Claude (API)
 - **WHEN** l'utilisateur choisit « Résumer »
 - **THEN** le résumé est rédigé par Claude et l'encadré affiche le nom de ce moteur
+
+#### Scenario: Résumé dans la langue de l'interface
+- **GIVEN** l'interface est en anglais
+- **WHEN** l'utilisateur choisit « Summarize » sur un article écrit en français
+- **THEN** le moteur reçoit la consigne de résumer en anglais
 
 ### Requirement: Encadré du résumé
 Le système SHALL afficher le résumé d'un article dans un encadré au-dessus de son contenu, avec la date du résumé et le nom du moteur utilisé. Pendant la génération, l'encadré MUST montrer une progression ; l'utilisateur peut continuer à lire et à changer d'article. Quand le résumé a été fait à partir d'un contenu court du flux (un simple extrait) et non du texte intégral, l'encadré MUST indiquer que le résumé porte sur l'extrait fourni par le flux. Le contenu de l'article reste affiché en dessous, inchangé.

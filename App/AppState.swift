@@ -65,13 +65,13 @@ final class AppState {
             try Library.ensureCairn(context: context)
             try context.save()
         } catch {
-            message = "La préparation du cairn a échoué : \(error.localizedDescription)"
+            message = String(localized: "Preparing the cairn failed: \(error.localizedDescription)")
         }
         do {
             try Library.purge(context: context)
             try Library.purgeDigests(context: context, olderThan: DigestSettings.retention)
         } catch {
-            message = "La purge des anciens articles a échoué : \(error.localizedDescription)"
+            message = String(localized: "Purging old articles failed: \(error.localizedDescription)")
         }
         // Spotlight follows every save; the first update fills the index.
         Task {
@@ -103,7 +103,7 @@ final class AppState {
         }
     }
 
-    /// The Dock icon shows the unread count of "Tous les articles", none at zero or when the setting is off.
+    /// The Dock icon shows the unread count of String(localized: "All articles"), none at zero or when the setting is off.
     /// `unread` comes from the sidebar's query: a store count misses changes not saved yet.
     func updateBadge(unread: Int? = nil) {
         let shows = UserDefaults.standard.object(forKey: Self.dockBadgeKey) as? Bool ?? true
@@ -125,7 +125,7 @@ final class AppState {
             let now = Date.now
             let articles = try Library.digestArticles(context: context, now: now)
             guard !articles.isEmpty else {
-                if manual { message = "Aucun article publié ces dernières 24 heures : pas de résumé." }
+                if manual { message = String(localized: "No article published in the last 24 hours: no summary.") }
                 return
             }
             let items = Library.digestItems(for: articles)
@@ -138,7 +138,7 @@ final class AppState {
             try context.save()
             if !manual && !Self.isInFront { await DigestNotifications.post(for: digest) }
         } catch {
-            message = "Le résumé n'a pas pu être produit : \(error.localizedDescription)"
+            message = String(localized: "The summary could not be produced: \(error.localizedDescription)")
         }
     }
 
@@ -161,7 +161,7 @@ final class AppState {
             article.summaryEngine = engine
             save()
         } catch {
-            summaryErrors[id] = "Le résumé n'a pas pu être produit : \(error.localizedDescription)"
+            summaryErrors[id] = String(localized: "The summary could not be produced: \(error.localizedDescription)")
         }
     }
 
@@ -175,7 +175,7 @@ final class AppState {
         let result = await Result { try await ArticleExtractor.extract(from: url, login: url.host().flatMap(Credentials.login)) }
         Library.recordFullContent(result, for: article)
         if case let .failure(error) = result {
-            fullContentErrors[id] = "L'article complet n'a pas pu être chargé : \(error.localizedDescription)"
+            fullContentErrors[id] = String(localized: "The full article could not be loaded: \(error.localizedDescription)")
         }
         save()
     }
@@ -269,7 +269,7 @@ final class AppState {
             try await Library.refreshIcons(context: context, fetcher: fetcher)
             try context.save()
         } catch {
-            message = "La récupération des icônes a échoué : \(error.localizedDescription)"
+            message = String(localized: "Fetching icons failed: \(error.localizedDescription)")
         }
     }
 
@@ -279,7 +279,7 @@ final class AppState {
         do {
             try context.save()
         } catch {
-            message = "L'enregistrement a échoué : \(error.localizedDescription)"
+            message = String(localized: "Saving failed: \(error.localizedDescription)")
         }
     }
 
@@ -290,7 +290,7 @@ final class AppState {
             defer { if accessing { url.stopAccessingSecurityScopedResource() } }
             let (added, skipped) = try Library.importOPML(try Data(contentsOf: url), context: context)
             try context.save()
-            message = "\(added) abonnement(s) ajouté(s), \(skipped) déjà suivi(s)."
+            message = String(localized: "\(added) subscription(s) added, \(skipped) already followed.")
             if added > 0 { Task { await refresh() } }
         } catch {
             message = error.localizedDescription

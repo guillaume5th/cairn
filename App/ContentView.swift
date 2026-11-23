@@ -72,7 +72,7 @@ struct ContentView: View {
                 if entry == .digests {
                     DigestListView(digests: visibleDigests, query: searchText, selection: digestSelection,
                                    isSelectionModeOn: $isSelectionModeOn, unreadOnly: $unreadOnly)
-                        .searchable(text: $searchText, placement: .toolbar, prompt: "Rechercher")
+                        .searchable(text: $searchText, placement: .toolbar, prompt: "Search")
                         .searchFocused($isSearchFocused)
                 } else {
                     articleList
@@ -89,7 +89,7 @@ struct ContentView: View {
             } else if let article = articles.first(where: { $0.persistentModelID == displayedArticleID }) {
                 ArticleDetailView(article: article, marksRead: article.persistentModelID == pickedID, query: searchText)
             } else {
-                ContentUnavailableView("Aucun article sélectionné", systemImage: "doc.text")
+                ContentUnavailableView("No article selected", systemImage: "doc.text")
                     .toolbar { ReaderToolbar.empty }
             }
         }
@@ -137,15 +137,15 @@ struct ContentView: View {
             state.isSearchRequested = false
             isSearchFocused = true
         }
-        .alert("Identifiants", isPresented: Binding(get: { state.loginRequest != nil }, set: { if !$0 { state.loginRequest = nil } }),
+        .alert("Credentials", isPresented: Binding(get: { state.loginRequest != nil }, set: { if !$0 { state.loginRequest = nil } }),
                presenting: state.loginRequest) { request in
-            TextField("Identifiant", text: $loginUser)
+            TextField("Username", text: $loginUser)
                 .autocorrectionDisabled()
-            SecureField("Mot de passe", text: $loginPassword)
-            Button("Annuler", role: .cancel) {}
-            Button("Enregistrer") { saveLogin(host: request.host, retry: request.retry) }
+            SecureField("Password", text: $loginPassword)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") { saveLogin(host: request.host, retry: request.retry) }
         } message: { request in
-            Text("Pour \(request.host). Rangés dans le trousseau de ce Mac et envoyés à ce site à chaque rafraîchissement. Un identifiant vide les retire.")
+            Text("For \(request.host). Stored in this Mac's keychain and sent to this site on every refresh. An empty username removes them.")
         }
         .onChange(of: state.loginRequest?.host) {
             loginUser = state.loginRequest.flatMap { Credentials.login(for: $0.host)?.user } ?? ""
@@ -156,12 +156,12 @@ struct ContentView: View {
             newFeedURL = address
             state.isAddingFeed = true
         }
-        // Same alert as "Nouveau dossier"; a failure (unreadable feed) comes back in the app's message alert.
-        .alert("Ajouter un abonnement", isPresented: $state.isAddingFeed) {
-            TextField("Adresse d'un site ou d'un flux", text: $newFeedURL, prompt: Text("exemple.com"))
+        // Same alert as String(localized: "New folder"); a failure (unreadable feed) comes back in the app's message alert.
+        .alert("Add Subscription", isPresented: $state.isAddingFeed) {
+            TextField("Address of a site or feed", text: $newFeedURL, prompt: Text("example.com"))
                 .autocorrectionDisabled()
-            Button("Annuler", role: .cancel) { newFeedURL = "" }
-            Button("Ajouter") {
+            Button("Cancel", role: .cancel) { newFeedURL = "" }
+            Button("Add") {
                 let url = newFeedURL
                 newFeedURL = ""
                 Task {
@@ -170,10 +170,10 @@ struct ContentView: View {
             }
             .disabled(newFeedURL.trimmingCharacters(in: .whitespaces).isEmpty)
         } message: {
-            Text("Adresse d'un site ou de son flux RSS, Atom ou JSON Feed.")
+            Text("Address of a site or of its RSS, Atom or JSON Feed.")
         }
         // The address declares several feeds: the user picks one; feeds already followed cannot be picked again.
-        .confirmationDialog("Ce site propose plusieurs flux", isPresented: Binding(get: { !state.feedChoices.isEmpty },
+        .confirmationDialog("This site offers several feeds", isPresented: Binding(get: { !state.feedChoices.isEmpty },
                                                                                   set: { if !$0 { state.feedChoices = [] } }),
                             titleVisibility: .visible, presenting: state.feedChoices) { feeds in
             ForEach(feeds) { feed in
@@ -185,9 +185,9 @@ struct ContentView: View {
                 }
                 .disabled(followed)
             }
-            Button("Annuler", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: { _ in
-            Text("Choisis le flux auquel t'abonner.")
+            Text("Choose the feed to subscribe to.")
         }
         .fileImporter(isPresented: $state.isImporting, allowedContentTypes: [.opml, .xml]) { state.importOPML($0) }
         .fileExporter(isPresented: $state.isExporting, document: state.exportDocument, contentType: .opml,
@@ -232,12 +232,12 @@ struct ContentView: View {
                 ToolbarItem {
                     // The icon spins instead of being replaced: a ProgressView or a disabled button splits the item out
                     // of the toolbar capsule. A click while refreshing is ignored by refresh().
-                    Button("Rafraîchir", systemImage: "arrow.clockwise") { Task { await state.refresh() } }
+                    Button("Refresh", systemImage: "arrow.clockwise") { Task { await state.refresh() } }
                         .symbolEffect(.rotate, options: .repeat(.continuous).speed(2.5), isActive: state.isRefreshing)
-                        .help(state.isRefreshing ? "Rafraîchissement en cours" : "Rafraîchir tous les abonnements (⌘R)")
+                        .help(state.isRefreshing ? "Refreshing" : "Refresh all subscriptions (⌘R)")
                 }
             }
-            .searchable(text: $searchText, tokens: $searchTokens, placement: .toolbar, prompt: "Rechercher") { token in
+            .searchable(text: $searchText, tokens: $searchTokens, placement: .toolbar, prompt: "Search") { token in
                 SearchTokenLabel(token: token)
             }
             .searchSuggestions {
@@ -255,7 +255,7 @@ struct ContentView: View {
         let url = URL(string: feed.url)
         let path = url.map { $0.path() + ($0.query().map { "?\($0)" } ?? "") } ?? feed.url
         let label = feed.title.map { "\($0) — \(path)" } ?? feed.url
-        return followed ? label + " (déjà suivi)" : label
+        return followed ? label + String(localized: " (already followed)") : label
     }
 
     private var isMultiFeed: Bool { multiFeeds.count > 1 }
@@ -306,7 +306,7 @@ struct ContentView: View {
         do {
             if user.isEmpty { Credentials.remove(for: host) } else { try Credentials.save(user: user, password: loginPassword, for: host) }
         } catch {
-            return state.message = "Le trousseau a refusé les identifiants : \(error.localizedDescription)"
+            return state.message = String(localized: "The keychain refused the credentials: \(error.localizedDescription)")
         }
         loginPassword = ""
         Task {
@@ -337,7 +337,7 @@ struct ContentView: View {
         memory.articles[.cairn(cairn.persistentModelID)] = article.persistentModelID
     }
 
-    /// Shows the digest of a tapped notification: the "Résumés quotidiens" entry, that digest selected.
+    /// Shows the digest of a tapped notification: the String(localized: "Daily summaries") entry, that digest selected.
     private func openNotifiedDigest() {
         guard let id = state.digestToOpen else { return }
         state.digestToOpen = nil
@@ -372,16 +372,16 @@ struct ContentView: View {
     }
 
     private var title: String {
-        if isMultiFeed { return "\(multiFeeds.count) abonnements" }
+        if isMultiFeed { return String(localized: "\(multiFeeds.count) subscriptions") }
         return switch memory.item {
-        case .all, nil: "Tous les articles"
-        case .today: "Aujourd'hui"
-        case .readLater: "Lire plus tard"
-        case .digests: "Résumés quotidiens"
+        case .all, nil: String(localized: "All articles")
+        case .today: String(localized: "Today")
+        case .readLater: String(localized: "Read later")
+        case .digests: String(localized: "Daily summaries")
         case let .cairn(id): cairns.first { $0.persistentModelID == id }?.name ?? "Cairn"
         case let .tag(_, key): articles.lazy.flatMap { $0.tags ?? [] }.first { $0.key == key }?.name ?? "Tag"
-        case let .feed(id): feeds.first { $0.persistentModelID == id }?.title ?? "Abonnement"
-        case let .folder(id): folders.first { $0.persistentModelID == id }?.name ?? "Dossier"
+        case let .feed(id): feeds.first { $0.persistentModelID == id }?.title ?? String(localized: "Subscription")
+        case let .folder(id): folders.first { $0.persistentModelID == id }?.name ?? String(localized: "Folder")
         }
     }
 
@@ -497,13 +497,13 @@ struct ArticleListView: View {
                 // Hidden rather than removed when read, so every row keeps the same alignment.
                 UnreadDot()
                     .opacity(article.isRead ? 0 : 1)
-                    .accessibilityLabel("Non lu")
+                    .accessibilityLabel("Unread")
                     .accessibilityHidden(article.isRead)
                 if showListIcons {
                     SourceIcon(data: article.feed?.iconData ?? article.sourceIconData, side: SourceIcon.articleRowSide)
                 }
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(AttributedString(article.title.isEmpty ? "Sans titre" : article.title, highlighting: query))
+                    Text(AttributedString(article.title.isEmpty ? String(localized: "Untitled") : article.title, highlighting: query))
                         .lineLimit(2)
                     if let snippet = Library.snippet(for: query, in: article) {
                         Text(AttributedString(snippet, highlighting: query))
@@ -524,7 +524,7 @@ struct ArticleListView: View {
             .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([article.persistentModelID]) })
             // On the swiped row alone, like Mail. Same labels and symbols as the article's menu.
             .swipeActions(edge: .leading) {
-                Button(article.isRead ? "Marquer comme non lu" : "Marquer comme lu",
+                Button(article.isRead ? "Mark as unread" : "Mark as read",
                        systemImage: article.isRead ? "circle.inset.filled" : "checkmark.circle") { article.isRead.toggle() }
                     .tint(.accentColor)
                     .labelStyle(.iconOnly) // the titles made the buttons far too wide; VoiceOver still reads them
@@ -537,7 +537,7 @@ struct ArticleListView: View {
                     if cairns.count == 1 {
                         KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep).tint(article.isKept ? .red : .blue)
                     } else if article.isKept {
-                        Button("Retirer du cairn", image: ImageResource(name: "cairn.fill", bundle: .main)) {
+                        Button("Remove from cairn", image: ImageResource(name: "cairn.fill", bundle: .main)) {
                             KeepButton.unkeep([article], confirming: $articlesToUnkeep)
                         }
                         .tint(.red)
@@ -559,25 +559,25 @@ struct ArticleListView: View {
             let lot = articles.filter { selection.contains($0.persistentModelID) }
             if !lot.isEmpty, lot.allSatisfy({ $0.feed == nil }) { articlesToDelete = lot }
         }
-        .confirmationDialog(articlesToDelete.count == 1 ? "Supprimer « \(articlesToDelete[0].title) » ?"
-                                                        : "Supprimer \(articlesToDelete.count) articles ?",
+        .confirmationDialog(articlesToDelete.count == 1 ? "Delete “\(articlesToDelete[0].title)”?"
+                                                        : "Delete \(articlesToDelete.count) articles?",
                             isPresented: Binding(get: { !articlesToDelete.isEmpty }, set: { if !$0 { articlesToDelete = [] } }),
                             presenting: articlesToDelete) { lot in
-            Button("Supprimer", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 selection.subtract(lot.map(\.persistentModelID))
                 for article in lot { Library.delete(article, context: context) }
             }
         } message: { lot in
-            Text(lot.contains(where: \.isKept) ? (lot.count == 1 ? "Il sera retiré du cairn avec sa note et ses tags."
-                                                                  : "Les articles gardés seront retirés du cairn avec leur note et leurs tags.")
-                                               : "Cette action est définitive.")
+            Text(lot.contains(where: \.isKept) ? (lot.count == 1 ? "It will be removed from the cairn along with its note and tags."
+                                                                  : "Kept articles will be removed from the cairn along with their note and tags.")
+                                               : "This action cannot be undone.")
         }
         .unkeepConfirmation($articlesToUnkeep)
         .openConfirmation($articlesToOpen)
         .focusedSceneValue(\.articleSelection, ArticleSelection(articles: selectedArticles, articlesToUnkeep: $articlesToUnkeep,
                                                                articlesToOpen: $articlesToOpen, articlesToDelete: $articlesToDelete))
         .overlay {
-            if articles.isEmpty { ContentUnavailableView("Aucun article", systemImage: "tray") }
+            if articles.isEmpty { ContentUnavailableView("No articles", systemImage: "tray") }
         }
         .navigationTitle(listTitle)
         .toolbar {
@@ -586,17 +586,17 @@ struct ArticleListView: View {
             // group act as one control, and switching the filter also switched selection mode.
             ToolbarItem {
                 Toggle(isOn: Binding { isSelecting } set: { $0 ? enterSelection() : leaveSelection() }) {
-                    Label("Sélectionner", systemImage: "checklist")
+                    Label("Select", systemImage: "checklist")
                 }
-                .help(isSelecting ? "Terminer la sélection (Échap)" : "Sélectionner des articles")
+                .help(isSelecting ? "End selection (Esc)" : "Select articles")
             }
             ToolbarItemGroup {
-                Toggle(isOn: $unreadOnly) { Label("Non lus seulement", systemImage: "line.3.horizontal.decrease.circle") }
-                    .help("N'afficher que les articles non lus")
-                Button("Tout marquer comme lu", systemImage: "checkmark.circle") {
+                Toggle(isOn: $unreadOnly) { Label("Unread only", systemImage: "line.3.horizontal.decrease.circle") }
+                    .help("Show only unread articles")
+                Button("Mark all as read", systemImage: "checkmark.circle") {
                     for article in articles { article.isRead = true }
                 }
-                .help("Marquer tous les articles de la liste comme lus")
+                .help("Mark all articles in the list as read")
             }
         }
     }
@@ -628,7 +628,7 @@ struct ArticleListView: View {
     private var listTitle: String {
         guard isSelecting else { return title }
         let count = selectedArticles.count
-        return count == 0 ? "Aucune sélection" : count == 1 ? "1 sélectionné" : "\(count) sélectionnés"
+        return count == 0 ? String(localized: "No selection") : String(localized: "\(count) selected")
     }
 
 }

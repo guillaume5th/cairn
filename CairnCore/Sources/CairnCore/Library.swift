@@ -249,10 +249,11 @@ public enum Library {
 
     /// Instructions, then one line per article: source, title and a short excerpt while the budget allows,
     /// then source and title only, then nothing (the article still appears in the digest's list).
-    public static func digestPrompt(for articles: [Article]) -> String {
+    public static func digestPrompt(for articles: [Article], language: String? = nil) -> String {
         var prompt = """
-        Résume en français, en Markdown, les articles ci-dessous publiés ces dernières 24 heures. \
-        Regroupe les sujets proches sous de courts intertitres, reste factuel et n'invente rien.
+        Summarize in Markdown the articles below, published in the last 24 hours. \
+        Group related topics under short subheadings, stay factual and invent nothing. \
+        Write the summary in \(languageName(language ?? Localization.current)).
 
         """
         var titlesOnly = false
@@ -272,13 +273,18 @@ public enum Library {
         return prompt
     }
 
-    /// Instructions, the title, then the article's plain text cut to fit the same budget as a digest.
-    public static func articleSummaryPrompt(for article: Article) -> String {
-        let head = """
-        Résume en français, en Markdown, l'article ci-dessous en quelques phrases ou puces. \
-        Reste factuel et n'invente rien.
+    /// "French" for "fr": the prompts are in English and name the language the answer is wanted in.
+    static func languageName(_ language: String) -> String {
+        Locale(identifier: "en").localizedString(forLanguageCode: language) ?? "English"
+    }
 
-        Titre : \(article.title)
+    /// Instructions, the title, then the article's plain text cut to fit the same budget as a digest.
+    public static func articleSummaryPrompt(for article: Article, language: String? = nil) -> String {
+        let head = """
+        Summarize in Markdown the article below in a few sentences or bullet points. \
+        Stay factual and invent nothing. Write the summary in \(languageName(language ?? Localization.current)).
+
+        Title: \(article.title)
 
         """
         return head + plainText(readableContent(article) ?? "").prefix(max(0, digestPromptBudget - head.count))

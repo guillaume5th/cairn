@@ -1,0 +1,531 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "%lld articles": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld article"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld articles"
+                }
+              }
+            }
+          }
+        },
+        "fr": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld article"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld articles"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "A cairn with this name already exists.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un cairn porte déjà ce nom."
+          }
+        }
+      }
+    },
+    "A folder with this name already exists.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Un dossier porte déjà ce nom."
+          }
+        }
+      }
+    },
+    "Anthropic is rate limiting requests or is overloaded right now. Try again in a moment.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic limite les requêtes ou est surchargé pour le moment. Réessaie dans un instant."
+          }
+        }
+      }
+    },
+    "Anthropic rejects the API key. Check it in Settings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic refuse la clé API. Vérifie-la dans les Réglages."
+          }
+        }
+      }
+    },
+    "Anthropic reports a billing problem on this API account (out of credit?).": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anthropic signale un problème de facturation sur ce compte API (crédit épuisé ?)."
+          }
+        }
+      }
+    },
+    "Apple Intelligence is turned off. Turn it on in Settings or choose Ollama.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple Intelligence est désactivé. Active-le dans les Réglages ou choisis Ollama."
+          }
+        }
+      }
+    },
+    "Apple's model is not available on this device.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle d'Apple n'est pas disponible sur cet appareil."
+          }
+        }
+      }
+    },
+    "Apple's model is not ready yet (download in progress?). Try again later.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle d'Apple n'est pas encore prêt (téléchargement en cours ?). Réessaie plus tard."
+          }
+        }
+      }
+    },
+    "Claude Code failed: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code a échoué : %@"
+          }
+        }
+      }
+    },
+    "Claude Code is not signed in to any account. Run “claude” in a terminal to sign in.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude Code n'est connecté à aucun compte. Lance « claude » dans un terminal pour te connecter."
+          }
+        }
+      }
+    },
+    "Claude refused to summarize this content.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude a refusé de résumer ce contenu."
+          }
+        }
+      }
+    },
+    "Claude returned no text.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude n'a renvoyé aucun texte."
+          }
+        }
+      }
+    },
+    "Exported from Cairn on %@ · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Exporté de Cairn le %@ · %@"
+          }
+        }
+      }
+    },
+    "Kept": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gardés"
+          }
+        }
+      }
+    },
+    "No Anthropic API key is saved. Enter it in Settings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune clé API Anthropic n'est enregistrée. Saisis-la dans les Réglages."
+          }
+        }
+      }
+    },
+    "No RSS, Atom or JSON Feed was found on this site. Try the exact address of its feed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun flux RSS, Atom ou JSON Feed n'a été trouvé sur ce site. Essaie l'adresse exacte de son flux."
+          }
+        }
+      }
+    },
+    "No article text was found on this page.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun texte d'article n'a été trouvé sur cette page."
+          }
+        }
+      }
+    },
+    "Tags: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tags : %@"
+          }
+        }
+      }
+    },
+    "The Claude Code CLI was not found. Install it, or give its path in Settings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La CLI Claude Code est introuvable. Installe-la, ou indique son chemin dans les Réglages."
+          }
+        }
+      }
+    },
+    "The Claude model “%@” was not found or is not available with this key.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle Claude « %@ » est introuvable ou n'est pas accessible avec cette clé."
+          }
+        }
+      }
+    },
+    "The Ollama model “%@” was not found. Install it with “ollama pull %@”.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le modèle Ollama « %@ » est introuvable. Installe-le avec « ollama pull %@ »."
+          }
+        }
+      }
+    },
+    "The Ollama server is unreachable. Check that it is running and its address in Settings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur Ollama est injoignable. Vérifie qu'il tourne et son adresse dans les Réglages."
+          }
+        }
+      }
+    },
+    "The address you entered is not a valid http(s) URL.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L'adresse saisie n'est pas une URL http(s) valide."
+          }
+        }
+      }
+    },
+    "The cairn name cannot be empty.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le nom du cairn ne peut pas être vide."
+          }
+        }
+      }
+    },
+    "The folder name cannot be empty.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le nom du dossier ne peut pas être vide."
+          }
+        }
+      }
+    },
+    "The last cairn cannot be deleted.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le dernier cairn ne peut pas être supprimé."
+          }
+        }
+      }
+    },
+    "The server answered with HTTP error %lld.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le serveur a répondu avec l'erreur HTTP %lld."
+          }
+        }
+      }
+    },
+    "The subscription title cannot be empty.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le titre de l'abonnement ne peut pas être vide."
+          }
+        }
+      }
+    },
+    "The tag name cannot be empty.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le nom du tag ne peut pas être vide."
+          }
+        }
+      }
+    },
+    "This address does not return a readable RSS, Atom or JSON Feed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette adresse ne renvoie pas un flux RSS, Atom ou JSON Feed lisible."
+          }
+        }
+      }
+    },
+    "This backup comes from a newer version of Cairn. Update Cairn to restore it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cette sauvegarde vient d'une version plus récente de Cairn. Mets Cairn à jour pour la restaurer."
+          }
+        }
+      }
+    },
+    "This device does not support Apple Intelligence. Choose Ollama in Settings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cet appareil ne prend pas en charge Apple Intelligence. Choisis Ollama dans les Réglages."
+          }
+        }
+      }
+    },
+    "This file is not a readable Cairn backup.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce fichier n'est pas une sauvegarde de Cairn lisible."
+          }
+        }
+      }
+    },
+    "This file is not a valid OPML file.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce fichier n'est pas un fichier OPML valide."
+          }
+        }
+      }
+    },
+    "This site requires a username and password.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ce site demande un identifiant et un mot de passe."
+          }
+        }
+      }
+    },
+    "Unread": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Non lus"
+          }
+        }
+      }
+    },
+    "Untitled": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sans titre"
+          }
+        }
+      }
+    },
+    "You are already subscribed to this feed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tu es déjà abonné à ce flux."
+          }
+        }
+      }
+    },
+    "empty response": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "réponse vide"
+          }
+        }
+      }
+    },
+    "kept on %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gardé le %@"
+          }
+        }
+      }
+    },
+    "no articles": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "aucun article"
+          }
+        }
+      }
+    },
+    "published on %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "publié le %@"
+          }
+        }
+      }
+    },
+    "timed out (%lld s)": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "délai dépassé (%lld s)"
+          }
+        }
+      }
+    },
+    "unreadable response (code %d)": {
+      "extractionState": "manual",
+      "localizations": {
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "réponse illisible (code %d)"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

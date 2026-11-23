@@ -71,9 +71,10 @@ struct DigestTests {
     @Test func promptWithinBudget() throws {
         let context = try makeContext()
         let short = article("Court", hoursAgo: 1, content: "<p>Un texte bref.</p>", context: context)
-        let prompt = Library.digestPrompt(for: [short])
+        let prompt = Library.digestPrompt(for: [short], language: "en")
         #expect(prompt.contains("- [Blog] Court — Un texte bref."))
-        #expect(prompt.contains("français"))
+        #expect(prompt.contains("in English."))
+        #expect(Library.digestPrompt(for: [short], language: "fr").contains("in French."))
 
         let many = (0..<500).map { article("Titre \($0)", hoursAgo: 1, content: String(repeating: "mot ", count: 200), context: context) }
         let big = Library.digestPrompt(for: many)
@@ -86,10 +87,11 @@ struct DigestTests {
     @Test func articleSummaryPrompt() throws {
         let context = try makeContext()
         let short = article("Court", hoursAgo: 1, content: "<p>Un <b>texte</b> bref.</p>", context: context)
-        let prompt = Library.articleSummaryPrompt(for: short)
-        #expect(prompt.contains("Titre : Court"))
+        let prompt = Library.articleSummaryPrompt(for: short, language: "fr")
+        #expect(prompt.contains("Title: Court"))
         #expect(prompt.hasSuffix("Un texte bref."))
-        #expect(prompt.contains("français"))
+        #expect(prompt.contains("in French."))
+        #expect(Library.articleSummaryPrompt(for: short, language: "en").contains("in English."))
         #expect(Library.isExcerpt(short))
 
         let long = article("Long", hoursAgo: 1, content: "<p>" + String(repeating: "mot ", count: 5_000) + "</p>", context: context)

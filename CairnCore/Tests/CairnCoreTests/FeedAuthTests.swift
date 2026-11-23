@@ -18,6 +18,7 @@ struct FeedAuthTests {
                 try await fetcher(login).fetch(try #require(URL(string: "https://auth.test/feed")))
             }
         }
-        #expect(CairnError.httpStatus(401).errorDescription == "Ce site demande un identifiant et un mot de passe.")
+        #expect(CairnError.httpStatus(401).message(language: "en") == "This site requires a username and password.")
+        #expect(CairnError.httpStatus(401).message(language: "fr") == "Ce site demande un identifiant et un mot de passe.")
     }
 }

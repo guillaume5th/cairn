@@ -95,12 +95,12 @@ struct SettingsView: View {
     @State private var notificationsDenied = false
     @State private var badgesDenied = false
 
-    private static let scheduleNote = "Les articles des dernières 24 heures sont résumés à cette heure-là si Cairn est ouvert, sinon au lancement suivant."
-    private static let disabledNote = "Aucun résumé n'est produit automatiquement. Tu peux en générer un depuis la liste des résumés."
-    private static let ollamaPlace = "Ollama doit tourner sur ce Mac ou sur ton réseau."
-    private static let sentToAnthropic = "Le contenu des articles résumés est envoyé à Anthropic."
-    private static let badgesDeniedNote = "Les pastilles de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
-    private static let notificationsDeniedNote = "Les notifications de Cairn sont désactivées : autorise-les dans Réglages Système > Notifications > Cairn."
+    private static let scheduleNote = String(localized: "Articles from the last 24 hours are summarized at that time if Cairn is open, otherwise at the next launch.")
+    private static let disabledNote = String(localized: "No summary is produced automatically. You can generate one from the summaries list.")
+    private static let ollamaPlace = String(localized: "Ollama must be running on this Mac or on your network.")
+    private static let sentToAnthropic = String(localized: "The content of summarized articles is sent to Anthropic.")
+    private static let badgesDeniedNote = String(localized: "Cairn's badges are turned off: allow them in System Settings > Notifications > Cairn.")
+    private static let notificationsDeniedNote = String(localized: "Cairn's notifications are turned off: allow them in System Settings > Notifications > Cairn.")
     @AppStorage(TextScale.key) private var textScale = 1.0
     @AppStorage("showListIcons") private var showListIcons = true
     @AppStorage(AppState.refreshIntervalKey) private var refreshInterval = AppState.defaultRefreshInterval
@@ -111,73 +111,73 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Rafraîchir les abonnements", selection: $refreshInterval) {
-                    Text("Jamais").tag(0)
-                    Text("Toutes les 15 minutes").tag(15)
-                    Text("Toutes les 30 minutes").tag(30)
-                    Text("Toutes les heures").tag(60)
-                    Text("Toutes les 2 heures").tag(120)
+                Picker("Refresh subscriptions", selection: $refreshInterval) {
+                    Text("Never").tag(0)
+                    Text("Every 15 minutes").tag(15)
+                    Text("Every 30 minutes").tag(30)
+                    Text("Every hour").tag(60)
+                    Text("Every 2 hours").tag(120)
                 }
-                Picker("Conserver les articles non gardés", selection: $retentionDays) {
-                    Text("7 jours").tag(7)
-                    Text("14 jours").tag(14)
-                    Text("30 jours").tag(30)
-                    Text("2 mois").tag(60)
-                    Text("3 mois").tag(90)
-                    Text("6 mois").tag(180)
-                    Text("1 an").tag(365)
+                Picker("Retain unkept articles", selection: $retentionDays) {
+                    Text("7 days").tag(7)
+                    Text("14 days").tag(14)
+                    Text("30 days").tag(30)
+                    Text("2 months").tag(60)
+                    Text("3 months").tag(90)
+                    Text("6 months").tag(180)
+                    Text("1 year").tag(365)
                 }
             } header: {
-                Text("Abonnements")
+                Text("Subscriptions")
             } footer: {
-                Text("Les plus anciens sont supprimés au lancement de Cairn. Les articles gardés dans un cairn ne le sont jamais.")
+                Text("The oldest are deleted when Cairn launches. Articles kept in a cairn never are.")
                     .foregroundStyle(.secondary)
             }
             // Also in the Mac's View menu.
             Section {
-                // Value then arrows on the right, like "Conserver les résumés".
-                LabeledContent("Taille du texte") {
+                // Value then arrows on the right, like "Keep summaries".
+                LabeledContent("Text size") {
                     HStack {
                         Text(textScale, format: .percent.precision(.fractionLength(0))).monospacedDigit()
-                        Stepper("Taille du texte",
+                        Stepper("Text size",
                                 onIncrement: textScale < TextScale.range.upperBound ? { textScale = TextScale.stepped(textScale, by: 0.1) } : nil,
                                 onDecrement: textScale > TextScale.range.lowerBound ? { textScale = TextScale.stepped(textScale, by: -0.1) } : nil)
                             .labelsHidden()
-                        Button("Taille normale", systemImage: "arrow.counterclockwise") { textScale = 1 }
+                        Button("Actual Size", systemImage: "arrow.counterclockwise") { textScale = 1 }
                             .labelStyle(.iconOnly)
                             .buttonStyle(.borderless)
-                            .help("Taille normale")
+                            .help("Actual Size")
                             .disabled(textScale == 1)
                     }
                 }
-                Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
-                Toggle("Badge sur l'icône", isOn: $showsDockBadge)
+                Toggle("Icons in the Article List", isOn: $showListIcons)
+                Toggle("Badge on the icon", isOn: $showsDockBadge)
                     .onChange(of: showsDockBadge) {
                         state.updateBadge()
                         if showsDockBadge { Task { _ = await DigestNotifications.requestAuthorization(); badgesDenied = await DigestNotifications.badgesDenied() } }
                     }
             } header: {
-                Text("Affichage")
+                Text("Display")
             } footer: {
                 if showsDockBadge && badgesDenied { Text(Self.badgesDeniedNote).foregroundStyle(.secondary) }
             }
             .task { badgesDenied = await DigestNotifications.badgesDenied() }
             Section {
-                Toggle("Résumé automatique", isOn: $isEnabled)
+                Toggle("Automatic summary", isOn: $isEnabled)
                 // Greyed out rather than hidden: the window fits its content and would change height.
-                DatePicker("Heure du résumé", selection: timeBinding, displayedComponents: .hourAndMinute)
+                DatePicker("Summary time", selection: timeBinding, displayedComponents: .hourAndMinute)
                     .disabled(!isEnabled)
-                LabeledContent("Conserver les résumés") {
+                LabeledContent("Keep summaries") {
                     // Field + stepper: the standard macOS pairing for a bounded number.
                     HStack(spacing: 4) {
-                        TextField("Conserver les résumés", value: $retention, format: .number)
+                        TextField("Keep summaries", value: $retention, format: .number)
                             .labelsHidden()
                             .textFieldStyle(.roundedBorder)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 40)
-                        Stepper("Conserver les résumés", value: $retention, in: DigestSettings.retentionRange)
+                        Stepper("Keep summaries", value: $retention, in: DigestSettings.retentionRange)
                             .labelsHidden()
-                        Text(retention > 1 ? "jours" : "jour")
+                        Text(retention > 1 ? "days" : "day")
                     }
                 }
                 .onChange(of: retention) {
@@ -185,7 +185,7 @@ struct SettingsView: View {
                     if !range.contains(retention) { retention = min(max(retention, range.lowerBound), range.upperBound) }
                 }
                 // The system is asked only when the user turns it on.
-                Toggle("Me prévenir quand le résumé est prêt", isOn: Binding { notifies } set: { isOn in
+                Toggle("Notify me when the summary is ready", isOn: Binding { notifies } set: { isOn in
                     guard isOn else { notifies = false; return }
                     Task {
                         let granted = await DigestNotifications.requestAuthorization()
@@ -195,7 +195,7 @@ struct SettingsView: View {
                 })
                 .disabled(!isEnabled)
             } header: {
-                Text("Résumé quotidien")
+                Text("Daily summary")
             } footer: {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(isEnabled ? Self.scheduleNote : Self.disabledNote)
@@ -205,7 +205,7 @@ struct SettingsView: View {
             }
 
             Section {
-                Picker("Moteur", selection: $engine) {
+                Picker("Engine", selection: $engine) {
                     Text("Apple Intelligence").tag(DigestSettings.Engine.apple)
                     Text("Ollama").tag(DigestSettings.Engine.ollama)
                     Text("Claude Code").tag(DigestSettings.Engine.claudeCode)
@@ -213,65 +213,65 @@ struct SettingsView: View {
                 }
                 // Only the chosen engine's options are shown, as in System Settings.
                 if engine == .ollama {
-                    TextField("Adresse du serveur", text: $ollamaURL, prompt: Text(DigestSettings.defaultOllamaURL))
-                    LabeledContent("Modèle") {
+                    TextField("Server address", text: $ollamaURL, prompt: Text(DigestSettings.defaultOllamaURL))
+                    LabeledContent("Model") {
                         HStack(spacing: 6) {
-                            Picker("Modèle", selection: $ollamaModel) {
+                            Picker("Model", selection: $ollamaModel) {
                                 ForEach(modelChoices, id: \.self) { name in
-                                    Text(installedModels.contains(name) ? name : "\(name) (non installé)").tag(name)
+                                    Text(installedModels.contains(name) ? name : String(localized: "\(name) (not installed)")).tag(name)
                                 }
                             }
                             .labelsHidden()
                             .fixedSize()
-                            Button("Actualiser la liste des modèles", systemImage: "arrow.clockwise") { reloadCount += 1 }
+                            Button("Refresh the model list", systemImage: "arrow.clockwise") { reloadCount += 1 }
                                 .labelStyle(.iconOnly)
                                 .buttonStyle(.borderless)
-                                .help("Relire les modèles installés sur le serveur Ollama")
+                                .help("Reload the models installed on the Ollama server")
                         }
                     }
                 }
                 if engine == .claudeCode {
-                    TextField("Chemin de la CLI", text: $claudeCodePath,
+                    TextField("CLI path", text: $claudeCodePath,
                               prompt: Text(ClaudeCodeSummarizer.locate()?.path(percentEncoded: false) ?? "~/.local/bin/claude"))
-                    Picker("Modèle", selection: $claudeCodeModel) {
+                    Picker("Model", selection: $claudeCodeModel) {
                         Text("Haiku").tag("haiku")
                         Text("Sonnet").tag("sonnet")
                         Text("Opus").tag("opus")
                     }
                 }
                 if engine == .claudeAPI {
-                    SecureField("Clé API", text: $apiKey, prompt: Text("sk-ant-…"))
+                    SecureField("API key", text: $apiKey, prompt: Text("sk-ant-…"))
                         .onChange(of: apiKey) {
-                            do { try Credentials.setAnthropicKey(apiKey); apiKeyError = nil } catch { apiKeyError = "La clé n'a pas pu être enregistrée dans le trousseau : \(error.localizedDescription)" }
+                            do { try Credentials.setAnthropicKey(apiKey); apiKeyError = nil } catch { apiKeyError = String(localized: "The key could not be saved in the keychain: \(error.localizedDescription)") }
                         }
-                    Picker("Modèle", selection: $claudeModel) {
+                    Picker("Model", selection: $claudeModel) {
                         Text("Haiku").tag("claude-haiku-5-5")
                         Text("Sonnet").tag("claude-sonnet-5-5")
                         Text("Opus").tag("claude-opus-5-5")
                     }
                 }
             } header: {
-                Text("Moteur d'IA")
+                Text("AI engine")
             } footer: {
                 Group {
                     if engine == .apple {
-                        Text("Les résumés quotidiens et les résumés d'articles sont rédigés sur cet appareil : les articles ne sont envoyés à aucun service en ligne.")
+                        Text("Daily and article summaries are written on this device: articles are not sent to any online service.")
                     } else if engine == .claudeCode {
                         if DigestSettings.claudeCodeURL() == nil {
                             Label(CairnError.claudeCodeNotFound.localizedDescription, systemImage: "exclamationmark.triangle")
                         } else {
-                            Text("Utilise le compte connecté dans Claude Code, donc ton forfait Claude. \(Self.sentToAnthropic)")
+                            Text("Uses the account signed in to Claude Code, so your Claude plan. \(Self.sentToAnthropic)")
                         }
                     } else if engine == .claudeAPI {
                         if let apiKeyError {
                             Label(apiKeyError, systemImage: "exclamationmark.triangle")
                         } else {
-                            Text("Facturé sur ton compte API Anthropic, hors forfait Claude. La clé est gardée dans le trousseau. \(Self.sentToAnthropic)")
+                            Text("Billed to your Anthropic API account, outside the Claude plan. The key is kept in the keychain. \(Self.sentToAnthropic)")
                         }
                     } else if let modelsError {
                         Label(modelsError, systemImage: "exclamationmark.triangle")
                     } else {
-                        Text("Sert aux résumés quotidiens et aux résumés d'articles. \(Self.ollamaPlace) Installe d'autres modèles avec « ollama pull », puis actualise la liste.")
+                        Text("Used for daily and article summaries. \(Self.ollamaPlace) Install other models with “ollama pull”, then refresh the list.")
                     }
                 }
                 .foregroundStyle(.secondary)
@@ -303,7 +303,7 @@ struct SettingsView: View {
             let models = try await OllamaSummarizer(baseURL: url, model: ollamaModel).installedModels()
             guard !Task.isCancelled else { return }
             installedModels = models
-            modelsError = models.isEmpty ? "Aucun modèle installé. Installe-en un avec « ollama pull <modèle> »." : nil
+            modelsError = models.isEmpty ? String(localized: "No model installed. Install one with “ollama pull <model>”.") : nil
             // "llama3.2" and "llama3.2:latest" are the same model: use the name the server lists.
             if !models.contains(ollamaModel), models.contains(ollamaModel + ":latest") { ollamaModel += ":latest" }
         } catch {
@@ -342,11 +342,11 @@ struct DigestListView: View {
                 // Hidden rather than removed when read, so every row keeps the same alignment.
                 UnreadDot()
                     .opacity(digest.isRead ? 0 : 1)
-                    .accessibilityLabel("Non lu")
+                    .accessibilityLabel("Unread")
                     .accessibilityHidden(digest.isRead)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(digest.createdAt.formatted(.dateTime.weekday(.wide).day().month(.wide)).capitalized)
-                    Text("\(digest.createdAt.formatted(date: .omitted, time: .shortened)) · \(digest.items.count) article(s) · \(digest.engine)")
+                    Text("\(digest.createdAt.formatted(date: .omitted, time: .shortened)) · \(String(localized: "\(digest.items.count) articles")) · \(digest.engine)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     if let snippet = Library.snippet(for: query, in: digest) {
@@ -360,14 +360,14 @@ struct DigestListView: View {
             .modifier(TickOnClick(isOn: isSelectionModeOn) { selection.formSymmetricDifference([digest.persistentModelID]) })
             // Same labels and symbols as the article rows.
             .swipeActions(edge: .leading) {
-                Button(digest.isRead ? "Marquer comme non lu" : "Marquer comme lu",
+                Button(digest.isRead ? "Mark as unread" : "Mark as read",
                        systemImage: digest.isRead ? "circle.inset.filled" : "checkmark.circle") { digest.isRead.toggle() }
                     .tint(.accentColor)
                     .labelStyle(.iconOnly)
             }
             // Asks for confirmation like the other ways to delete, so no full swipe.
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                Button("Supprimer le résumé…", systemImage: "trash", role: .destructive) { digestsToDelete = [digest] }
+                Button("Delete summary…", systemImage: "trash", role: .destructive) { digestsToDelete = [digest] }
                     .labelStyle(.iconOnly)
             }
         }
@@ -376,12 +376,12 @@ struct DigestListView: View {
             let lot = digests.filter { ids.contains($0.persistentModelID) }
             if !lot.isEmpty {
                 let anyUnread = lot.contains { !$0.isRead }
-                Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                Button(anyUnread ? "Mark as read" : "Mark as unread",
                        systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
                     for digest in lot { digest.isRead = anyUnread }
                 }
                 Divider()
-                Button(lot.count == 1 ? "Supprimer le résumé…" : "Supprimer \(lot.count) résumés…", role: .destructive) {
+                Button("Delete \(lot.count) summaries…", role: .destructive) {
                     digestsToDelete = lot
                 }
             }
@@ -392,29 +392,29 @@ struct DigestListView: View {
         .toolbar {
             // Trailing edge of the list column, in the article list's order (see `ArticleListView`).
             ToolbarItem {
-                Button("Générer un résumé", systemImage: "text.badge.plus") { Task { await state.makeDigest(manual: true) } }
+                Button("Generate a summary", systemImage: "text.badge.plus") { Task { await state.makeDigest(manual: true) } }
                     .symbolEffect(.pulse, isActive: state.isDigesting)
                     .disabled(state.isDigesting)
-                    .help(state.isDigesting ? "Résumé en cours" : "Générer un résumé des dernières 24 heures maintenant")
+                    .help(state.isDigesting ? "Summary in progress" : "Generate a summary of the last 24 hours now")
             }
             ToolbarItem {
                 Toggle(isOn: Binding { isSelecting } set: { $0 ? (isSelectionModeOn = true) : leaveSelection() }) {
-                    Label("Sélectionner", systemImage: "checklist")
+                    Label("Select", systemImage: "checklist")
                 }
-                .help(isSelecting ? "Terminer la sélection (Échap)" : "Sélectionner des résumés")
+                .help(isSelecting ? "End selection (Esc)" : "Select summaries")
             }
             ToolbarItemGroup {
-                Toggle(isOn: $unreadOnly) { Label("Non lus seulement", systemImage: "line.3.horizontal.decrease.circle") }
-                    .help("N'afficher que les résumés non lus")
-                Button("Tout marquer comme lu", systemImage: "checkmark.circle") {
+                Toggle(isOn: $unreadOnly) { Label("Unread only", systemImage: "line.3.horizontal.decrease.circle") }
+                    .help("Show only unread summaries")
+                Button("Mark all as read", systemImage: "checkmark.circle") {
                     for digest in digests { digest.isRead = true }
                 }
-                .help("Marquer tous les résumés de la liste comme lus")
+                .help("Mark all summaries in the list as read")
             }
         }
         .digestDeleteConfirmation($digestsToDelete)
         .overlay {
-            if digests.isEmpty { ContentUnavailableView("Aucun résumé", systemImage: "text.append") }
+            if digests.isEmpty { ContentUnavailableView("No summaries", systemImage: "text.append") }
         }
     }
 
@@ -433,9 +433,9 @@ struct DigestListView: View {
 
     /// In selection mode, the count replaces the list's name, as in Mail.
     private var listTitle: String {
-        guard isSelecting else { return "Résumés quotidiens" }
+        guard isSelecting else { return String(localized: "Daily summaries") }
         let count = digests.count { selection.contains($0.persistentModelID) }
-        return count == 0 ? "Aucune sélection" : count == 1 ? "1 sélectionné" : "\(count) sélectionnés"
+        return count == 0 ? String(localized: "No selection") : String(localized: "\(count) selected")
     }
 }
 
@@ -446,16 +446,16 @@ struct DigestDeleteConfirmation: ViewModifier {
 
     func body(content: Content) -> some View {
         content.confirmationDialog(digests.count == 1
-                                   ? "Supprimer le résumé du \(digests[0].createdAt.formatted(date: .long, time: .shortened)) ?"
-                                   : "Supprimer \(digests.count) résumés ?",
+                                   ? "Delete the summary of \(digests[0].createdAt.formatted(date: .long, time: .shortened))?"
+                                   : "Delete \(digests.count) summaries?",
                                    isPresented: Binding(get: { !digests.isEmpty }, set: { if !$0 { digests = [] } }),
                                    presenting: digests) { lot in
-            Button("Supprimer", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 for digest in lot { context.delete(digest) }
                 try? context.save()
             }
         } message: { _ in
-            Text("Cette action est définitive.")
+            Text("This action cannot be undone.")
         }
     }
 }
@@ -482,17 +482,17 @@ struct DigestDetail: View {
     var body: some View {
         Group {
             if digests.count > 1 || isSelecting {
-                ContentUnavailableView(digests.isEmpty ? "Aucun résumé sélectionné"
-                                       : digests.count == 1 ? "1 résumé sélectionné" : "\(digests.count) résumés sélectionnés",
+                ContentUnavailableView(digests.isEmpty ? "No summary selected"
+                                       : "\(digests.count) summaries selected",
                                        systemImage: "doc.on.doc")
             } else if let digest = digests.first {
                 DigestView(digest: digest, query: query)
             } else if hasDigests {
                 ContentUnavailableView.search(text: query)
             } else {
-                ContentUnavailableView("Aucun résumé", systemImage: "text.append",
-                                       description: Text(isEnabled ? "Prochain résumé à \(DigestSettings.timeText(digestTime))."
-                                                                   : "Résumé automatique désactivé."))
+                ContentUnavailableView("No summaries", systemImage: "text.append",
+                                       description: Text(isEnabled ? "Next summary at \(DigestSettings.timeText(digestTime))."
+                                                                   : "Automatic summary turned off."))
             }
         }
         .toolbar {
@@ -501,17 +501,17 @@ struct DigestDetail: View {
             ToolbarItemGroup {
                 // The article reader's button: the filled dot the list shows on unread rows.
                 let anyUnread = digests.contains { !$0.isRead }
-                Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                Button(anyUnread ? "Mark as read" : "Mark as unread",
                        systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
                     for digest in digests { digest.isRead = anyUnread }
                 }
                 .disabled(digests.isEmpty)
-                .help(anyUnread ? "Marquer comme lu" : "Marquer comme non lu")
-                Button(digests.count > 1 ? "Supprimer les résumés" : "Supprimer le résumé", systemImage: "trash") {
+                .help(anyUnread ? "Mark as read" : "Mark as unread")
+                Button(digests.count > 1 ? "Delete summaries" : "Delete summary", systemImage: "trash") {
                     digestsToDelete = digests
                 }
                 .disabled(digests.isEmpty)
-                .help(digests.count > 1 ? "Supprimer ces résumés" : "Supprimer ce résumé")
+                .help(digests.count > 1 ? "Delete these summaries" : "Delete this summary")
             }
         }
         .digestDeleteConfirmation($digestsToDelete)
@@ -533,7 +533,7 @@ struct DigestView: View {
                     MarkdownLine(line: line, query: query)
                 }
                 Divider().padding(.vertical, 8)
-                Text("Articles résumés").font(.headline)
+                Text("Summarized articles").font(.headline)
                 ForEach(digest.items, id: \.self) { item in
                     VStack(alignment: .leading, spacing: 0) {
                         let title = AttributedString(item.title.isEmpty ? item.link : item.title, highlighting: query)

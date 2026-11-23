@@ -52,7 +52,7 @@ Le système SHALL, quand le résumé automatique est activé, produire au lancem
 - **THEN** aucun résumé n'est produit au lancement
 
 ### Requirement: Contenu du résumé
-Le système SHALL, pour produire un résumé, rafraîchir d'abord les abonnements puis résumer les articles publiés dans les 24 heures précédant le moment du résumé, tous abonnements confondus. Le résumé MUST être rédigé en français, regrouper les sujets proches, et être suivi de la liste des articles résumés avec leur titre, leur source et un lien vers chacun.
+Le système SHALL, pour produire un résumé, rafraîchir d'abord les abonnements puis résumer les articles publiés dans les 24 heures précédant le moment du résumé, tous abonnements confondus. Le résumé MUST être rédigé dans la langue de l'interface (français ou anglais), regrouper les sujets proches, et être suivi de la liste des articles résumés avec leur titre, leur source et un lien vers chacun.
 
 #### Scenario: Articles du jour
 - **GIVEN** cinq articles ont été publiés dans les 24 dernières heures et d'autres avant
@@ -66,6 +66,11 @@ Le système SHALL, pour produire un résumé, rafraîchir d'abord les abonnement
 #### Scenario: Aucun article
 - **WHEN** aucun article n'a été publié dans les 24 dernières heures au moment du résumé
 - **THEN** aucun résumé n'est créé et l'IA n'est pas appelée
+
+#### Scenario: Digest dans la langue de l'interface
+- **GIVEN** l'interface est en anglais
+- **WHEN** le résumé du jour est produit
+- **THEN** le moteur reçoit la consigne de rédiger le résumé en anglais
 
 ### Requirement: Choix du moteur d'IA
 Le système SHALL proposer quatre moteurs : deux qui tournent sur la machine, le modèle d'Apple intégré au système (par défaut) et un serveur Ollama dont l'adresse (http://localhost:11434 par défaut) et le nom du modèle se règlent ; et deux qui passent par Anthropic, « Claude Code » (la CLI Claude Code installée sur ce Mac, avec le compte qui y est connecté) et « Claude (API) » (une clé API Anthropic). Avec un moteur local, le contenu des articles MUST NOT être envoyé à un autre service.

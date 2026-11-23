@@ -18,17 +18,18 @@ struct CairnExportTests {
         Library.keep(newer, in: cairn, now: fixtureNow.addingTimeInterval(3600))
         try Library.addTag(named: "swift", to: older, context: context)
         older.note = "À relire\n\nVraiment"
-        let markdown = Library.markdown(for: cairn, now: fixtureNow)
-        #expect(markdown.hasPrefix("# Lectures\n\nExporté de Cairn le "))
+        let markdown = Library.markdown(for: cairn, now: fixtureNow, language: "en")
+        #expect(markdown.hasPrefix("# Lectures\n\nExported from Cairn on "))
         #expect(markdown.contains("· 2 articles\n"))
-        #expect(markdown.contains("## [Swift \\[6\\]](https://rss.test/a1)\n\nBlog · publié le "))
-        #expect(markdown.contains("\n\nTags : swift\n\n> À relire\n>\n> Vraiment\n"))
+        #expect(markdown.contains("## [Swift \\[6\\]](https://rss.test/a1)\n\nBlog · published on "))
+        #expect(markdown.contains("\n\nTags: swift\n\n> À relire\n>\n> Vraiment\n"))
         let first = try #require(markdown.range(of: "Récent")), second = try #require(markdown.range(of: "Swift"))
         #expect(first.lowerBound < second.lowerBound)
     }
 
     @Test func emptyCairn() throws {
         let cairn = try Library.createCairn(named: "Vide", context: try makeContext())
-        #expect(Library.markdown(for: cairn, now: fixtureNow).hasSuffix("· aucun article\n"))
+        #expect(Library.markdown(for: cairn, now: fixtureNow, language: "en").hasSuffix("· no articles\n"))
+        #expect(Library.markdown(for: cairn, now: fixtureNow, language: "fr").hasSuffix("· aucun article\n"))
     }
 }

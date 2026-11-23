@@ -18,12 +18,13 @@ public struct AppleSummarizer: Summarizer {
         return try await LanguageModelSession().respond(to: prompt).content
     }
 
-    static func message(for reason: SystemLanguageModel.Availability.UnavailableReason) -> String {
-        switch reason {
-        case .deviceNotEligible: "Cet appareil ne prend pas en charge Apple Intelligence. Choisis Ollama dans les Réglages."
-        case .appleIntelligenceNotEnabled: "Apple Intelligence est désactivé. Active-le dans les Réglages ou choisis Ollama."
-        case .modelNotReady: "Le modèle d'Apple n'est pas encore prêt (téléchargement en cours ?). Réessaie plus tard."
-        @unknown default: "Le modèle d'Apple n'est pas disponible sur cet appareil."
+    static func message(for reason: SystemLanguageModel.Availability.UnavailableReason, language: String? = nil) -> String {
+        func l(_ key: String.LocalizationValue) -> String { Localization.string(key, language) }
+        return switch reason {
+        case .deviceNotEligible: l("This device does not support Apple Intelligence. Choose Ollama in Settings.")
+        case .appleIntelligenceNotEnabled: l("Apple Intelligence is turned off. Turn it on in Settings or choose Ollama.")
+        case .modelNotReady: l("Apple's model is not ready yet (download in progress?). Try again later.")
+        @unknown default: l("Apple's model is not available on this device.")
         }
     }
 }
@@ -133,7 +134,7 @@ public struct AnthropicSummarizer: Summarizer {
         if answer.stopReason == "refusal" { throw CairnError.anthropicRefused }
         // Thinking blocks come first on some models; only the text blocks are the summary.
         let text = answer.content.filter { $0.type == "text" }.compactMap(\.text).joined()
-        guard !text.isEmpty else { throw CairnError.summarizerUnavailable("Claude n'a renvoyé aucun texte.") }
+        guard !text.isEmpty else { throw CairnError.summarizerUnavailable(Localization.string("Claude returned no text.")) }
         return text
     }
 
@@ -237,17 +238,17 @@ public struct ClaudeCodeSummarizer: Summarizer {
             if process.isRunning { process.terminate() }
         }
 
-        if timedOut { throw CairnError.claudeCodeFailed("délai dépassé (\(Int(timeout)) s)") }
+        if timedOut { throw CairnError.claudeCodeFailed(Localization.string("timed out (\(Int(timeout)) s)")) }
         // Not logged in exits with 1 but still writes its JSON: the output is read whatever the status.
         guard let answer = try? JSONDecoder().decode(Answer.self, from: data) else {
-            throw CairnError.claudeCodeFailed("réponse illisible (code \(status))")
+            throw CairnError.claudeCodeFailed(Localization.string("unreadable response (code \(status))"))
         }
         if answer.isError {
             throw answer.result.contains("Not logged in") || answer.result.contains("/login")
                 ? CairnError.claudeCodeNotLoggedIn : CairnError.claudeCodeFailed(answer.result)
         }
         let text = answer.result.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { throw CairnError.claudeCodeFailed("réponse vide") }
+        guard !text.isEmpty else { throw CairnError.claudeCodeFailed(Localization.string("empty response")) }
         return text
     }
 

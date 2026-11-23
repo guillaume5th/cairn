@@ -20,7 +20,7 @@ struct VideoPlayer: View {
                 .frame(maxWidth: .infinity, maxHeight: fillsPane ? nil : 360)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
             // YouTube's refusal to embed a video shows inside the player, where the app cannot read it: this stays.
-            Button("Ouvrir sur YouTube", systemImage: "arrow.up.right.square") { openURL(watchURL) }
+            Button("Open on YouTube", systemImage: "arrow.up.right.square") { openURL(watchURL) }
                 .buttonStyle(.link)
                 .font(.callout)
         }
@@ -29,7 +29,7 @@ struct VideoPlayer: View {
         .task {
             // The id comes from `Library.youtubeVideoID`, which only lets 11 URL-safe characters through.
             guard let url = URL(string: "https://www.youtube-nocookie.com/embed/\(id)") else { return }
-            // A failed load shows in the player itself; "Ouvrir sur YouTube" stays.
+            // A failed load shows in the player itself; "Open on YouTube" stays.
             // Without a referrer YouTube refuses to embed (error 153).
             var request = URLRequest(url: url)
             request.setValue("https://www.youtube-nocookie.com/", forHTTPHeaderField: "Referer")

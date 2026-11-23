@@ -20,7 +20,7 @@ struct CairnApp: App {
             try FileManager.default.createDirectory(at: store.deletingLastPathComponent(), withIntermediateDirectories: true)
             _state = State(initialValue: AppState(container: try CairnStore.container(at: store)))
         } catch {
-            fatalError("Impossible d'ouvrir la base de données Cairn : \(error)")
+            fatalError(String(localized: "Cannot open the Cairn database: \(error)"))
         }
     }
 
@@ -66,47 +66,47 @@ struct CairnCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .appInfo) {
             if updates.isAvailable {
-                Button("Rechercher les mises à jour…") { updates.check() }
+                Button("Check for Updates…") { updates.check() }
                     .disabled(!updates.canCheck)
             }
         }
         CommandGroup(replacing: .newItem) {
-            Button("Ajouter un abonnement…") { state.isAddingFeed = true }
+            Button("Add Subscription…") { state.isAddingFeed = true }
                 .keyboardShortcut("n")
             Divider()
-            Button("Importer OPML…") { state.isImporting = true }
-            Button("Exporter OPML…") { state.prepareExport() }
+            Button("Import OPML…") { state.isImporting = true }
+            Button("Export OPML…") { state.prepareExport() }
         }
         CommandGroup(before: .toolbar) {
-            Button("Rafraîchir") { Task { await state.refresh() } }
+            Button("Refresh") { Task { await state.refresh() } }
                 .keyboardShortcut("r")
                 .disabled(state.isRefreshing)
-            Button("Générer le résumé maintenant") { Task { await state.makeDigest(manual: true) } }
+            Button("Generate Summary Now") { Task { await state.makeDigest(manual: true) } }
                 .disabled(state.isDigesting)
             Divider()
-            Button("Agrandir le texte") { textScale = TextScale.stepped(textScale, by: 0.1) }
+            Button("Increase Text Size") { textScale = TextScale.stepped(textScale, by: 0.1) }
                 .keyboardShortcut("+")
                 .disabled(textScale >= TextScale.range.upperBound)
-            Button("Réduire le texte") { textScale = TextScale.stepped(textScale, by: -0.1) }
+            Button("Decrease Text Size") { textScale = TextScale.stepped(textScale, by: -0.1) }
                 .keyboardShortcut("-")
                 .disabled(textScale <= TextScale.range.lowerBound)
-            Button("Taille normale") { textScale = 1 }
+            Button("Actual Size") { textScale = 1 }
                 .keyboardShortcut("0")
                 .disabled(textScale == 1)
             Divider()
-            Picker("Ordre des articles", selection: $oldestFirst) {
-                Text("Plus récents d'abord").tag(false)
-                Text("Plus anciens d'abord").tag(true)
+            Picker("Article Order", selection: $oldestFirst) {
+                Text("Newest First").tag(false)
+                Text("Oldest First").tag(true)
             }
-            Toggle("Icônes dans la liste d'articles", isOn: $showListIcons)
+            Toggle("Icons in the Article List", isOn: $showListIcons)
             // Not InspectorCommands: its title is only half translated ("Inspecteur Show"). Same shortcut.
-            Button(inspectorShown ? "Masquer l'inspecteur" : "Afficher l'inspecteur") { inspectorShown.toggle() }
+            Button(inspectorShown ? "Hide inspector" : "Show inspector") { inspectorShown.toggle() }
                 .keyboardShortcut("i", modifiers: [.control, .command])
             Divider()
         }
         CommandMenu("Article") { ArticleCommands(context: state.context) }
         CommandGroup(after: .textEditing) {
-            Button("Rechercher") { state.isSearchRequested = true }
+            Button("Search") { state.isSearchRequested = true }
                 .keyboardShortcut("f")
             QuoteCommand(context: state.context)
         }

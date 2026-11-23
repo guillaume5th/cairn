@@ -24,7 +24,7 @@ enum DigestNotifications {
     static func post(for digest: Digest) async {
         guard DigestSettings.notifies else { return }
         let content = UNMutableNotificationContent()
-        content.title = "Ton résumé du jour est prêt"
+        content.title = String(localized: "Your daily summary is ready")
         content.body = headline(of: digest.text)
         content.sound = .default
         if let id = try? JSONEncoder().encode(digest.persistentModelID) {
@@ -39,7 +39,7 @@ enum DigestNotifications {
         let content = UNMutableNotificationContent()
         content.title = feed.title
         let newest = feed.articles?.max { $0.publishedAt < $1.publishedAt }?.title ?? ""
-        content.body = count == 1 ? newest : "\(count) nouveaux articles · \(newest)"
+        content.body = count == 1 ? newest : String(localized: "\(count) new articles · \(newest)")
         content.sound = .default
         if let id = try? JSONEncoder().encode(feed.persistentModelID) {
             content.userInfo = [feedKey: id.base64EncodedString()]

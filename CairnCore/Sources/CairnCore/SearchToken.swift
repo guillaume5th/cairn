@@ -14,10 +14,10 @@ public enum SearchToken: Hashable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case let .source(_, title): title.isEmpty ? "Sans titre" : title
+        case let .source(_, title): title.isEmpty ? Localization.string("Untitled") : title
         case let .tag(_, name): name
-        case .unread: "Non lus"
-        case .kept: "Gardés"
+        case .unread: Localization.string("Unread")
+        case .kept: Localization.string("Kept")
         }
     }
 }

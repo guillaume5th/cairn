@@ -64,8 +64,8 @@ struct SearchTokenTests {
         #expect(Library.suggestedTokens(for: "  ", in: all).isEmpty)
         #expect(Library.suggestedTokens(for: "kor", in: all) == [k])
         #expect(Library.suggestedTokens(for: "K", in: all).contains(.tag(key: "kubernetes", name: "Kubernetes")))
-        #expect(Library.suggestedTokens(for: "gard", in: all) == [.kept])
-        #expect(Library.suggestedTokens(for: "NON", in: all) == [.unread])
+        #expect(Library.suggestedTokens(for: String(SearchToken.kept.label.prefix(3)), in: all) == [.kept])
+        #expect(Library.suggestedTokens(for: String(SearchToken.unread.label.prefix(3)).uppercased(), in: all) == [.unread])
         #expect(Library.suggestedTokens(for: "kor", in: all, excluding: [k]).isEmpty)
         // Prefixes keep one kind; nothing after them offers them all.
         #expect(Library.suggestedTokens(for: "tag:", in: all).map(\.label) == ["Kubernetes", "Swift"])

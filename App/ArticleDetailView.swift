@@ -31,7 +31,7 @@ struct ArticleDetailView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(AttributedString(article.title.isEmpty ? "Sans titre" : article.title, highlighting: query))
+                Text(AttributedString(article.title.isEmpty ? String(localized: "Untitled") : article.title, highlighting: query))
                     // 17 pt and 13 pt are .title2 and .body on macOS, scaled: system text styles do not scale there.
                     .font(.system(size: 17 * textScale, weight: .bold))
                     .textSelection(.enabled)
@@ -78,11 +78,11 @@ struct ArticleDetailView: View {
                 Spacer(minLength: 0)
             } else {
                 ContentUnavailableView {
-                    Label("Aucun contenu", systemImage: "doc")
+                    Label("No content", systemImage: "doc")
                 } description: {
-                    Text("Le flux ne fournit pas de contenu pour cet article.")
+                    Text("The feed provides no content for this article.")
                 } actions: {
-                    if let url { Button("Ouvrir dans le navigateur") { openURL(url) } }
+                    if let url { Button("Open in browser") { openURL(url) } }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -96,16 +96,16 @@ struct ArticleDetailView: View {
             ReaderToolbar(articles: [article], articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen) {
                 // A toggle, like the list's filter: on while the full text is shown; turning it on loads it if needed.
                 Toggle(isOn: Binding { article.fullContent != nil && !article.showsFeedContent } set: { showFullContent($0) }) {
-                    Label("Article complet", systemImage: "doc.text.magnifyingglass")
+                    Label("Full article", systemImage: "doc.text.magnifyingglass")
                 }
                 .disabled(url == nil || isLoadingFullContent)
-                .help(url == nil ? "Cet article n'a pas de lien web"
-                      : article.fullContent == nil ? "Charger l'article complet depuis son site"
-                      : article.showsFeedContent ? "Afficher l'article complet" : "Afficher le contenu du flux")
-                Button(article.summary == nil ? "Résumer" : "Régénérer le résumé", systemImage: "text.append") { summarize() }
+                .help(url == nil ? "This article has no web link"
+                      : article.fullContent == nil ? "Load the full article from its site"
+                      : article.showsFeedContent ? "Show the full article" : "Show the feed content")
+                Button(article.summary == nil ? "Summarize" : "Regenerate summary", systemImage: "text.append") { summarize() }
                     .disabled((Library.readableContent(article) ?? "").isEmpty || isSummarizing)
-                    .help((Library.readableContent(article) ?? "").isEmpty ? "Le flux ne fournit pas de contenu à résumer"
-                          : article.summary == nil ? "Résumer cet article avec l'IA" : "Refaire le résumé de cet article")
+                    .help((Library.readableContent(article) ?? "").isEmpty ? "The feed provides no content to summarize"
+                          : article.summary == nil ? "Summarize this article with AI" : "Redo this article's summary")
                 QuoteButtons(action: quoteAction, hasShortcut: false)
             }
         }
@@ -137,7 +137,7 @@ struct ArticleDetailView: View {
         if isLoadingFullContent {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Chargement de l'article complet…").foregroundStyle(.secondary)
+                Text("Loading the full article…").foregroundStyle(.secondary)
             }
             .font(.callout)
             .padding([.horizontal, .top])
@@ -145,8 +145,8 @@ struct ArticleDetailView: View {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.secondary)
                 Spacer()
-                Button("Réessayer") { showFullContent(true) }
-                if let url { Button("Ouvrir dans le navigateur") { openURL(url) } }
+                Button("Try again") { showFullContent(true) }
+                if let url { Button("Open in browser") { openURL(url) } }
             }
             .font(.callout)
             .padding([.horizontal, .top])
@@ -193,12 +193,12 @@ struct ArticleDetailView: View {
                                 }
                                 .overlay(alignment: .bottom) {
                                     if summaryHasMore {
-                                        Button("Lire la suite du résumé", systemImage: "chevron.down") {
+                                        Button("Read more of the summary", systemImage: "chevron.down") {
                                             withAnimation { summaryScroll.scrollTo(edge: .bottom) }
                                         }
                                         .labelStyle(.iconOnly)
                                         .buttonStyle(.borderless)
-                                        .help("Lire la suite du résumé")
+                                        .help("Read more of the summary")
                                     }
                                 }
                                 .animation(.default, value: summaryHasMore)
@@ -207,7 +207,7 @@ struct ArticleDetailView: View {
                             Text(error).font(.callout).foregroundStyle(.red).textSelection(.enabled)
                         }
                         if Library.isExcerpt(article) {
-                            Text("Résumé de l'extrait fourni par le flux").font(.caption).foregroundStyle(.secondary)
+                            Text("Summary of the excerpt provided by the feed").font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     .padding(.top, 6)
@@ -218,17 +218,17 @@ struct ArticleDetailView: View {
                         if isSummarizing {
                             ProgressView().controlSize(.small)
                         } else {
-                            Button(article.summary == nil ? "Réessayer" : "Régénérer", systemImage: "arrow.clockwise") { summarize() }
+                            Button(article.summary == nil ? "Try again" : "Regenerate", systemImage: "arrow.clockwise") { summarize() }
                                 .labelStyle(.iconOnly)
                                 .buttonStyle(.borderless)
-                                .help(article.summary == nil ? "Réessayer le résumé" : "Régénérer le résumé")
-                                .accessibilityLabel(article.summary == nil ? "Réessayer" : "Régénérer")
+                                .help(article.summary == nil ? "Retry the summary" : "Regenerate summary")
+                                .accessibilityLabel(article.summary == nil ? "Try again" : "Regenerate")
                             if article.summary != nil {
-                                Button("Supprimer le résumé", systemImage: "trash") { deleteSummary() }
+                                Button("Delete summary", systemImage: "trash") { deleteSummary() }
                                     .labelStyle(.iconOnly)
                                     .buttonStyle(.borderless)
-                                    .help("Supprimer le résumé de cet article")
-                                    .accessibilityLabel("Supprimer le résumé")
+                                    .help("Delete this article's summary")
+                                    .accessibilityLabel("Delete summary")
                             }
                         }
                     }
@@ -248,8 +248,8 @@ struct ArticleDetailView: View {
     }
 
     private var summaryHeader: String {
-        guard let date = article.summaryDate, article.summary != nil else { return isSummarizing ? "Résumé en cours…" : "Résumé" }
-        return ["Résumé", date.formatted(date: .abbreviated, time: .shortened), article.summaryEngine].compactMap(\.self).joined(separator: " · ")
+        guard let date = article.summaryDate, article.summary != nil else { return isSummarizing ? String(localized: "Summarizing…") : String(localized: "Summary") }
+        return [String(localized: "Summary"), date.formatted(date: .abbreviated, time: .shortened), article.summaryEngine].compactMap(\.self).joined(separator: " · ")
     }
 
     private var url: URL? {
@@ -280,23 +280,23 @@ struct KeepButton: View {
                 }
                 if allKept {
                     Divider()
-                    Button("Retirer du cairn", role: .destructive, action: unkeep)
+                    Button("Remove from cairn", role: .destructive, action: unkeep)
                 }
             } label: {
-                Label("Garder", image: icon)
+                Label("Keep", image: icon)
             }
             // Without the arrow, the menu looks and sits like the other reader buttons.
             .menuIndicator(.hidden)
-            .help(articles.count == 1 ? "Choisir le cairn de cet article" : "Choisir le cairn de ces articles")
+            .help(articles.count == 1 ? "Choose this article's cairn" : "Choose these articles' cairn")
         } else {
-            Button(allKept ? "Retirer du cairn" : "Garder dans le cairn", image: icon) {
+            Button(allKept ? "Remove from cairn" : "Keep in cairn", image: icon) {
                 if allKept {
                     unkeep()
                 } else if let cairn = cairns.first {
                     for article in articles where !article.isKept { Library.keep(article, in: cairn) }
                 }
             }
-            .help(allKept ? "Retirer du cairn" : "Garder dans le cairn")
+            .help(allKept ? "Remove from cairn" : "Keep in cairn")
         }
     }
 
@@ -318,13 +318,13 @@ struct ReadLaterButton: View {
 
     var body: some View {
         let allQueued = !articles.isEmpty && articles.allSatisfy(\.isQueued)
-        Button(allQueued ? "Retirer de Lire plus tard" : "Lire plus tard",
+        Button(allQueued ? "Remove from Read later" : "Read later",
                systemImage: "clock") {
             for article in articles {
                 if allQueued { Library.removeFromReadLater(article) } else { Library.readLater(article) }
             }
         }
-        .help(allQueued ? "Retirer de Lire plus tard" : "Lire plus tard")
+        .help(allQueued ? "Remove from Read later" : "Read later")
     }
 }
 
@@ -333,13 +333,13 @@ extension View {
     func unkeepConfirmation(_ articles: Binding<[Article]>) -> some View {
         let lot = articles.wrappedValue
         let losing = lot.count { !$0.note.isEmpty || !($0.tags ?? []).isEmpty }
-        return confirmationDialog(lot.count == 1 ? "Retirer cet article du cairn ?" : "Retirer ces \(lot.count) articles du cairn ?",
+        return confirmationDialog("Remove these \(lot.count) articles from the cairn?",
                                   isPresented: Binding(get: { !lot.isEmpty }, set: { if !$0 { articles.wrappedValue = [] } }),
                                   presenting: lot) { lot in
-            Button("Retirer", role: .destructive) { for article in lot { Library.unkeep(article) } }
+            Button("Remove", role: .destructive) { for article in lot { Library.unkeep(article) } }
         } message: { lot in
-            Text(lot.count == 1 ? "Ses notes et ses tags seront perdus."
-                 : losing == 1 ? "1 article perdra ses notes ou ses tags." : "\(losing) articles perdront leurs notes ou leurs tags.")
+            Text(lot.count == 1 ? "Its notes and tags will be lost."
+                 : "\(losing) articles will lose their notes or tags.")
         }
     }
 
@@ -373,10 +373,10 @@ private struct OpenConfirmation: ViewModifier {
     @Environment(\.openURL) private var openURL
 
     func body(content: Content) -> some View {
-        content.confirmationDialog("Ouvrir \(articles.count) articles dans le navigateur ?",
+        content.confirmationDialog("Open \(articles.count) articles in the browser?",
                                    isPresented: Binding(get: { !articles.isEmpty }, set: { if !$0 { articles = [] } }),
                                    presenting: articles) { lot in
-            Button("Ouvrir") { for article in lot { if let url = OpenInBrowser.url(of: article) { openURL(url) } } }
+            Button("Open") { for article in lot { if let url = OpenInBrowser.url(of: article) { openURL(url) } } }
         }
     }
 }
@@ -401,17 +401,17 @@ struct ArticleMenuItems: View {
             ReadLaterButton(articles: articles)
                 .keyboardShortcut("d", modifiers: [.command, .shift])
             // Same symbols as the reader toolbar.
-            Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+            Button(anyUnread ? "Mark as read" : "Mark as unread",
                    systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") { for article in articles { article.isRead = anyUnread } }
                 .keyboardShortcut("u", modifiers: [.command, .shift])
             Divider() // filing above, sending the article out of the app below
             if articles.count == 1 {
                 ShareButton(article: articles[0])
             }
-            Button("Ouvrir dans le navigateur", systemImage: "safari") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
+            Button("Open in browser", systemImage: "safari") { OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen) }
                 .keyboardShortcut(.return, modifiers: .command)
                 .disabled(links.isEmpty)
-            Button(links.count > 1 ? "Copier les liens" : "Copier le lien", systemImage: "link") {
+            Button(links.count > 1 ? "Copy links" : "Copy link", systemImage: "link") {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(links.map(\.absoluteString).joined(separator: "\n"), forType: .string)
             }
@@ -419,7 +419,7 @@ struct ArticleMenuItems: View {
             // Only articles whose feed is gone can be deleted: a followed feed would bring them back.
             if !articles.isEmpty, articles.allSatisfy({ $0.feed == nil }) {
                 Divider()
-                Button(articles.count == 1 ? "Supprimer l'article…" : "Supprimer \(articles.count) articles…", systemImage: "trash", role: .destructive) {
+                Button("Delete \(articles.count) articles…", systemImage: "trash", role: .destructive) {
                     articlesToDelete = articles
                 }
             }
@@ -453,18 +453,18 @@ struct QuoteButtons: View {
 
     var body: some View {
         if let action, !action.article.isKept, cairns.count > 1 {
-            Menu("Surligner", systemImage: "highlighter") {
+            Menu("Highlight", systemImage: "highlighter") {
                 ForEach(cairns) { cairn in
                     Button(cairn.name) { Task { await action(keepingIn: cairn) } }
                 }
             }
             .menuIndicator(.hidden) // like KeepButton: the toolbar keeps its layout whether the article is kept or not
-            .help("Citer le passage sélectionné dans la note, en gardant l'article")
+            .help("Quote the selected passage in the note, keeping the article")
         } else {
-            Button("Surligner", systemImage: "highlighter") { Task { await action?(keepingIn: cairns.first) } }
+            Button("Highlight", systemImage: "highlighter") { Task { await action?(keepingIn: cairns.first) } }
                 .keyboardShortcut(hasShortcut ? KeyboardShortcut("h", modifiers: [.command, .shift]) : nil)
                 .disabled(action == nil)
-                .help("Citer le passage sélectionné dans la note (⇧⌘H)")
+                .help("Quote the selected passage in the note (⇧⌘H)")
         }
     }
 }
@@ -508,17 +508,17 @@ struct ShareButton: View {
         if let url = OpenInBrowser.url(of: article) {
             link(url)
         } else {
-            Button("Partager", systemImage: "square.and.arrow.up") {}
+            Button("Share", systemImage: "square.and.arrow.up") {}
                 .disabled(true)
-                .help("Cet article n'a pas de lien web")
+                .help("This article has no web link")
         }
     }
 
     private func link(_ url: URL) -> some View {
         ShareLink(item: url, subject: Text(article.title), message: Text(article.title)) {
-            Label("Partager", systemImage: "square.and.arrow.up")
+            Label("Share", systemImage: "square.and.arrow.up")
         }
-        .help("Partager cet article")
+        .help("Share this article")
     }
 }
 
@@ -529,8 +529,8 @@ struct ArticleSelectionView: View {
     @State private var articlesToOpen: [Article] = []
 
     var body: some View {
-        ContentUnavailableView(articles.isEmpty ? "Aucun article sélectionné"
-                                   : articles.count == 1 ? "1 article sélectionné" : "\(articles.count) articles sélectionnés",
+        ContentUnavailableView(articles.isEmpty ? "No article selected"
+                                   : "\(articles.count) articles selected",
                                systemImage: "doc.on.doc")
             .toolbar { ReaderToolbar(articles: articles, articlesToUnkeep: $articlesToUnkeep, articlesToOpen: $articlesToOpen) }
             .unkeepConfirmation($articlesToUnkeep)
@@ -560,23 +560,23 @@ struct ReaderToolbar<Reading: View>: ToolbarContent {
                 KeepButton(articles: articles, articlesToUnkeep: $articlesToUnkeep)
                 ReadLaterButton(articles: articles)
                 // The filled dot the list shows on unread rows.
-                Button(anyUnread ? "Marquer comme lu" : "Marquer comme non lu",
+                Button(anyUnread ? "Mark as read" : "Mark as unread",
                        systemImage: anyUnread ? "checkmark.circle" : "circle.inset.filled") {
                     for article in articles { article.isRead = anyUnread }
                 }
-                .help(anyUnread ? "Marquer comme lu" : "Marquer comme non lu")
+                .help(anyUnread ? "Mark as read" : "Mark as unread")
             }
             .disabled(articles.isEmpty)
             if articles.count == 1 {
                 ShareButton(article: articles[0])
             } else {
-                Button("Partager", systemImage: "square.and.arrow.up") {}.disabled(true)
+                Button("Share", systemImage: "square.and.arrow.up") {}.disabled(true)
             }
-            Button("Ouvrir dans le navigateur", systemImage: "safari") {
+            Button("Open in browser", systemImage: "safari") {
                 OpenInBrowser.open(articles, with: openURL, toConfirm: $articlesToOpen)
             }
             .disabled(!articles.contains { OpenInBrowser.url(of: $0) != nil })
-            .help("Ouvrir dans le navigateur")
+            .help("Open in browser")
         }
         ToolbarSpacer(.fixed)
         ToolbarItem {
@@ -590,8 +590,8 @@ struct InspectorButton: View {
     @AppStorage(KeptEditor.shownKey) private var isShown = true
 
     var body: some View {
-        Toggle("Inspecteur", systemImage: "sidebar.trailing", isOn: $isShown)
-            .help(isShown ? "Masquer l'inspecteur" : "Afficher l'inspecteur")
+        Toggle("Inspector", systemImage: "sidebar.trailing", isOn: $isShown)
+            .help(isShown ? "Hide inspector" : "Show inspector")
     }
 }
 
@@ -610,9 +610,9 @@ extension ReaderToolbar where Reading == DisabledReadingButtons {
 struct DisabledReadingButtons: View {
     var body: some View {
         Group {
-            Button("Article complet", systemImage: "doc.text.magnifyingglass") {}
-            Button("Résumer", systemImage: "text.append") {}
-            Button("Surligner", systemImage: "highlighter") {}
+            Button("Full article", systemImage: "doc.text.magnifyingglass") {}
+            Button("Summarize", systemImage: "text.append") {}
+            Button("Highlight", systemImage: "highlighter") {}
         }
         .disabled(true)
     }
@@ -631,7 +631,7 @@ struct KeptEditor: View {
     var body: some View {
         if article.isKept {
             Form {
-                Section("Informations") {
+                Section("Information") {
                     if cairns.count > 1 {
                         // Moving keeps the notes and tags (Library.keep).
                         Picker("Cairn", selection: Binding { article.cairn?.persistentModelID } set: { id in
@@ -643,7 +643,7 @@ struct KeptEditor: View {
                         LabeledContent("Cairn", value: article.cairn?.name ?? "")
                     }
                     if let keptAt = article.keptAt {
-                        LabeledContent("Gardé le", value: keptAt.formatted(date: .abbreviated, time: .shortened))
+                        LabeledContent("Kept on", value: keptAt.formatted(date: .abbreviated, time: .shortened))
                     }
                 }
                 Section("Notes") {
@@ -651,11 +651,11 @@ struct KeptEditor: View {
                         .font(.body)
                         .frame(minHeight: 80)
                         .scrollContentBackground(.hidden)
-                        .accessibilityLabel("Notes personnelles")
+                        .accessibilityLabel("Personal notes")
                         .overlay(alignment: .topLeading) {
                             // TextEditor has no prompt; this one shows the quote gesture where its result lands.
                             if article.note.isEmpty {
-                                Text("Sélectionnez un passage puis ⇧⌘H pour le citer ici")
+                                Text("Select a passage then ⇧⌘H to quote it here")
                                     .foregroundStyle(.tertiary)
                                     .padding(.leading, 5)
                                     .allowsHitTesting(false)
@@ -674,12 +674,12 @@ struct KeptEditor: View {
                                 }
                                 .buttonStyle(.plain)
                                 .foregroundStyle(.secondary)
-                                .help("Retirer le tag « \(tag.name) »")
-                                .accessibilityLabel("Retirer le tag « \(tag.name) »")
+                                .help("Remove tag “\(tag.name)”")
+                                .accessibilityLabel("Remove tag “\(tag.name)”")
                             }
                             .tagCapsule()
                         }
-                        TextField("Ajouter un tag", text: $newTag, prompt: Text("Ajouter un tag"))
+                        TextField("Add a tag", text: $newTag, prompt: Text("Add a tag"))
                             .labelsHidden() // a Form would put the title beside a narrow field
                             .textFieldStyle(.roundedBorder)
                             .frame(minWidth: 100)
@@ -701,9 +701,9 @@ struct KeptEditor: View {
             .formStyle(.grouped)
         } else {
             ContentUnavailableView {
-                Label("Article non gardé", image: "cairn")
+                Label("Article not kept", image: "cairn")
             } description: {
-                Text("Garde-le pour lui ajouter des notes et des tags.")
+                Text("Keep it to add notes and tags to it.")
             } actions: {
                 KeepButton(articles: [article], articlesToUnkeep: $articlesToUnkeep)
                     .labelStyle(.titleOnly)

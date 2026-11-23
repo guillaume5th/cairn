@@ -124,7 +124,7 @@ struct AnthropicSummarizerTests {
 
     @Test func refusalAndEmptyAnswerAreErrors() async {
         await #expect(throws: CairnError.anthropicRefused) { try await claude("refusal.test").summarize("x") }
-        await #expect(throws: CairnError.summarizerUnavailable("Claude n'a renvoyé aucun texte.")) {
+        await #expect(throws: CairnError.summarizerUnavailable(Localization.string("Claude returned no text."))) {
             try await claude("empty.test").summarize("x")
         }
     }
@@ -163,9 +163,9 @@ struct SummarizerTests {
 
     @Test func appleUnavailabilityMessages() {
         let reasons: [SystemLanguageModel.Availability.UnavailableReason] = [.deviceNotEligible, .appleIntelligenceNotEnabled, .modelNotReady]
-        let messages = reasons.map(AppleSummarizer.message(for:))
+        let messages = reasons.map { AppleSummarizer.message(for: $0, language: "en") }
         #expect(Set(messages).count == 3)
-        #expect(messages[1].contains("Apple Intelligence est désactivé"))
+        #expect(messages[1].contains("Apple Intelligence is turned off"))
     }
 }
 
@@ -232,7 +232,7 @@ struct ClaudeCodeSummarizerTests {
 
     @Test func unreadableOutput() async throws {
         let (cli, _, env) = try fake("echo 'not json'\nexit 3\n")
-        await #expect(throws: CairnError.claudeCodeFailed("réponse illisible (code 3)")) {
+        await #expect(throws: CairnError.claudeCodeFailed(Localization.string("unreadable response (code \(Int32(3)))"))) {
             try await ClaudeCodeSummarizer(executable: cli, environment: env).summarize("x")
         }
     }
@@ -247,7 +247,7 @@ struct ClaudeCodeSummarizerTests {
 
     @Test func slowCLIIsStopped() async throws {
         let (cli, _, env) = try fake("sleep 30\n")
-        await #expect(throws: CairnError.claudeCodeFailed("délai dépassé (1 s)")) {
+        await #expect(throws: CairnError.claudeCodeFailed(Localization.string("timed out (\(1) s)"))) {
             try await ClaudeCodeSummarizer(executable: cli, environment: env, timeout: 1).summarize("x")
         }
     }

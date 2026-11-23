@@ -11,7 +11,7 @@ struct SidebarView: View {
     @Query(sort: \Folder.name) private var folders: [Folder]
     @Query(sort: \Cairn.name) private var cairns: [Cairn]
     @Query(sort: \CairnCore.Tag.name) private var tags: [CairnCore.Tag]
-    // Every unread article, kept ones without a feed included, like the "Tous les articles" list.
+    // Every unread article, kept ones without a feed included, like the String(localized: "All articles") list.
     @Query(filter: #Predicate<Article> { !$0.isRead }) private var unreadArticles: [Article]
     @Query(filter: #Predicate<Digest> { !$0.isRead }) private var unreadDigests: [Digest]
     @State private var feedsToDelete: [Feed] = []
@@ -32,12 +32,12 @@ struct SidebarView: View {
 
         var title: String {
             switch self {
-            case .newFolder: "Nouveau dossier"
-            case .folder: "Renommer le dossier"
-            case .newCairn: "Nouveau cairn"
-            case .cairn: "Renommer le cairn"
-            case .feed: "Renommer l'abonnement"
-            case .tag: "Renommer le tag"
+            case .newFolder: String(localized: "New folder")
+            case .folder: String(localized: "Rename folder")
+            case .newCairn: String(localized: "New cairn")
+            case .cairn: String(localized: "Rename cairn")
+            case .feed: String(localized: "Rename subscription")
+            case .tag: String(localized: "Rename tag")
             }
         }
 
@@ -51,18 +51,18 @@ struct SidebarView: View {
 
     var body: some View {
         List(selection: $selection) {
-            Label("Tous les articles", systemImage: "tray.full")
+            Label(String(localized: "All articles"), systemImage: "tray.full")
                 .badge(unreadArticles.count)
                 .tag(SidebarItem.all)
                 // Reading and marking change it while the window is open; refresh() covers the closed window.
                 .onChange(of: unreadArticles.count) { state.updateBadge(unread: unreadArticles.count) }
-            Label("Aujourd'hui", systemImage: "sun.max")
+            Label(String(localized: "Today"), systemImage: "sun.max")
                 .badge(unreadArticles.count { $0.publishedAt >= Calendar.current.startOfDay(for: .now) })
                 .tag(SidebarItem.today)
-            Label("Lire plus tard", systemImage: "clock")
+            Label("Read later", systemImage: "clock")
                 .badge(unreadArticles.count { $0.readLaterAt != nil })
                 .tag(SidebarItem.readLater)
-            Label("Résumés quotidiens", systemImage: "text.append")
+            Label(String(localized: "Daily summaries"), systemImage: "text.append")
                 .badge(unreadDigests.count)
                 .tag(SidebarItem.digests)
 
@@ -78,8 +78,8 @@ struct SidebarView: View {
                     }
                 }
             } header: {
-                SectionHeader("Cairns", isExpanded: $cairnsExpanded, help: "Nouveau cairn") {
-                    Button("Nouveau cairn…", image: ImageResource(name: "cairn", bundle: .main)) { startNaming(.newCairn) }
+                SectionHeader("Cairns", isExpanded: $cairnsExpanded, help: "New cairn") {
+                    Button("New cairn…", image: ImageResource(name: "cairn", bundle: .main)) { startNaming(.newCairn) }
                 }
             }
 
@@ -90,49 +90,48 @@ struct SidebarView: View {
         // Dragging a selected feed drags the whole selection of feeds.
         .dragContainer(for: String.self, itemID: \.self) { urls in urls }
         .dragContainerSelection(selectedFeeds.map(\.url))
-        .confirmationDialog(feedsToDelete.count == 1 ? "Supprimer « \(feedsToDelete[0].title) » ?"
-                                                     : "Supprimer \(feedsToDelete.count) abonnements ?",
+        .confirmationDialog(feedsToDelete.count == 1 ? "Delete “\(feedsToDelete[0].title)”?"
+                                                     : "Delete \(feedsToDelete.count) subscriptions?",
                             isPresented: Binding(get: { !feedsToDelete.isEmpty }, set: { if !$0 { feedsToDelete = [] } }),
                             presenting: feedsToDelete) { feeds in
-            Button("Supprimer", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 let wasSelected = feeds.contains { selection.contains(.feed($0.persistentModelID)) }
                 if wasSelected { selection = [.all] }
                 for feed in feeds { Library.delete(feed, context: context) }
             }
         } message: { feeds in
-            Text(feeds.count == 1 ? "Ses articles non gardés seront supprimés. Les articles gardés restent dans leur cairn."
-                                  : "Leurs articles non gardés seront supprimés. Les articles gardés restent dans leur cairn.")
+            Text(feeds.count == 1 ? "Its unkept articles will be deleted. Kept articles stay in their cairn."
+                                  : "Their unkept articles will be deleted. Kept articles stay in their cairn.")
         }
         .alert(naming?.title ?? "", isPresented: Binding(get: { naming != nil }, set: { if !$0 { naming = nil } }),
                presenting: naming) { naming in
-            TextField("Nom", text: $name)
-            Button("Annuler", role: .cancel) {}
-            Button(naming.isNew ? "Créer" : "Renommer") { save(naming) }
+            TextField("Name", text: $name)
+            Button("Cancel", role: .cancel) {}
+            Button(naming.isNew ? "Create" : "Rename") { save(naming) }
         } message: { naming in
-            if case .tag = naming { Text("Le tag est renommé dans tous les cairns. Un nom déjà utilisé par un autre tag les fusionne.") }
+            if case .tag = naming { Text("The tag is renamed in all cairns. A name already used by another tag merges them.") }
         }
         .fileExporter(isPresented: Binding(get: { cairnExport != nil }, set: { if !$0 { cairnExport = nil } }),
                       document: cairnExport?.document, contentType: .markdown,
                       defaultFilename: "\(cairnExport?.name ?? "Cairn").md") { result in
             if case let .failure(error) = result { state.message = error.localizedDescription }
         }
-        .confirmationDialog("Supprimer le tag « \(tagToDelete?.name ?? "") » ?",
+        .confirmationDialog("Delete tag “\(tagToDelete?.name ?? "")”?",
                             isPresented: Binding(get: { tagToDelete != nil }, set: { if !$0 { tagToDelete = nil } }),
                             presenting: tagToDelete) { tag in
-            Button("Supprimer", role: .destructive) { delete(tag) }
+            Button("Delete", role: .destructive) { delete(tag) }
         } message: { tag in
             let count = tag.articles?.count ?? 0
-            Text(count == 1 ? "Il sera retiré de son article, dans tous les cairns." : "Il sera retiré de ses \(count) articles, dans tous les cairns.")
+            Text("It will be removed from its \(count) articles, in all cairns.")
         }
-        .confirmationDialog("Supprimer le cairn « \(cairnToDelete?.name ?? "") » ?",
+        .confirmationDialog("Delete cairn “\(cairnToDelete?.name ?? "")”?",
                             isPresented: Binding(get: { cairnToDelete != nil }, set: { if !$0 { cairnToDelete = nil } }),
                             presenting: cairnToDelete) { cairn in
-            Button("Supprimer", role: .destructive) { delete(cairn) }
+            Button("Delete", role: .destructive) { delete(cairn) }
         } message: { cairn in
             switch cairn.articles?.count ?? 0 {
-            case 0: Text("Il ne contient aucun article.")
-            case 1: Text("Son article ne sera plus gardé et perdra sa note et ses tags.")
-            case let count: Text("Ses \(count) articles ne seront plus gardés et perdront leur note et leurs tags.")
+            case 0: Text("It contains no articles.")
+            case let count: Text("Its \(count) articles will no longer be kept and will lose their note and tags.")
             }
         }
     }
@@ -152,9 +151,9 @@ struct SidebarView: View {
             }
             ForEach(subscriptionsExpanded ? feeds.filter { $0.folder == nil } : [], content: feedRow)
         } header: {
-            SectionHeader("Abonnements", isExpanded: $subscriptionsExpanded, help: "Ajouter un abonnement (⌘N) ou un dossier") {
-                Button("Ajouter un abonnement…", systemImage: "dot.radiowaves.up.forward") { state.isAddingFeed = true }
-                Button("Nouveau dossier…", systemImage: "folder.badge.plus") { startNaming(.newFolder) }
+            SectionHeader("Subscriptions", isExpanded: $subscriptionsExpanded, help: "Add a subscription (⌘N) or a folder") {
+                Button("Add Subscription…", systemImage: "dot.radiowaves.up.forward") { state.isAddingFeed = true }
+                Button("New folder…", systemImage: "folder.badge.plus") { startNaming(.newFolder) }
             }
                 // Dropping a feed on the section header takes it out of its folder.
                 .dropDestination(for: String.self) { urls, _ in return move(urls, to: nil) }
@@ -169,7 +168,7 @@ struct SidebarView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
                         .help(error)
-                        .accessibilityLabel("Erreur : \(error)")
+                        .accessibilityLabel("Error: \(error)")
                 }
             }
         } icon: {
@@ -193,22 +192,22 @@ struct SidebarView: View {
     private func menuItems(for items: Set<SidebarItem>) -> some View {
         let lot = feeds.filter { items.contains(.feed($0.persistentModelID)) }
         if items.count == 1, case let .tag(_, key) = items.first, let tag = tags.first(where: { $0.key == key }) {
-            Button("Renommer…", systemImage: "pencil") { startNaming(.tag(tag)) }
-            Button("Supprimer le tag…", systemImage: "trash", role: .destructive) { tagToDelete = tag }
+            Button("Rename…", systemImage: "pencil") { startNaming(.tag(tag)) }
+            Button("Delete tag…", systemImage: "trash", role: .destructive) { tagToDelete = tag }
         } else if let cairn = single(items, cairns, as: SidebarItem.cairn) {
-            Button("Exporter en Markdown…", systemImage: "square.and.arrow.up") {
+            Button("Export as Markdown…", systemImage: "square.and.arrow.up") {
                 cairnExport = (ExportDocument(data: Data(Library.markdown(for: cairn).utf8)), cairn.name)
             }
             Divider()
-            Button("Renommer…", systemImage: "pencil") { startNaming(.cairn(cairn)) }
-            Button("Supprimer le cairn…", systemImage: "trash", role: .destructive) { cairnToDelete = cairn }
+            Button("Rename…", systemImage: "pencil") { startNaming(.cairn(cairn)) }
+            Button("Delete cairn…", systemImage: "trash", role: .destructive) { cairnToDelete = cairn }
                 .disabled(cairns.count == 1)
         } else if let folder = single(items, folders, as: SidebarItem.folder) {
-            Button("Marquer tout comme lu", systemImage: "checkmark.circle") { markRead(folder.feeds ?? []) }
+            Button("Mark all as read", systemImage: "checkmark.circle") { markRead(folder.feeds ?? []) }
                 .disabled(folder.unreadCount == 0)
             Divider()
-            Button("Renommer…", systemImage: "pencil") { startNaming(.folder(folder)) }
-            Button("Supprimer le dossier", systemImage: "trash", role: .destructive) {
+            Button("Rename…", systemImage: "pencil") { startNaming(.folder(folder)) }
+            Button("Delete folder", systemImage: "trash", role: .destructive) {
                 let wasSelected = selection.contains(.folder(folder.persistentModelID))
                 Library.delete(folder, context: context)
                 // After the List has moved its selection to a neighbouring row, which it does
@@ -216,38 +215,38 @@ struct SidebarView: View {
                 if wasSelected { Task { selection = [.all] } }
             }
         } else if !lot.isEmpty, lot.count == items.count {
-            Button("Marquer tout comme lu", systemImage: "checkmark.circle") { markRead(lot) }
+            Button("Mark all as read", systemImage: "checkmark.circle") { markRead(lot) }
                 .disabled(lot.allSatisfy { $0.unreadCount == 0 })
             Divider()
             if lot.count == 1 {
-                Button("Renommer…", systemImage: "pencil") { startNaming(.feed(lot[0])) }
-                Button("Identifiants…", systemImage: "key") {
+                Button("Rename…", systemImage: "pencil") { startNaming(.feed(lot[0])) }
+                Button("Credentials…", systemImage: "key") {
                     if let host = URL(string: lot[0].url)?.host() { state.loginRequest = (host, nil) }
                 }
             }
-            Menu("Déplacer vers", systemImage: "folder") {
+            Menu("Move to", systemImage: "folder") {
                 ForEach(folders) { folder in
                     Button(folder.name) { for feed in lot { Library.move(feed, to: folder) } }
                         .disabled(lot.allSatisfy { $0.folder?.persistentModelID == folder.persistentModelID })
                 }
                 if !folders.isEmpty { Divider() }
-                Button("Aucun dossier") { for feed in lot { Library.move(feed, to: nil) } }
+                Button("No folder") { for feed in lot { Library.move(feed, to: nil) } }
                     .disabled(lot.allSatisfy { $0.folder == nil })
             }
             // Articles published from now on get their full text after each refresh; those already listed do not.
-            Toggle("Toujours charger les articles complets", systemImage: "doc.text.magnifyingglass", isOn: Binding {
+            Toggle("Always load full articles", systemImage: "doc.text.magnifyingglass", isOn: Binding {
                 lot.allSatisfy { $0.loadsFullContentSince != nil }
             } set: { isOn in
                 for feed in lot { feed.loadsFullContentSince = isOn ? (feed.loadsFullContentSince ?? .now) : nil }
             })
-            Toggle("Notifier les nouveaux articles", systemImage: "bell", isOn: Binding {
+            Toggle("Notify of new articles", systemImage: "bell", isOn: Binding {
                 lot.allSatisfy(\.notifiesNewArticles)
             } set: { isOn in
                 for feed in lot { feed.notifiesNewArticles = isOn }
                 if isOn { Task { _ = await DigestNotifications.requestAuthorization() } }
             })
             Divider()
-            Button(lot.count == 1 ? "Supprimer l'abonnement…" : "Supprimer \(lot.count) abonnements…", systemImage: "trash", role: .destructive) {
+            Button("Delete \(lot.count) subscriptions…", systemImage: "trash", role: .destructive) {
                 feedsToDelete = lot
             }
         }
@@ -359,13 +358,13 @@ struct SidebarView: View {
 
 /// A section title with a "+" menu then a collapse chevron, both shown while the pointer is over the header, as in Mail.
 private struct SectionHeader<Actions: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     @Binding var isExpanded: Bool
-    let help: String
+    let help: LocalizedStringKey
     @ViewBuilder let actions: Actions
     @State private var isHovering = false
 
-    init(_ title: String, isExpanded: Binding<Bool>, help: String, @ViewBuilder actions: () -> Actions) {
+    init(_ title: LocalizedStringKey, isExpanded: Binding<Bool>, help: LocalizedStringKey, @ViewBuilder actions: () -> Actions) {
         self.title = title
         _isExpanded = isExpanded
         self.help = help
@@ -395,7 +394,7 @@ private struct SectionHeader<Actions: View>: View {
                     .modifier(HeaderIcon())
             }
             .buttonStyle(.plain)
-            .help(isExpanded ? "Masquer" : "Afficher")
+            .help(isExpanded ? "Hide" : "Show")
             .opacity(isHovering ? 1 : 0)
         }
         .contentShape(Rectangle())

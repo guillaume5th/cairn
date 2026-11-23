@@ -30,37 +30,40 @@ public enum CairnError: LocalizedError, Equatable {
     case emptyTagName
     case unsupportedBackup
 
-    public var errorDescription: String? {
-        switch self {
-        case .invalidURL: "L'adresse saisie n'est pas une URL http(s) valide."
-        case .httpStatus(401): "Ce site demande un identifiant et un mot de passe."
-        case let .httpStatus(code): "Le serveur a répondu avec l'erreur HTTP \(code)."
-        case .notAFeed: "Cette adresse ne renvoie pas un flux RSS, Atom ou JSON Feed lisible."
-        case .noFeedFound: "Aucun flux RSS, Atom ou JSON Feed n'a été trouvé sur ce site. Essaie l'adresse exacte de son flux."
-        case .noArticleContent: "Aucun texte d'article n'a été trouvé sur cette page."
-        case .alreadySubscribed: "Tu es déjà abonné à ce flux."
-        case .invalidOPML: "Ce fichier n'est pas un fichier OPML valide."
-        case .emptyFolderName: "Le nom du dossier ne peut pas être vide."
-        case .duplicateFolder: "Un dossier porte déjà ce nom."
-        case .emptyCairnName: "Le nom du cairn ne peut pas être vide."
-        case .duplicateCairn: "Un cairn porte déjà ce nom."
-        case .lastCairn: "Le dernier cairn ne peut pas être supprimé."
-        case .ollamaUnreachable: "Le serveur Ollama est injoignable. Vérifie qu'il tourne et son adresse dans les Réglages."
-        case let .ollamaModelNotFound(model): "Le modèle Ollama « \(model) » est introuvable. Installe-le avec « ollama pull \(model) »."
+    public var errorDescription: String? { message() }
+
+    func message(language: String? = nil) -> String {
+        func l(_ key: String.LocalizationValue) -> String { Localization.string(key, language) }
+        return switch self {
+        case .invalidURL: l("The address you entered is not a valid http(s) URL.")
+        case .httpStatus(401): l("This site requires a username and password.")
+        case let .httpStatus(code): l("The server answered with HTTP error \(code).")
+        case .notAFeed: l("This address does not return a readable RSS, Atom or JSON Feed.")
+        case .noFeedFound: l("No RSS, Atom or JSON Feed was found on this site. Try the exact address of its feed.")
+        case .noArticleContent: l("No article text was found on this page.")
+        case .alreadySubscribed: l("You are already subscribed to this feed.")
+        case .invalidOPML: l("This file is not a valid OPML file.")
+        case .emptyFolderName: l("The folder name cannot be empty.")
+        case .duplicateFolder: l("A folder with this name already exists.")
+        case .emptyCairnName: l("The cairn name cannot be empty.")
+        case .duplicateCairn: l("A cairn with this name already exists.")
+        case .lastCairn: l("The last cairn cannot be deleted.")
+        case .ollamaUnreachable: l("The Ollama server is unreachable. Check that it is running and its address in Settings.")
+        case let .ollamaModelNotFound(model): l("The Ollama model “\(model)” was not found. Install it with “ollama pull \(model)”.")
         case let .summarizerUnavailable(reason): reason
-        case .anthropicKeyMissing: "Aucune clé API Anthropic n'est enregistrée. Saisis-la dans les Réglages."
-        case .anthropicKeyInvalid: "Anthropic refuse la clé API. Vérifie-la dans les Réglages."
-        case .anthropicBilling: "Anthropic signale un problème de facturation sur ce compte API (crédit épuisé ?)."
-        case let .anthropicModelNotFound(model): "Le modèle Claude « \(model) » est introuvable ou n'est pas accessible avec cette clé."
-        case .anthropicRateLimited: "Anthropic limite les requêtes ou est surchargé pour le moment. Réessaie dans un instant."
-        case .anthropicRefused: "Claude a refusé de résumer ce contenu."
-        case .claudeCodeNotFound: "La CLI Claude Code est introuvable. Installe-la, ou indique son chemin dans les Réglages."
-        case .claudeCodeNotLoggedIn: "Claude Code n'est connecté à aucun compte. Lance « claude » dans un terminal pour te connecter."
-        case let .claudeCodeFailed(reason): "Claude Code a échoué : \(reason)"
-        case .emptyFeedName: "Le titre de l'abonnement ne peut pas être vide."
-        case .emptyTagName: "Le nom du tag ne peut pas être vide."
-        case .invalidBackup: "Ce fichier n'est pas une sauvegarde de Cairn lisible."
-        case .unsupportedBackup: "Cette sauvegarde vient d'une version plus récente de Cairn. Mets Cairn à jour pour la restaurer."
+        case .anthropicKeyMissing: l("No Anthropic API key is saved. Enter it in Settings.")
+        case .anthropicKeyInvalid: l("Anthropic rejects the API key. Check it in Settings.")
+        case .anthropicBilling: l("Anthropic reports a billing problem on this API account (out of credit?).")
+        case let .anthropicModelNotFound(model): l("The Claude model “\(model)” was not found or is not available with this key.")
+        case .anthropicRateLimited: l("Anthropic is rate limiting requests or is overloaded right now. Try again in a moment.")
+        case .anthropicRefused: l("Claude refused to summarize this content.")
+        case .claudeCodeNotFound: l("The Claude Code CLI was not found. Install it, or give its path in Settings.")
+        case .claudeCodeNotLoggedIn: l("Claude Code is not signed in to any account. Run “claude” in a terminal to sign in.")
+        case let .claudeCodeFailed(reason): l("Claude Code failed: \(reason)")
+        case .emptyFeedName: l("The subscription title cannot be empty.")
+        case .emptyTagName: l("The tag name cannot be empty.")
+        case .invalidBackup: l("This file is not a readable Cairn backup.")
+        case .unsupportedBackup: l("This backup comes from a newer version of Cairn. Update Cairn to restore it.")
         }
     }
 }

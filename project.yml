@@ -1,7 +1,7 @@
 name: Cairn
 options:
   bundleIdPrefix: dev.cairn
-  developmentLanguage: fr
+  developmentLanguage: en
   deploymentTarget:
     macOS: "27.0"
 packages:
@@ -66,6 +66,9 @@ targets:
         CODE_SIGN_STYLE: Manual
         ENABLE_HARDENED_RUNTIME: YES
         PRODUCT_MODULE_NAME: Cairn
+        # Swift string literals land in App/Localizable.xcstrings (fr translations) when building.
+        SWIFT_EMIT_LOC_STRINGS: YES
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
       # Debug builds are a separate app ("Cairn Dev", orange icon): own library and settings, runs beside the stable one.
       configs:
         Debug:

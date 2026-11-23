@@ -19,6 +19,12 @@ un cairn à la fois.
 - `App/` : l'application SwiftUI pour Mac (vues et commandes uniquement).
 - `project.yml` : description du projet Xcode. `Cairn.xcodeproj` est généré et n'est pas versionné.
 
+## Langues
+
+L'app suit la langue de macOS : français, sinon anglais. Les textes du code sont en anglais et les traductions françaises
+sont dans `App/Localizable.xcstrings` et `CairnCore/Sources/CairnCore/Localizable.xcstrings`. Un nouveau texte visible
+s'écrit en anglais, puis se traduit dans le catalog.
+
 ## Commandes
 
 ```sh

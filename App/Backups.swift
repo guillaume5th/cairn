@@ -110,7 +110,7 @@ extension AppState {
             defaults.removeObject(forKey: BackupSettings.errorKey)
             defaults.removeObject(forKey: BackupSettings.lastFailureKey)
         } catch {
-            defaults.set("La sauvegarde a échoué : \(error.localizedDescription)", forKey: BackupSettings.errorKey)
+            defaults.set(String(localized: "Backup failed: \(error.localizedDescription)"), forKey: BackupSettings.errorKey)
             defaults.set(Date.now.timeIntervalSince1970, forKey: BackupSettings.lastFailureKey)
         }
     }
@@ -128,7 +128,7 @@ extension AppState {
         }
     }
 
-    /// Replaces the library once the window's views are gone, then lets the window start over on "Tous les articles".
+    /// Replaces the library once the window's views are gone, then lets the window start over on String(localized: "All articles").
     func restore(_ backup: Backup) async {
         isRestoring = true
         defer { isRestoring = false }
@@ -142,7 +142,7 @@ extension AppState {
             Task { await refresh() }
         } catch {
             context.rollback()
-            message = "La restauration a échoué : \(error.localizedDescription)"
+            message = String(localized: "Restore failed: \(error.localizedDescription)")
         }
     }
 }
@@ -159,10 +159,10 @@ struct BackupSection: View {
 
     var body: some View {
         Section {
-            LabeledContent("Dossier") {
+            LabeledContent("Folder") {
                 HStack {
-                    Text(folderName ?? "Aucun").foregroundStyle(.secondary)
-                    Button("Choisir…") { isChoosingFolder = true }
+                    Text(folderName ?? String(localized: "None")).foregroundStyle(.secondary)
+                    Button("Choose…") { isChoosingFolder = true }
                         .fileImporter(isPresented: $isChoosingFolder, allowedContentTypes: [.folder]) { result in
                             guard let url = try? result.get() else { return }
                             do {
@@ -175,34 +175,34 @@ struct BackupSection: View {
                 }
             }
             HStack {
-                Button("Sauvegarder maintenant") { state.backUp() }
+                Button("Back up now") { state.backUp() }
                     .disabled(bookmark == nil)
                 Spacer()
-                Button("Restaurer…") { isChoosingBackup = true }
+                Button("Restore…") { isChoosingBackup = true }
                     .fileImporter(isPresented: $isChoosingBackup, allowedContentTypes: [.json]) { result in
                         backupToRestore = state.readBackup(result)
                     }
             }
         } header: {
-            Text("Sauvegarde")
+            Text("Backup")
         } footer: {
             Group {
                 if let error {
                     Label(error, systemImage: "exclamationmark.triangle")
                 } else if bookmark == nil {
-                    Text("Choisis un dossier, par exemple dans iCloud Drive, pour y sauvegarder chaque jour tes abonnements, tes articles, tes cairns et tes réglages.")
+                    Text("Choose a folder, for example in iCloud Drive, to back up your subscriptions, articles, cairns and settings there every day.")
                 } else if lastDate > 0 {
-                    Text("Dernière sauvegarde : \(Date(timeIntervalSince1970: lastDate).formatted(date: .abbreviated, time: .shortened)). Les \(BackupSettings.keepCount) plus récentes sont gardées.")
+                    Text("Last backup: \(Date(timeIntervalSince1970: lastDate).formatted(date: .abbreviated, time: .shortened)). The \(BackupSettings.keepCount) most recent are kept.")
                 }
             }
             .foregroundStyle(.secondary)
         }
-        .confirmationDialog("Restaurer la sauvegarde du \(backupToRestore?.createdAt.formatted(date: .long, time: .shortened) ?? "") ?",
+        .confirmationDialog("Restore the backup of \(backupToRestore?.createdAt.formatted(date: .long, time: .shortened) ?? "")?",
                             isPresented: Binding(get: { backupToRestore != nil }, set: { if !$0 { backupToRestore = nil } }),
                             presenting: backupToRestore) { backup in
-            Button("Restaurer", role: .destructive) { Task { await state.restore(backup) } }
+            Button("Restore", role: .destructive) { Task { await state.restore(backup) } }
         } message: { _ in
-            Text("Tes abonnements, dossiers, cairns, articles et réglages actuels seront remplacés par ceux de la sauvegarde, dans leur état à ce moment-là.")
+            Text("Your current subscriptions, folders, cairns, articles and settings will be replaced by those of the backup, as they were at that time.")
         }
     }
 
