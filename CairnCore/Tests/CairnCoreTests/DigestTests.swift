@@ -48,6 +48,16 @@ struct DigestTests {
         return article
     }
 
+    @Test func readingMinutes() throws {
+        let context = try makeContext()
+        let empty = article("Vide", hoursAgo: 1, content: "<p> </p>", context: context)
+        #expect(Library.readingMinutes(empty) == nil)
+        let short = article("Court", hoursAgo: 1, content: "<p>Un texte bref.</p>", context: context)
+        #expect(Library.readingMinutes(short) == 1)
+        let long = article("Long", hoursAgo: 1, content: "<p>" + String(repeating: "mot ", count: 2_300) + "</p>", context: context)
+        #expect(Library.readingMinutes(long) == 10)
+    }
+
     @Test func articlesOfTheLast24Hours() throws {
         let context = try makeContext()
         _ = article("une", hoursAgo: 1, context: context)

@@ -513,6 +513,7 @@ struct ArticleListView: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         if article.isKept { KeptMark() }
                         Text(article.sourceTitle).lineLimit(1)
+                        if let minutes = Library.readingMinutes(article) { HStack(spacing: 2) { Image(systemName: "timer"); Text("\(minutes) min") }.layoutPriority(1) }
                         Spacer()
                         Text(article.publishedAt, format: .relative(presentation: .named))
                     }

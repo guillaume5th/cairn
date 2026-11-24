@@ -297,6 +297,26 @@ public enum Library {
         article.fullContent ?? article.content
     }
 
+    static let wordsPerMinute = 230
+
+    /// Estimated minutes to read the article's readable text, at least 1; nil when it has none.
+    public static func readingMinutes(_ article: Article) -> Int? {
+        // One pass over the bytes, no allocation: rows call this on every render, and plainText is far too heavy for that.
+        // shortcut: an entity such as &nbsp; counts as part of a word; the estimate is in minutes, so it does not matter.
+        var words = 0, inTag = false, inWord = false
+        for byte in (readableContent(article) ?? "").utf8 {
+            switch byte {
+            case UInt8(ascii: "<"): inTag = true; inWord = false
+            case UInt8(ascii: ">") where inTag: inTag = false
+            case _ where inTag: break
+            case UInt8(ascii: " "), UInt8(ascii: "\n"), UInt8(ascii: "\t"), UInt8(ascii: "\r"): inWord = false
+            case _ where !inWord: inWord = true; words += 1
+            default: break
+            }
+        }
+        return words == 0 ? nil : max(1, Int((Double(words) / Double(wordsPerMinute)).rounded()))
+    }
+
     /// Articles of feeds set to "Toujours charger les articles complets", published since it was turned on, whose full
     /// text was never attempted. Newest first.
     public static func articlesAwaitingFullContent(context: ModelContext) throws -> [Article] {

@@ -37,7 +37,9 @@ struct ArticleDetailView: View {
                     .textSelection(.enabled)
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     SourceIcon(data: article.feed?.iconData ?? article.sourceIconData)
+                    let minutes = Library.readingMinutes(article)
                     Text("\(article.sourceTitle) · \(article.publishedAt.formatted(date: .abbreviated, time: .shortened))")
+                        + Text(minutes.map { " · " + String(localized: "\($0) min read") } ?? "")
                 }
                 .font(.system(size: 13 * textScale))
                 .foregroundStyle(.secondary)

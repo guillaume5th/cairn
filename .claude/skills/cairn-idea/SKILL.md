@@ -26,6 +26,16 @@ gh issue edit 20 --body-file $S/ideas.md
 ## List
 Show the open items by theme, priorities first. No edit.
 
+## Does it need OpenSpec?
+Decide before any code is written, on **Start** and whenever the user asks for a feature directly ("ajoute...") rather
+than through the backlog. Say the verdict in one line and why.
+- **Yes, go through `/opsx:propose`**: a user-visible behaviour (a new display, setting, action, shortcut, string
+  shown in the UI), a data or model change, a new capability. If a spec in `openspec/specs` already covers the area
+  (grep it), the change is a delta of that spec.
+- **No, code it directly**: a bug fix that restores what the spec already says, a refactor with no behaviour change,
+  wording or spacing tweaks, dependency or tooling chores.
+- Unsure: treat it as yes. Never write the code first and propose afterwards.
+
 ## Start
 - Run `/opsx:propose` with the idea's text as the starting point.
 - Leave the box unticked; append ` — en cours : openspec/changes/<name>` to its line.
