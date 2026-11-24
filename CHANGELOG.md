@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.10.0](https://github.com/guillaume5th/cairn/compare/v2.9.0...v2.10.0) (2026-11-24)
+
+
+### Features
+
+* add color support for cairns, including UI updates and backup integration ([08474e2](https://github.com/guillaume5th/cairn/commit/08474e2d948ab0777d549a3109316a76357df748))
+* add estimated reading time display for articles in list and detail views ([0e0c9ac](https://github.com/guillaume5th/cairn/commit/0e0c9ac4aab876ac4199ce1d72fc6fc0d226fe72))
+
 ## [2.9.0](https://github.com/guillaume5th/cairn/compare/v2.8.1...v2.9.0) (2026-11-23)
 
 
