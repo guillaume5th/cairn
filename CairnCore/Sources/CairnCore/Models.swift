@@ -121,8 +121,15 @@ public final class Cairn {
     public var name: String = ""
     /// Case- and diacritic-insensitive identity of the cairn, like `Tag.key`.
     public var key: String = ""
+    /// Raw value of a `CairnColor`; nil for none. A raw string, so a color from a newer version reads as none.
+    public var color: String?
     @Relationship(deleteRule: .nullify, inverse: \Article.cairn)
     public var articles: [Article]? = []
+
+    public var cairnColor: CairnColor? {
+        get { color.flatMap(CairnColor.init(rawValue:)) }
+        set { color = newValue?.rawValue }
+    }
 
     public init(name: String) {
         self.name = name
@@ -194,4 +201,9 @@ public enum CairnStore {
             configurations: configuration
         )
     }
+}
+
+/// The colors a cairn can take, like the Finder's tags.
+public enum CairnColor: String, CaseIterable, Sendable {
+    case red, orange, yellow, green, blue, purple, gray
 }

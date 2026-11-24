@@ -11,6 +11,8 @@ public struct Backup: Codable, Equatable, Sendable {
     public var feeds: [FeedEntry]
     public var folders: [String]
     public var cairns: [String]
+    /// Color of each colored cairn, by name. Absent from backups made before cairns had colors.
+    public var cairnColors: [String: String]?
     public var articles: [ArticleEntry]
     /// App settings by UserDefaults key; the app chooses which keys.
     public var settings: [String: SettingValue]
@@ -97,13 +99,16 @@ extension Library {
     public static func makeBackup(context: ModelContext, settings: [String: Backup.SettingValue], now: Date = .now) throws -> Backup {
         let feeds = try context.fetch(FetchDescriptor<Feed>(sortBy: [SortDescriptor(\.title)]))
         let articles = try context.fetch(FetchDescriptor<Article>(sortBy: [SortDescriptor(\.publishedAt)]))
+        let cairns = try context.fetch(FetchDescriptor<Cairn>(sortBy: [SortDescriptor(\.name)]))
         return Backup(
             createdAt: now,
             feeds: feeds.map { .init(url: $0.url, title: $0.title, folder: $0.folder?.name, addedAt: $0.addedAt,
                                      loadsFullContentSince: $0.loadsFullContentSince, iconData: $0.iconData,
                                      iconCheckedAt: $0.iconCheckedAt, notifiesNewArticles: $0.notifiesNewArticles) },
             folders: try context.fetch(FetchDescriptor<Folder>(sortBy: [SortDescriptor(\.name)])).map(\.name),
-            cairns: try context.fetch(FetchDescriptor<Cairn>(sortBy: [SortDescriptor(\.name)])).map(\.name),
+            cairns: cairns.map(\.name),
+            cairnColors: Dictionary(cairns.compactMap { cairn in cairn.color.map { (cairn.name, $0) } },
+                                    uniquingKeysWith: { first, _ in first }),
             articles: articles.map { article in
                 .init(externalID: article.externalID, link: article.link, title: article.title,
                       publishedAt: article.publishedAt, content: article.content, isRead: article.isRead,
@@ -147,7 +152,7 @@ extension Library {
         var tags: [String: Tag] = [:]
 
         for name in backup.folders { _ = folder(named: name) }
-        for name in backup.cairns { _ = cairn(named: name) }
+        for name in backup.cairns { cairn(named: name).color = backup.cairnColors?[name] }
         var feeds: [String: Feed] = [:]
         for entry in backup.feeds where feeds[entry.url] == nil {
             let feed = Feed(url: entry.url, title: entry.title)

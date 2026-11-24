@@ -18,6 +18,7 @@ struct BackupTests {
         feed.iconCheckedAt = fixtureNow
         feed.notifiesNewArticles = true
         let reading = try Library.createCairn(named: "Lectures", context: context)
+        reading.cairnColor = .blue
         let kept = Article(externalID: "a1", link: "https://rss.test/a1", title: "Gardé", publishedAt: fixtureNow,
                            content: "<p>Texte</p>", sourceTitle: "Blog RSS")
         context.insert(kept)
@@ -69,6 +70,7 @@ struct BackupTests {
         #expect(feed.iconData == Data([1, 2, 3]) && feed.iconCheckedAt == fixtureNow)
         #expect(feed.notifiesNewArticles)
         #expect(Set(try target.fetch(FetchDescriptor<Cairn>()).map(\.name)) == ["Lectures"])
+        #expect(try target.fetch(FetchDescriptor<Cairn>()).first?.cairnColor == .blue)
         let articles = try target.fetch(FetchDescriptor<Article>())
         let kept = try #require(articles.first { $0.externalID == "a1" })
         #expect(kept.isKept && kept.isRead && kept.feed === feed)
@@ -84,6 +86,25 @@ struct BackupTests {
         let unread = try #require(articles.first { $0.externalID == "a3" })
         #expect(!unread.isRead && !unread.isKept && unread.content == "<p>Neuf</p>")
         #expect(unread.isQueued && unread.readLaterAt == fixtureNow && !read.isQueued)
+    }
+
+    @Test func backupWithoutCairnColorsRestoresUncolored() throws {
+        let data = try Library.makeBackup(context: try populated(), settings: [:]).encoded()
+        var json = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(json["cairnColors"] != nil)
+        json["cairnColors"] = nil
+        let backup = try Backup.decode(try JSONSerialization.data(withJSONObject: json))
+        let target = try makeContext()
+        try Library.restore(backup, context: target)
+        #expect(try target.fetch(FetchDescriptor<Cairn>()).allSatisfy { $0.cairnColor == nil })
+    }
+
+    @Test func unknownCairnColorReadsAsNone() {
+        let cairn = Cairn(name: "Pro")
+        cairn.color = "chartreuse"
+        #expect(cairn.cairnColor == nil)
+        cairn.cairnColor = .green
+        #expect(cairn.color == "green")
     }
 
     @Test func backupWithoutReadLaterDecodes() throws {

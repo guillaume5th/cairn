@@ -511,7 +511,7 @@ struct ArticleListView: View {
                             .lineLimit(2)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
-                        if article.isKept { KeptMark() }
+                        if article.isKept { KeptMark(color: article.cairn?.cairnColor?.color) }
                         Text(article.sourceTitle).lineLimit(1)
                         if let minutes = Library.readingMinutes(article) { HStack(spacing: 2) { Image(systemName: "timer"); Text("\(minutes) min") }.layoutPriority(1) }
                         Spacer()
@@ -692,11 +692,51 @@ private struct SearchTokenLabel: View {
 
 /// The cairn icon of a kept article's row: tinted, white on the blue selection highlight (like UnreadDot).
 private struct KeptMark: View {
+    /// The article's cairn color; nil is the accent color.
+    let color: Color?
     @Environment(\.backgroundProminence) private var prominence
 
     var body: some View {
         Image("cairn.fill")
-            .foregroundStyle(prominence == .increased ? AnyShapeStyle(.white) : AnyShapeStyle(.tint))
+            .foregroundStyle(prominence == .increased ? AnyShapeStyle(.white) : color.map(AnyShapeStyle.init) ?? AnyShapeStyle(.tint))
+    }
+}
+
+extension CairnColor {
+    /// System colors, which follow dark mode and increased contrast.
+    var color: Color {
+        switch self {
+        case .red: .red
+        case .orange: .orange
+        case .yellow: .yellow
+        case .green: .green
+        case .blue: .blue
+        case .purple: .purple
+        case .gray: .gray
+        }
+    }
+
+    /// A colored dot for menus, which draw SF Symbols in one color: a non-template image keeps its own.
+    var swatch: NSImage {
+        let image = NSImage(size: NSSize(width: 12, height: 12), flipped: false) { rect in
+            NSColor(color).setFill()
+            NSBezierPath(ovalIn: rect.insetBy(dx: 1, dy: 1)).fill()
+            return true
+        }
+        image.isTemplate = false
+        return image
+    }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .red: "Red"
+        case .orange: "Orange"
+        case .yellow: "Yellow"
+        case .green: "Green"
+        case .blue: "Blue"
+        case .purple: "Purple"
+        case .gray: "Gray"
+        }
     }
 }
 

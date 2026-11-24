@@ -69,8 +69,12 @@ struct SidebarView: View {
             Section {
                 // Filtered data rather than an `if`: List rows under an `if` do not come back when it flips to true.
                 ForEach(cairnsExpanded ? cairns : []) { cairn in
-                    Label(cairn.name, image: "cairn")
-                        .tag(SidebarItem.cairn(cairn.persistentModelID))
+                    Label {
+                        Text(cairn.name)
+                    } icon: {
+                        CairnSymbol(color: cairn.cairnColor?.color)
+                    }
+                    .tag(SidebarItem.cairn(cairn.persistentModelID))
                     ForEach(tags(in: cairn)) { tag in
                         Label(tag.name, systemImage: "tag")
                             .padding(.leading, 12)
@@ -197,6 +201,15 @@ struct SidebarView: View {
         } else if let cairn = single(items, cairns, as: SidebarItem.cairn) {
             Button("Export as Markdown…", systemImage: "square.and.arrow.up") {
                 cairnExport = (ExportDocument(data: Data(Library.markdown(for: cairn).utf8)), cairn.name)
+            }
+            Menu("Color", systemImage: "paintpalette") {
+                Picker("Color", selection: Binding { cairn.cairnColor } set: { cairn.cairnColor = $0 }) {
+                    Text("No color").tag(CairnColor?.none)
+                    ForEach(CairnColor.allCases, id: \.self) { color in
+                        Label { Text(color.title) } icon: { Image(nsImage: color.swatch) }.tag(CairnColor?.some(color))
+                    }
+                }
+                .pickerStyle(.inline)
             }
             Divider()
             Button("Rename…", systemImage: "pencil") { startNaming(.cairn(cairn)) }
@@ -409,5 +422,17 @@ private struct HeaderIcon: ViewModifier {
             .foregroundStyle(.secondary)
             .frame(width: 20, height: 20)
             .contentShape(Rectangle())
+    }
+}
+
+/// The cairn's symbol in its color (the accent color without one), white on the selected row where it would vanish
+/// into the highlight, like the kept mark of an article row.
+private struct CairnSymbol: View {
+    let color: Color?
+    @Environment(\.backgroundProminence) private var prominence
+
+    var body: some View {
+        Image("cairn")
+            .foregroundStyle(prominence == .increased ? AnyShapeStyle(.white) : color.map(AnyShapeStyle.init) ?? AnyShapeStyle(.tint))
     }
 }
